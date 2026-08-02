@@ -146,23 +146,76 @@ static class LuaTypeMapping
         if (typeSymbol.TypeKind == TypeKind.Enum)
             return typeSymbol.Name;
 
-        // --- Known [LuaObject] types ---
-        if (typeSymbol is INamedTypeSymbol namedSymbol
-            && knownTypes.TryGetValue(namedSymbol, out var typeMeta))
+        // --- Known [LuaObject] types (exact match or open generic) ---
+        if (typeSymbol is INamedTypeSymbol namedSymbol)
         {
-            return typeMeta.LuaObjectName ?? typeMeta.TypeName;
+            TypeMetadata? matchedMeta = null;
+
+            // Exact match
+            if (knownTypes.TryGetValue(namedSymbol, out var exactMeta))
+                matchedMeta = exactMeta;
+            // Open generic definition match (e.g., UnlimitedArray<T> in knownTypes,
+            // but the property type is UnlimitedArray<bool> — a constructed generic)
+            else if (namedSymbol.IsGenericType
+                     && knownTypes.TryGetValue(namedSymbol.ConstructedFrom, out var openMeta))
+                matchedMeta = openMeta;
+
+            if (matchedMeta != null)
+            {
+                // Use the simple name (no <T>) as base, then resolve generic args.
+                var baseName = matchedMeta.LuaObjectName ?? namedSymbol.Name;
+                return ResolveGenericName(baseName, namedSymbol, references, compilation, knownTypes);
+            }
         }
 
         // --- ILuaUserData implementations ---
         if (compilation.ClassifyCommonConversion(typeSymbol, references.LuaUserData).Exists)
+        {
+            if (typeSymbol is INamedTypeSymbol { IsGenericType: true } userDataGeneric)
+            {
+                return ResolveGenericName(
+                    typeSymbol.Name, userDataGeneric, references, compilation, knownTypes);
+            }
             return typeSymbol.Name;
+        }
 
         // --- Types convertible to LuaValue (light userdata) ---
         if (compilation.ClassifyCommonConversion(typeSymbol, references.LuaValue).Exists)
             return "any";
 
-        // --- Fallback: use the type's short name ---
+        // --- Fallback: use the type's short name (with generic args if applicable) ---
+        if (typeSymbol is INamedTypeSymbol { IsGenericType: true } fallbackGeneric)
+        {
+            return ResolveGenericName(
+                typeSymbol.Name, fallbackGeneric, references, compilation, knownTypes);
+        }
         return typeSymbol.Name;
+    }
+
+    /// <summary>
+    /// Given a base type name and a (possibly constructed) generic type symbol,
+    /// produces "Name&lt;A, B&gt;" with recursively-resolved type arguments.
+    /// If the type is non-generic, returns just <paramref name="baseName"/>.
+    /// </summary>
+    static string ResolveGenericName(
+        string baseName,
+        INamedTypeSymbol typeSymbol,
+        SymbolReferences references,
+        Compilation compilation,
+        Dictionary<INamedTypeSymbol, TypeMetadata> knownTypes
+    )
+    {
+        if (!typeSymbol.IsGenericType || typeSymbol.TypeArguments.Length == 0)
+            return baseName;
+
+        var args = new List<string>(typeSymbol.TypeArguments.Length);
+        foreach (var arg in typeSymbol.TypeArguments)
+        {
+            var resolved = GetLuaCATSTypeName(arg, references, compilation, knownTypes);
+            args.Add(resolved ?? "any");
+        }
+
+        return $"{baseName}<{string.Join(", ", args)}>";
     }
 
     /// <summary>

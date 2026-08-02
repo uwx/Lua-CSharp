@@ -96,6 +96,24 @@ partial class LuaObjectGenerator
     //  Class emission
     // ──────────────────────────────────────────────
 
+    /// <summary>
+    /// Builds the LuaCATS class name including generic type parameter names
+    /// for the @class declaration (e.g., "MyList&lt;T&gt;").
+    /// </summary>
+    static string GetLuaClassDeclarationName(TypeMetadata typeMeta)
+    {
+        var baseName = typeMeta.LuaObjectName ?? typeMeta.Symbol.Name;
+
+        if (typeMeta.Symbol.IsGenericType && typeMeta.Symbol.TypeArguments.Length > 0)
+        {
+            var typeParamNames = typeMeta.Symbol.TypeArguments
+                .Select(t => t.Name);
+            return $"{baseName}<{string.Join(", ", typeParamNames)}>";
+        }
+
+        return baseName;
+    }
+
     static void EmitLuaClass(
         StringBuilder sb,
         TypeMetadata typeMeta,
@@ -104,7 +122,7 @@ partial class LuaObjectGenerator
         Dictionary<INamedTypeSymbol, TypeMetadata> knownTypes
     )
     {
-        var luaName = typeMeta.LuaObjectName ?? typeMeta.TypeName;
+        var luaName = GetLuaClassDeclarationName(typeMeta);
 
         // --- @class declaration with inheritance ---
         var baseTypes = new List<string>();
@@ -114,7 +132,7 @@ partial class LuaObjectGenerator
             && knownTypes.ContainsKey(typeMeta.Symbol.BaseType))
         {
             var baseMeta = knownTypes[typeMeta.Symbol.BaseType];
-            baseTypes.Add(baseMeta.LuaObjectName ?? baseMeta.TypeName);
+            baseTypes.Add(GetLuaClassDeclarationName(baseMeta));
         }
 
         // Add ILuaUserData if the type implements it directly
@@ -260,7 +278,7 @@ partial class LuaObjectGenerator
         Dictionary<INamedTypeSymbol, TypeMetadata> knownTypes
     )
     {
-        var luaName = typeMeta.LuaObjectName ?? typeMeta.TypeName;
+        var luaName = GetLuaClassDeclarationName(typeMeta);
 
         foreach (var method in typeMeta.Methods)
         {
