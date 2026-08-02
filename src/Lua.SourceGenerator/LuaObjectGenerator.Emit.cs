@@ -251,7 +251,9 @@ partial class LuaObjectGenerator
                 builder.AppendLine("set");
                 using (builder.BeginBlockScope())
                 {
-                    builder.AppendLine("__Cache.__metatable = value;");
+                    builder.AppendLine(
+                        @"throw new global::System.InvalidOperationException(""The metatable of a [LuaObject] type is built once per type and cannot be replaced."");"
+                    );
                 }
             }
 
