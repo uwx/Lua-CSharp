@@ -25,24 +25,42 @@ static class SymbolExtensions
         bool withoutOverride = true
     )
     {
-        // Iterate Parent -> Derived
+        var seen = new HashSet<ISymbol>(SymbolEqualityComparer.Default);
+
+        // Walk base class chain (parent → derived)
         if (symbol.BaseType != null)
         {
             foreach (var item in GetAllMembers(symbol.BaseType))
             {
-                // override item already iterated in parent type
                 if (!withoutOverride || !item.IsOverride)
+                {
+                    seen.Add(item);
+                    yield return item;
+                }
+            }
+        }
+
+        // Walk base interfaces recursively (diamond-deduplicated)
+        foreach (var iface in symbol.AllInterfaces)
+        {
+            foreach (var item in iface.GetMembers())
+            {
+                if (seen.Add(item))
                 {
                     yield return item;
                 }
             }
         }
 
+        // Own members last so they shadow base members with the same name
         foreach (var item in symbol.GetMembers())
         {
             if (!withoutOverride || !item.IsOverride)
             {
-                yield return item;
+                if (seen.Add(item))
+                {
+                    yield return item;
+                }
             }
         }
     }

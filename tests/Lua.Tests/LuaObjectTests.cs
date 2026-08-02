@@ -276,7 +276,14 @@ public readonly partial struct LuaTestStruct
 }
 
 [LuaObject]
-public partial interface ILuaTestInterface
+public partial interface ILuaTestBaseInterface
+{
+    [LuaMember("baseName")]
+    string BaseName { get; }
+}
+
+[LuaObject]
+public partial interface ILuaTestInterface : ILuaTestBaseInterface
 {
     [LuaMember("name")]
     string Name { get; }
@@ -285,16 +292,19 @@ public partial interface ILuaTestInterface
     int Value { get; }
 
     [LuaMember("create")]
-    static ILuaTestInterface Create(string name, int value) => new LuaTestImpl(name, value);
+    static ILuaTestInterface Create(string baseName, string name, int value) =>
+        new LuaTestImpl(baseName, name, value);
 }
 
 public sealed class LuaTestImpl : ILuaTestInterface
 {
+    public string BaseName { get; }
     public string Name { get; }
     public int Value { get; }
 
-    public LuaTestImpl(string name, int value)
+    public LuaTestImpl(string baseName, string name, int value)
     {
+        BaseName = baseName;
         Name = name;
         Value = value;
     }
@@ -772,7 +782,7 @@ public class LuaObjectTests
     [Test]
     public async Task Test_InterfacePropertyRead()
     {
-        var impl = ILuaTestInterface.Create("hello", 42);
+        var impl = ILuaTestInterface.Create("base", "hello", 42);
 
         var state = LuaState.Create();
         state.Environment["test"] = LuaValue.FromUserData(impl);
@@ -786,12 +796,30 @@ public class LuaObjectTests
     }
 
     [Test]
+    public async Task Test_InterfaceInheritedPropertyRead()
+    {
+        var impl = ILuaTestInterface.Create("baseName", "hello", 42);
+
+        var state = LuaState.Create();
+        state.Environment["test"] = LuaValue.FromUserData(impl);
+        var results = await state.DoStringAsync("return test.baseName, test.name, test.value");
+
+        Assert.That(results, Has.Length.EqualTo(3));
+        Assert.That(results[0].TryRead<string>(out var baseName), Is.True);
+        Assert.That(baseName, Is.EqualTo("baseName"));
+        Assert.That(results[1].TryRead<string>(out var name), Is.True);
+        Assert.That(name, Is.EqualTo("hello"));
+        Assert.That(results[2].TryRead<int>(out var value), Is.True);
+        Assert.That(value, Is.EqualTo(42));
+    }
+
+    [Test]
     public async Task Test_InterfaceStaticFactory()
     {
         var state = LuaState.Create();
-        state.Environment["TestIface"] = LuaValue.FromUserData(new LuaTestImpl("", 0));
+        state.Environment["TestIface"] = LuaValue.FromUserData(new LuaTestImpl("", "", 0));
         var results = await state.DoStringAsync("""
-            local obj = TestIface.create("world", 99)
+            local obj = TestIface.create("base", "world", 99)
             return obj.name, obj.value
             """);
 
