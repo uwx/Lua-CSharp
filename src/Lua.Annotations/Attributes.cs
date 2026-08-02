@@ -1,6 +1,6 @@
 ﻿namespace Lua;
 
-[AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct)]
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Interface)]
 public sealed class LuaObjectAttribute : Attribute
 {
     public LuaObjectAttribute() { }

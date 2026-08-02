@@ -13,7 +13,7 @@ public partial class LuaObjectGenerator : IIncrementalGenerator
                 "Lua.LuaObjectAttribute",
                 static (node, cancellation) =>
                 {
-                    return node is ClassDeclarationSyntax or RecordDeclarationSyntax or StructDeclarationSyntax;
+                    return node is ClassDeclarationSyntax or RecordDeclarationSyntax or StructDeclarationSyntax or InterfaceDeclarationSyntax;
                 },
                 static (context, cancellation) =>
                 {

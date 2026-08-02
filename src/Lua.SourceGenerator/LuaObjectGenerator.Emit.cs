@@ -110,20 +110,26 @@ partial class LuaObjectGenerator
                 builder.BeginBlock();
             }
 
-            var typeDeclarationKeyword = (
-                typeMetadata.Symbol.IsRecord,
-                typeMetadata.Symbol.IsValueType
-            ) switch
-            {
-                (true, true) => "record struct",
-                (true, false) => "record",
-                (false, true) => "struct",
-                (false, false) => "class",
-            };
+            var isInterface = typeMetadata.Symbol.TypeKind == TypeKind.Interface;
+            var typeDeclarationKeyword = isInterface
+                ? "interface"
+                : (
+                    typeMetadata.Symbol.IsRecord,
+                    typeMetadata.Symbol.IsValueType
+                ) switch
+                {
+                    (true, true) => "record struct",
+                    (true, false) => "record",
+                    (false, true) => "struct",
+                    (false, false) => "class",
+                };
 
             using var _ = builder.BeginBlockScope(
                 $"partial {typeDeclarationKeyword} {typeMetadata.TypeName} : global::Lua.ILuaUserData"
             );
+
+            builder.AppendLine("private static class __Cache");
+            builder.AppendLine("{");
 
             var metamethodSet = tempCollections.Metamethods;
 
@@ -134,6 +140,7 @@ partial class LuaObjectGenerator
                     references,
                     compilation,
                     metamethodSet,
+                    tempCollections,
                     context
                 )
             )
@@ -178,13 +185,82 @@ partial class LuaObjectGenerator
                 return false;
             }
 
-            // implicit operator
+            builder.AppendLine("}"); // close __Cache
+
+            // Bridging properties so the outer type can access static fields in __Cache
             builder.AppendLine(
-                $"public static implicit operator global::Lua.LuaValue({typeMetadata.FullTypeName} value)"
+                "static global::Lua.LuaFunction __metamethod_index => __Cache.__metamethod_index;"
+            );
+            builder.AppendLine(
+                "static global::Lua.LuaFunction __metamethod_newindex => __Cache.__metamethod_newindex;"
+            );
+
+            // Alias properties: __metamethod_foo => __Cache.__function_foo
+            // (must come before Metatable, which references them)
+            foreach (var alias in tempCollections.AliasProperties)
+            {
+                builder.AppendLine(
+                    $"static global::Lua.LuaFunction {alias.AliasName} => __Cache.{alias.FunctionName};"
+                );
+            }
+
+            // Static Metatable property (in the outer type, accesses __Cache.__metatable).
+            // Use 'new' on interfaces to avoid hiding warning from inherited ILuaUserData.Metatable.
+            builder.AppendLine(
+                isInterface
+                    ? "new static global::Lua.LuaTable? Metatable"
+                    : "static global::Lua.LuaTable? Metatable"
             );
             using (builder.BeginBlockScope())
             {
-                builder.AppendLine("return  global::Lua.LuaValue.FromUserData(value);");
+                builder.AppendLine("get");
+                using (builder.BeginBlockScope())
+                {
+                    builder.AppendLine(
+                        "if (__Cache.__metatable != null) return __Cache.__metatable;"
+                    );
+                    builder.AppendLine();
+                    builder.AppendLine("__Cache.__metatable = new();");
+                    foreach (var metamethod in metamethodSet)
+                    {
+                        var metaMethodName = metamethod.ToString();
+                        var lowerName = metaMethodName.ToLower();
+                        builder.AppendLine(
+                            $"__Cache.__metatable[global::Lua.Runtime.Metamethods.{metaMethodName}] = __metamethod_{lowerName};"
+                        );
+                    }
+                    builder.AppendLine("return __Cache.__metatable;");
+                }
+
+                builder.AppendLine("set");
+                using (builder.BeginBlockScope())
+                {
+                    builder.AppendLine("__Cache.__metatable = value;");
+                }
+            }
+
+            // ILuaUserData.Metatable implementation.
+            // For classes/structs this is an explicit interface implementation.
+            // For interfaces this is a default interface implementation (C# 8+ DIM).
+            builder.AppendLine(
+                "global::Lua.LuaTable? global::Lua.ILuaUserData.Metatable"
+            );
+            using (builder.BeginBlockScope())
+            {
+                builder.AppendLine("get => Metatable;");
+                builder.AppendLine("set => Metatable = value;");
+            }
+
+            // implicit operator (not supported on interfaces)
+            if (!isInterface)
+            {
+                builder.AppendLine(
+                    $"public static implicit operator global::Lua.LuaValue({typeMetadata.FullTypeName} value)"
+                );
+                using (builder.BeginBlockScope())
+                {
+                    builder.AppendLine("return  global::Lua.LuaValue.FromUserData(value);");
+                }
             }
 
             if (!ns.IsGlobalNamespace)
@@ -462,7 +538,7 @@ partial class LuaObjectGenerator
             && SymbolEqualityComparer.Default.Equals(customKeyType, references.String);
 
         builder.AppendLine(
-            @"static readonly global::Lua.LuaFunction __metamethod_index = new global::Lua.LuaFunction(""index"", (context, ct) =>"
+            @"internal static readonly global::Lua.LuaFunction __metamethod_index = new global::Lua.LuaFunction(""index"", (context, ct) =>"
         );
 
         using (builder.BeginBlockScope())
@@ -628,7 +704,7 @@ partial class LuaObjectGenerator
             && SymbolEqualityComparer.Default.Equals(customKeyType, references.String);
 
         builder.AppendLine(
-            @"static readonly global::Lua.LuaFunction __metamethod_newindex = new global::Lua.LuaFunction(""newindex"", (context, ct) =>"
+            @"internal static readonly global::Lua.LuaFunction __metamethod_newindex = new global::Lua.LuaFunction(""newindex"", (context, ct) =>"
         );
 
         using (builder.BeginBlockScope())
@@ -818,6 +894,7 @@ partial class LuaObjectGenerator
         SymbolReferences references,
         Compilation compilation,
         HashSet<LuaObjectMetamethod> metamethodSet,
+        TempCollections tempCollections,
         in SourceProductionContext context
     )
     {
@@ -871,14 +948,24 @@ partial class LuaObjectGenerator
                             and not LuaObjectMetamethod.NewIndex
                     )
                     {
+                        var directName = $"__metamethod_{metaMethodName}";
                         EmitMethodFunction(
-                            $"__metamethod_{metaMethodName}",
+                            directName,
                             metaMethodName,
                             typeMetadata,
                             methodMetadata,
                             builder,
                             references,
                             compilation
+                        );
+                        // Add a bridging property so the outer type can reference
+                        // this method via the same name (delegates to __Cache).
+                        tempCollections.AliasProperties.Add(
+                            new()
+                            {
+                                AliasName = directName,
+                                FunctionName = directName
+                            }
                         );
                     }
                 }
@@ -888,8 +975,12 @@ partial class LuaObjectGenerator
                         and not LuaObjectMetamethod.NewIndex
                 )
                 {
-                    builder.AppendLine(
-                        $"static global::Lua.LuaFunction __metamethod_{metaMethodName} => {functionName};"
+                    tempCollections.AliasProperties.Add(
+                        new()
+                        {
+                            AliasName = $"__metamethod_{metaMethodName}",
+                            FunctionName = functionName
+                        }
                     );
                 }
             }
@@ -909,7 +1000,7 @@ partial class LuaObjectGenerator
     )
     {
         builder.AppendLine(
-            $@"static readonly global::Lua.LuaFunction {functionName} = new global::Lua.LuaFunction(""{chunkName}"", {(methodMetadata.IsAsync ? "async" : "")} (context, ct) =>"
+            $@"internal static readonly global::Lua.LuaFunction {functionName} = new global::Lua.LuaFunction(""{chunkName}"", {(methodMetadata.IsAsync ? "async" : "")} (context, ct) =>"
         );
 
         using (builder.BeginBlockScope())
@@ -1241,41 +1332,10 @@ partial class LuaObjectGenerator
         in SourceProductionContext context
     )
     {
-        builder.AppendLine("global::Lua.LuaTable? global::Lua.ILuaUserData.Metatable");
-        using (builder.BeginBlockScope())
-        {
-            builder.AppendLine("get => Metatable;");
-            builder.AppendLine("set => Metatable = value;");
-        }
-        builder.AppendLine("static global::Lua.LuaTable? Metatable");
-        using (builder.BeginBlockScope())
-        {
-            builder.AppendLine("get");
-            using (builder.BeginBlockScope())
-            {
-                builder.AppendLine("if (__metatable != null) return __metatable;");
-                builder.AppendLine();
-                builder.AppendLine("__metatable = new();");
-                foreach (var metamethod in metamethods)
-                {
-                    var metaMethodName = metamethod.ToString();
-                    var lowerName = metaMethodName.ToLower();
-                    builder.AppendLine(
-                        $"__metatable[global::Lua.Runtime.Metamethods.{metaMethodName}] = __metamethod_{lowerName};"
-                    );
-                }
-
-                builder.AppendLine("return __metatable;");
-            }
-
-            builder.AppendLine("set");
-            using (builder.BeginBlockScope())
-            {
-                builder.AppendLine("__metatable = value;");
-            }
-        }
-
-        builder.AppendLine("static global::Lua.LuaTable? __metatable;");
+        // The backing field lives inside __Cache.
+        // The static Metatable property (and ILuaUserData.Metatable) are emitted
+        // by TryEmit after the cache is closed, so they live in the outer type.
+        builder.AppendLine("internal static global::Lua.LuaTable? __metatable;");
         builder.AppendLine();
 
         return true;
