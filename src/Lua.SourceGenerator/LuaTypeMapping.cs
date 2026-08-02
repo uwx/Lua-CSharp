@@ -58,11 +58,12 @@ static class LuaTypeMapping
         }
 
         // --- FixedMathSharp types (by name, since not in SymbolReferences) ---
+        // Map to manually-defined LuaCATS types from globals.lua.
         var typeFullName = typeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
         if (typeFullName == "global::FixedMathSharp.Fixed64")
-            return "number";
+            return "fixed64";
         if (typeFullName == "global::FixedMathSharp.Vector3d")
-            return "Vector3d";
+            return "fixed64vector3";
 
         // --- Nullable<T> ---
         if (typeSymbol is INamedTypeSymbol { IsGenericType: true } nullableType
