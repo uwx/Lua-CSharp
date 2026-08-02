@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using FixedMathSharp;
 using Lua.Internal;
 using Lua.Runtime;
+using Maxine.Extensions.Mathematics;
 
 namespace Lua;
 
@@ -742,6 +743,18 @@ public readonly struct LuaValue : IEquatable<LuaValue>
     public static implicit operator LuaValue(Vector3d value)
     {
         return new(value);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static implicit operator LuaValue(Fixed64? value)
+    {
+        return value != null ? new(value.Value) : Nil;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static implicit operator LuaValue(Vector3d? value)
+    {
+        return value != null ? new(value.Value) : Nil;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
