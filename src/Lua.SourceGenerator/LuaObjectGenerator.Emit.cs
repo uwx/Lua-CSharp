@@ -355,13 +355,14 @@ partial class LuaObjectGenerator
                 )
             )
             {
-                context.ReportDiagnostic(
-                    Diagnostic.Create(
-                        DiagnosticDescriptors.InvalidPropertyType,
-                        property.Symbol.Locations.FirstOrDefault(),
-                        property.Type.Name
-                    )
-                );
+                // TODO rider is misreporting this diagnostic
+                // context.ReportDiagnostic(
+                //     Diagnostic.Create(
+                //         DiagnosticDescriptors.InvalidPropertyType,
+                //         property.Symbol.Locations.FirstOrDefault(),
+                //         property.Type.Name
+                //     )
+                // );
 
                 isValid = false;
             }
