@@ -275,6 +275,31 @@ public readonly partial struct LuaTestStruct
     public override string ToString() => $"({x}, {y})";
 }
 
+[LuaObject]
+public partial interface ILuaTestInterface
+{
+    [LuaMember("name")]
+    string Name { get; }
+
+    [LuaMember("value")]
+    int Value { get; }
+
+    [LuaMember("create")]
+    static ILuaTestInterface Create(string name, int value) => new LuaTestImpl(name, value);
+}
+
+public sealed class LuaTestImpl : ILuaTestInterface
+{
+    public string Name { get; }
+    public int Value { get; }
+
+    public LuaTestImpl(string name, int value)
+    {
+        Name = name;
+        Value = value;
+    }
+}
+
 public class LuaObjectTests
 {
     [Test]
@@ -742,5 +767,38 @@ public class LuaObjectTests
         var objAdd = results[0].Read<LuaTestStruct>();
         Assert.That(objAdd.X, Is.EqualTo(4));
         Assert.That(objAdd.Y, Is.EqualTo(6));
+    }
+
+    [Test]
+    public async Task Test_InterfacePropertyRead()
+    {
+        var impl = ILuaTestInterface.Create("hello", 42);
+
+        var state = LuaState.Create();
+        state.Environment["test"] = LuaValue.FromUserData(impl);
+        var results = await state.DoStringAsync("return test.name, test.value");
+
+        Assert.That(results, Has.Length.EqualTo(2));
+        Assert.That(results[0].TryRead<string>(out var name), Is.True);
+        Assert.That(name, Is.EqualTo("hello"));
+        Assert.That(results[1].TryRead<int>(out var value), Is.True);
+        Assert.That(value, Is.EqualTo(42));
+    }
+
+    [Test]
+    public async Task Test_InterfaceStaticFactory()
+    {
+        var state = LuaState.Create();
+        state.Environment["TestIface"] = LuaValue.FromUserData(new LuaTestImpl("", 0));
+        var results = await state.DoStringAsync("""
+            local obj = TestIface.create("world", 99)
+            return obj.name, obj.value
+            """);
+
+        Assert.That(results, Has.Length.EqualTo(2));
+        Assert.That(results[0].TryRead<string>(out var name), Is.True);
+        Assert.That(name, Is.EqualTo("world"));
+        Assert.That(results[1].TryRead<int>(out var value), Is.True);
+        Assert.That(value, Is.EqualTo(99));
     }
 }
