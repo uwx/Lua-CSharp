@@ -1,3 +1,4 @@
+using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -6,6 +7,20 @@ namespace Lua.SourceGenerator;
 
 partial class LuaObjectGenerator
 {
+    /// <summary>
+    /// Checks whether <paramref name="typeSymbol"/> has the <see cref="Lua.LuaObjectAttribute"/>.
+    /// This is needed because source-generated implicit conversions and interface
+    /// implementations may not exist in the compilation yet at the point the
+    /// generator runs.
+    /// </summary>
+    static bool HasLuaObjectAttribute(ITypeSymbol typeSymbol, SymbolReferences references)
+    {
+        return typeSymbol is INamedTypeSymbol namedType
+            && namedType.GetAttributes().Any(attr =>
+                SymbolEqualityComparer.Default.Equals(
+                    attr.AttributeClass, references.LuaObjectAttribute));
+    }
+
     static string GetLuaValuePrefix(
         ITypeSymbol typeSymbol,
         SymbolReferences references,
@@ -18,6 +33,7 @@ partial class LuaObjectGenerator
         }
 
         return compilation.ClassifyCommonConversion(typeSymbol, references.LuaUserData).Exists
+            || HasLuaObjectAttribute(typeSymbol, references)
             ? "global::Lua.LuaValue.FromUserData("
             : "(";
     }
@@ -320,7 +336,8 @@ partial class LuaObjectGenerator
                 continue;
             }
 
-            if (compilation.ClassifyConversion(property.Type, references.LuaUserData).Exists)
+            if (compilation.ClassifyConversion(property.Type, references.LuaUserData).Exists
+                || (property.Type is INamedTypeSymbol namedPropType && metaDict.ContainsKey(namedPropType)))
             {
                 continue;
             }
@@ -378,7 +395,8 @@ partial class LuaObjectGenerator
                     goto PARAMETERS;
                 }
 
-                if (compilation.ClassifyConversion(typeSymbol, references.LuaUserData).Exists)
+                if (compilation.ClassifyConversion(typeSymbol, references.LuaUserData).Exists
+                    || (typeSymbol is INamedTypeSymbol namedRetType && metaDict.ContainsKey(namedRetType)))
                 {
                     goto PARAMETERS;
                 }
@@ -440,7 +458,8 @@ partial class LuaObjectGenerator
                     continue;
                 }
 
-                if (compilation.ClassifyConversion(typeSymbol, references.LuaUserData).Exists)
+                if (compilation.ClassifyConversion(typeSymbol, references.LuaUserData).Exists
+                    || (typeSymbol is INamedTypeSymbol namedParamType && metaDict.ContainsKey(namedParamType)))
                 {
                     continue;
                 }
