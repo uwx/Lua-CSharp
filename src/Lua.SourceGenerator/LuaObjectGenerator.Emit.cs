@@ -642,7 +642,9 @@ partial class LuaObjectGenerator
             {
                 foreach (var propertyMetadata in typeMetadata.Properties)
                 {
-                    if (propertyMetadata.IsReadOnly)
+                    // Struct property setters operate on a copy and are silently lost.
+                    // For safety, treat all value-type properties as read-only for newindex.
+                    if (propertyMetadata.IsReadOnly || typeMetadata.Symbol.IsValueType)
                     {
                         tempCollections.InvalidMemberNames.Add(propertyMetadata.LuaMemberName);
                         continue;

@@ -244,6 +244,37 @@ public partial class ChildClass : ParentClass
     public int Number { get; set; }
 }
 
+[LuaObject]
+public readonly partial struct LuaTestStruct
+{
+    readonly float x;
+    readonly float y;
+
+    public LuaTestStruct(float x, float y)
+    {
+        this.x = x;
+        this.y = y;
+    }
+
+    [LuaMember("x")]
+    public float X => x;
+
+    [LuaMember("y")]
+    public float Y => y;
+
+    [LuaMember("create")]
+    public static LuaTestStruct Create(float x, float y) => new(x, y);
+
+    [LuaMetamethod(LuaObjectMetamethod.Add)]
+    public static LuaTestStruct Add(LuaTestStruct a, LuaTestStruct b) =>
+        new(a.x + b.x, a.y + b.y);
+
+    [LuaMember("length")]
+    public double Length() => Math.Sqrt(x * x + y * y);
+
+    public override string ToString() => $"({x}, {y})";
+}
+
 public class LuaObjectTests
 {
     [Test]
@@ -645,5 +676,71 @@ public class LuaObjectTests
         // le: 5 <= 5 = true (auto-detected __le)
         Assert.That(results[9].TryRead<bool>(out b), Is.True);
         Assert.That(b, Is.True);
+    }
+
+    [Test]
+    public async Task Test_StructPropertyRead()
+    {
+        var userData = LuaTestStruct.Create(3, 4);
+
+        var state = LuaState.Create();
+        state.Environment["test"] = userData;
+        var results = await state.DoStringAsync("return test.x, test.y");
+
+        Assert.That(results, Has.Length.EqualTo(2));
+        Assert.That(results[0].TryRead<float>(out var x), Is.True);
+        Assert.That(x, Is.EqualTo(3));
+        Assert.That(results[1].TryRead<float>(out var y), Is.True);
+        Assert.That(y, Is.EqualTo(4));
+    }
+
+    [Test]
+    public void Test_StructPropertyWriteThrows()
+    {
+        var userData = LuaTestStruct.Create(1, 2);
+
+        var state = LuaState.Create();
+        state.Environment["test"] = userData;
+        // Struct property setters are not supported — value-type properties
+        // are treated as read-only to avoid silently mutating a copy.
+        Assert.ThrowsAsync<LuaRuntimeException>(async () =>
+        {
+            await state.DoStringAsync("test.x = 10");
+        });
+    }
+
+    [Test]
+    public async Task Test_StructInstanceMethod()
+    {
+        var userData = LuaTestStruct.Create(3, 4);
+
+        var state = LuaState.Create();
+        state.Environment["test"] = userData;
+        var results = await state.DoStringAsync("return test:length()");
+
+        Assert.That(results, Has.Length.EqualTo(1));
+        Assert.That(results[0].TryRead<double>(out var len), Is.True);
+        Assert.That(len, Is.EqualTo(5));
+    }
+
+    [Test]
+    public async Task Test_StructArithMetamethod()
+    {
+        var userData = default(LuaTestStruct);
+
+        var state = LuaState.Create();
+        state.OpenBasicLibrary();
+        state.Environment["TestObj"] = userData;
+        var results = await state.DoStringAsync("""
+            local a = TestObj.create(1, 2)
+            local b = TestObj.create(3, 4)
+            return a + b
+            """);
+
+        Assert.That(results, Has.Length.EqualTo(1));
+        Assert.That(results[0].Read<object>(), Is.TypeOf<LuaTestStruct>());
+        var objAdd = results[0].Read<LuaTestStruct>();
+        Assert.That(objAdd.X, Is.EqualTo(4));
+        Assert.That(objAdd.Y, Is.EqualTo(6));
     }
 }
