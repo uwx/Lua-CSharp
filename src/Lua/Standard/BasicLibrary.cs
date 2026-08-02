@@ -730,6 +730,8 @@ public sealed class BasicLibrary
                     LuaValueType.LightUserData => "userdata",
                     LuaValueType.UserData => "userdata",
                     LuaValueType.Table => "table",
+                    LuaValueType.Fixed64 => "fixed64",
+                    LuaValueType.Fixed64Vector3 => "fixed64vector3",
                     _ => throw new NotImplementedException(),
                 }
             )

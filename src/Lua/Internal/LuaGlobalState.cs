@@ -39,6 +39,8 @@ sealed class LuaGlobalState
     LuaTable? booleanMetatable;
     LuaTable? functionMetatable;
     LuaTable? stateMetatable;
+    LuaTable? fixed64Metatable;
+    LuaTable? fixed64Vector3Metatable;
 
     public static LuaGlobalState Create(LuaPlatform? platform = null)
     {
@@ -67,6 +69,8 @@ sealed class LuaGlobalState
             LuaValueType.Number => numberMetatable,
             LuaValueType.Function => functionMetatable,
             LuaValueType.Thread => stateMetatable,
+            LuaValueType.Fixed64 => fixed64Metatable,
+            LuaValueType.Fixed64Vector3 => fixed64Vector3Metatable,
             LuaValueType.UserData => value.UnsafeRead<ILuaUserData>().Metatable,
             LuaValueType.Table => value.UnsafeRead<LuaTable>().Metatable,
             _ => null,
@@ -97,6 +101,12 @@ sealed class LuaGlobalState
                 break;
             case LuaValueType.Thread:
                 stateMetatable = metatable;
+                break;
+            case LuaValueType.Fixed64:
+                fixed64Metatable = metatable;
+                break;
+            case LuaValueType.Fixed64Vector3:
+                fixed64Vector3Metatable = metatable;
                 break;
             case LuaValueType.UserData:
                 value.UnsafeRead<ILuaUserData>().Metatable = metatable;

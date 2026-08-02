@@ -128,14 +128,14 @@ sealed class LuaValueDictionary
                     entry = ref Unsafe.Add(ref entriesRef, i);
                     if (
                         entry.hashCode == hashCode
-                        && entry.keyType == key.Type
+                        && entry.key.Type == key.Type
                         && key.Type switch
                         {
-                            LuaValueType.String => Unsafe.As<string>(entry.keyObject)
+                            LuaValueType.String => entry.key.UnsafeReadString()
                                 == key.UnsafeReadString(),
-                            LuaValueType.Number or LuaValueType.Boolean => entry.keyNumber
+                            LuaValueType.Number or LuaValueType.Boolean => entry.key.UnsafeReadDouble()
                                 == key.UnsafeReadDouble(),
-                            _ => entry.keyObject == key.UnsafeReadObject(),
+                            _ => entry.key.UnsafeReadObject() == key.UnsafeReadObject(),
                         }
                     )
                     {
@@ -215,14 +215,13 @@ sealed class LuaValueDictionary
                 entry = ref entries[i];
                 if (
                     entry.hashCode == hashCode
-                    && entry.keyType == key.Type
+                    && entry.key.Type == key.Type
                     && key.Type switch
                     {
-                        LuaValueType.Number or LuaValueType.Boolean => entry.keyNumber
+                        LuaValueType.Number or LuaValueType.Boolean => entry.key.UnsafeReadDouble()
                             == key.UnsafeReadDouble(),
-                        LuaValueType.String => Unsafe.As<string>(entry.keyObject)
-                            == key.UnsafeReadString(),
-                        _ => entry.keyObject == key.UnsafeReadObject(),
+                        LuaValueType.String => entry.key.UnsafeReadString() == key.UnsafeReadString(),
+                        _ => entry.key.UnsafeReadObject() == key.UnsafeReadObject(),
                     }
                 )
                 {
@@ -276,9 +275,7 @@ sealed class LuaValueDictionary
             ref var entry = ref entries![index];
             entry.hashCode = hashCode;
             entry.next = bucket - 1; // Value in _buckets is 1-based
-            entry.keyType = key.Type;
-            entry.keyObject = key.UnsafeReadObject();
-            entry.keyNumber = key.UnsafeReadDouble();
+            entry.key = key;
             entry.value = value;
             bucket = index + 1; // Value in _buckets is 1-based
             _version++;
@@ -340,14 +337,13 @@ sealed class LuaValueDictionary
 
                 if (
                     entry.hashCode == hashCode
-                    && entry.keyType == key.Type
+                    && entry.key.Type == key.Type
                     && key.Type switch
                     {
-                        LuaValueType.Number or LuaValueType.Boolean => entry.keyNumber
+                        LuaValueType.Number or LuaValueType.Boolean => entry.key.UnsafeReadDouble()
                             == key.UnsafeReadDouble(),
-                        LuaValueType.String => Unsafe.As<string>(entry.keyObject)
-                            == key.UnsafeReadString(),
-                        _ => entry.keyObject == key.UnsafeReadObject(),
+                        LuaValueType.String => entry.key.UnsafeReadString() == key.UnsafeReadString(),
+                        _ => entry.key.UnsafeReadObject() == key.UnsafeReadObject(),
                     }
                 )
                 {
@@ -371,8 +367,7 @@ sealed class LuaValueDictionary
                         _nilCount--;
                     }
 
-                    entry.keyType = default;
-                    entry.keyObject = null!;
+                    entry.key = default;
                     entry.value = default;
 
                     _freeList = i;
@@ -422,7 +417,7 @@ sealed class LuaValueDictionary
                 ref var entry = ref entries[index];
                 if (entry is { next: >= -1, value.Type: not LuaValueType.Nil })
                 {
-                    pair = new(new(entry.keyType, entry.keyNumber, entry.keyObject), entry.value);
+                    pair = new(entry.key, entry.value);
                     return true;
                 }
             }
@@ -442,9 +437,7 @@ sealed class LuaValueDictionary
     struct Entry
     {
         public uint hashCode;
-        public LuaValueType keyType;
-        public object? keyObject;
-        public double keyNumber;
+        public LuaValue key;
 
         /// <summary>
         /// 0-based index of next entry in chain: -1 means end of chain
@@ -484,7 +477,7 @@ sealed class LuaValueDictionary
                     goto SearchNext;
                 }
 
-                current = new(new(entry.keyType, entry.keyNumber, entry.keyObject), entry.value);
+                current = new(entry.key, entry.value);
                 return true;
             }
         }

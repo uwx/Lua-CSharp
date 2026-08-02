@@ -68,4 +68,13 @@ public static class DiagnosticDescriptors
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true
     );
+
+    public static readonly DiagnosticDescriptor LuaCATSEmitFailed = new(
+        id: "LUACS008",
+        title: "Failed to emit LuaCATS definition file.",
+        messageFormat: "Failed to write LuaCATS .d.lua file: {0}",
+        category: Category,
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true
+    );
 }

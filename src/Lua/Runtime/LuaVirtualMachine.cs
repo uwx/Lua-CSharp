@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using FixedMathSharp;
 using Lua.Internal;
 using Lua.Internal.CompilerServices;
 
@@ -633,6 +634,22 @@ public static partial class LuaVirtualMachine
                             };
                         }
 
+                        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                        static Fixed64 Fixed64ArithmeticOperation(OpCode code, Fixed64 a, Fixed64 b)
+                        {
+                            return code switch
+                            {
+                                OpCode.Add => a + b,
+                                OpCode.Sub => a - b,
+                                OpCode.Mul => a * b,
+                                OpCode.Div => a / b,
+                                OpCode.Mod => a % b,
+                                // Fixed64.Pow not supported — falls through to metamethod/error
+                                _ => Fixed64.Zero,
+                            };
+                        }
+
+                        // Number + Number fast path
                         if (vb.Type == LuaValueType.Number && vc.Type == LuaValueType.Number)
                         {
                             Unsafe.Add(ref stackHead, iA) = ArithmeticOperation(
@@ -644,7 +661,72 @@ public static partial class LuaVirtualMachine
                             continue;
                         }
 
-                        if (vb.TryReadDouble(out numB) && vc.TryReadDouble(out var numC))
+                        // Fixed64 + Fixed64 fast path (same-type only, no cross-type coercion)
+                        if (vb.Type == LuaValueType.Fixed64 && vc.Type == LuaValueType.Fixed64)
+                        {
+                            Unsafe.Add(ref stackHead, iA) = Fixed64ArithmeticOperation(
+                                opCode,
+                                vb.UnsafeReadFixed64(),
+                                vc.UnsafeReadFixed64()
+                            );
+                            stack.NotifyTop(iA + frameBase + 1);
+                            continue;
+                        }
+
+                        // Fixed64Vector3 + Fixed64Vector3 (add/sub only)
+                        if ((opCode == OpCode.Add || opCode == OpCode.Sub)
+                            && vb.Type == LuaValueType.Fixed64Vector3
+                            && vc.Type == LuaValueType.Fixed64Vector3)
+                        {
+                            var vecA = vb.UnsafeReadFixed64Vector3();
+                            var vecB = vc.UnsafeReadFixed64Vector3();
+                            Unsafe.Add(ref stackHead, iA) = opCode == OpCode.Add ? vecA + vecB : vecA - vecB;
+                            stack.NotifyTop(iA + frameBase + 1);
+                            continue;
+                        }
+
+                        // Fixed64Vector3 * Fixed64 scalar, Fixed64Vector3 / Fixed64 scalar
+                        if ((opCode == OpCode.Mul || opCode == OpCode.Div)
+                            && vb.Type == LuaValueType.Fixed64Vector3
+                            && vc.Type == LuaValueType.Fixed64)
+                        {
+                            var vec = vb.UnsafeReadFixed64Vector3();
+                            var scalar = vc.UnsafeReadFixed64();
+                            Unsafe.Add(ref stackHead, iA) = opCode == OpCode.Mul ? vec * scalar : vec / scalar;
+                            stack.NotifyTop(iA + frameBase + 1);
+                            continue;
+                        }
+
+                        // Fixed64 * Fixed64Vector3 (commutative mul only)
+                        if (opCode == OpCode.Mul
+                            && vb.Type == LuaValueType.Fixed64
+                            && vc.Type == LuaValueType.Fixed64Vector3)
+                        {
+                            var scalar = vb.UnsafeReadFixed64();
+                            var vec = vc.UnsafeReadFixed64Vector3();
+                            Unsafe.Add(ref stackHead, iA) = scalar * vec;
+                            stack.NotifyTop(iA + frameBase + 1);
+                            continue;
+                        }
+
+                        // Fixed64Vector3 * Fixed64Vector3 component-wise, Fixed64Vector3 / Fixed64Vector3 component-wise
+                        if ((opCode == OpCode.Mul || opCode == OpCode.Div)
+                            && vb.Type == LuaValueType.Fixed64Vector3
+                            && vc.Type == LuaValueType.Fixed64Vector3)
+                        {
+                            var vecA = vb.UnsafeReadFixed64Vector3();
+                            var vecB = vc.UnsafeReadFixed64Vector3();
+                            Unsafe.Add(ref stackHead, iA) = opCode == OpCode.Mul ? vecA * vecB : vecA / vecB;
+                            stack.NotifyTop(iA + frameBase + 1);
+                            continue;
+                        }
+
+                        // Cross-type (Fixed64 + Number or vice versa) is intentionally not supported.
+                        // Skip TryReadDouble coercion so the metamethod fallback produces the error.
+                        var skipCoercion = (vb.Type == LuaValueType.Fixed64 || vc.Type == LuaValueType.Fixed64)
+                            && vb.Type != vc.Type;
+
+                        if (!skipCoercion && vb.TryReadDouble(out numB) && vc.TryReadDouble(out var numC))
                         {
                             Unsafe.Add(ref stackHead, iA) = ArithmeticOperation(opCode, numB, numC);
                             stack.NotifyTop(iA + frameBase + 1);
@@ -668,6 +750,24 @@ public static partial class LuaVirtualMachine
                         Markers.Unm();
                         stackHead = ref stack.FastGet(frameBase);
                         vb = ref Unsafe.Add(ref stackHead, instruction.B);
+
+                        // Fixed64 unary minus (must precede TryReadDouble to preserve type)
+                        if (vb.Type == LuaValueType.Fixed64)
+                        {
+                            ra1 = iA + frameBase + 1;
+                            Unsafe.Add(ref stackHead, iA) = -vb.UnsafeReadFixed64();
+                            stack.NotifyTop(ra1);
+                            continue;
+                        }
+
+                        // Fixed64Vector3 unary minus (must precede TryReadDouble)
+                        if (vb.Type == LuaValueType.Fixed64Vector3)
+                        {
+                            ra1 = iA + frameBase + 1;
+                            Unsafe.Add(ref stackHead, iA) = -vb.UnsafeReadFixed64Vector3();
+                            stack.NotifyTop(ra1);
+                            continue;
+                        }
 
                         if (vb.TryReadDouble(out numB))
                         {
@@ -787,6 +887,18 @@ public static partial class LuaVirtualMachine
                         if (vb.TryReadNumber(out numB) && vc.TryReadNumber(out numC))
                         {
                             var compareResult = opCode == OpCode.Lt ? numB < numC : numB <= numC;
+                            if (compareResult != (iA == 1))
+                            {
+                                context.Pc++;
+                            }
+
+                            continue;
+                        }
+
+                        // Fixed64 comparison (TryReadFixed64 converts Number → Fixed64)
+                        if (vb.TryReadFixed64(out var f64B) && vc.TryReadFixed64(out var f64C))
+                        {
+                            var compareResult = opCode == OpCode.Lt ? f64B < f64C : f64B <= f64C;
                             if (compareResult != (iA == 1))
                             {
                                 context.Pc++;

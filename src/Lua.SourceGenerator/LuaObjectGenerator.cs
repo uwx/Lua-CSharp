@@ -23,11 +23,36 @@ public partial class LuaObjectGenerator : IIncrementalGenerator
             .Combine(context.CompilationProvider)
             .WithComparer(Comparer.Instance);
 
+        // Read LuaCATS output directory from MSBuild property (optional).
+        // When unset, no .d.lua file is emitted.
+        var luaCATSOutputDir = context.AnalyzerConfigOptionsProvider
+            .Select((configOptions, token) =>
+            {
+                var isDesignTimeBuild =
+                    configOptions.GlobalOptions.TryGetValue(
+                        "build_property.DesignTimeBuild", out var dtb)
+                    && dtb == "true";
+
+                if (isDesignTimeBuild)
+                    return (string?)null;
+
+                if (configOptions.GlobalOptions.TryGetValue(
+                        "build_property.LuaSourceGenerator_LuaCATSOutputDirectory",
+                        out var path))
+                {
+                    return path;
+                }
+
+                return (string?)null;
+            });
+
+        var combined = provider.Collect().Combine(luaCATSOutputDir);
+
         context.RegisterSourceOutput(
-            context.CompilationProvider.Combine(provider.Collect()),
+            context.CompilationProvider.Combine(combined),
             (sourceProductionContext, t) =>
             {
-                var (compilation, list) = t;
+                var (compilation, (list, luaCATSDir)) = t;
                 var references = SymbolReferences.Create(compilation);
                 if (references == null)
                     return;
@@ -78,6 +103,23 @@ public partial class LuaObjectGenerator : IIncrementalGenerator
 
                     tempCollections.Clear();
                     builder.Clear();
+                }
+
+                // Emit LuaCATS .d.lua file if output directory is configured
+                if (!string.IsNullOrEmpty(luaCATSDir) && metaDict.Count > 0)
+                {
+                    var asmName = compilation.AssemblyName;
+                    if (!string.IsNullOrEmpty(asmName))
+                    {
+                        TryEmitLuaCATS(
+                            metaDict,
+                            references,
+                            compilation,
+                            luaCATSDir!,
+                            asmName!,
+                            in sourceProductionContext
+                        );
+                    }
                 }
             }
         );

@@ -10,6 +10,7 @@ class TypeMetadata
     public INamedTypeSymbol Symbol { get; }
     public string TypeName { get; }
     public string FullTypeName { get; }
+    public string? LuaObjectName { get; }
     public PropertyMetadata[] Properties { get; }
     public MethodMetadata[] Methods { get; }
 
@@ -24,6 +25,30 @@ class TypeMetadata
 
         TypeName = symbol.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
         FullTypeName = symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+
+        // Read custom Lua type name from [LuaObject("name")] if set.
+        var luaObjectAttr = symbol.GetAttribute(references.LuaObjectAttribute);
+        if (luaObjectAttr != null)
+        {
+            // Check constructor argument first: [LuaObject("name")]
+            if (luaObjectAttr.ConstructorArguments.Length > 0
+                && luaObjectAttr.ConstructorArguments[0].Value is string ctorName)
+            {
+                LuaObjectName = ctorName;
+            }
+            // Then check named property: [LuaObject(Name = "name")]
+            else
+            {
+                foreach (var kvp in luaObjectAttr.NamedArguments)
+                {
+                    if (kvp.Key == "Name" && kvp.Value.Value is string propName)
+                    {
+                        LuaObjectName = propName;
+                        break;
+                    }
+                }
+            }
+        }
 
         Properties = Symbol
             .GetAllMembers(false)

@@ -173,6 +173,28 @@ public static class OpenLibsExtensions
         globalState.LoadedModules["debug"] = debug;
     }
 
+    public static void OpenFixedMathLibrary(this LuaState state)
+    {
+        var globalState = state.GlobalState;
+        var lib = FixedMathLibrary.Instance;
+
+        // Register global constructors
+        globalState.Environment["fixed64"] = new LuaFunction(
+            "fixed64", lib.Fixed64Constructor);
+        globalState.Environment["fixed64vector3"] = new LuaFunction(
+            "fixed64vector3", lib.Fixed64Vector3Constructor);
+
+        // Register fixed64vec3 sub-table
+        LuaTable vec3 = new(0, lib.VectorFunctions.Length);
+        foreach (var func in lib.VectorFunctions)
+        {
+            vec3[func.Name] = func.Func;
+        }
+
+        globalState.Environment["fixed64vec3"] = vec3;
+        globalState.LoadedModules["fixed64vec3"] = vec3;
+    }
+
     public static void OpenStandardLibraries(this LuaState state)
     {
         state.OpenBasicLibrary();
@@ -185,5 +207,6 @@ public static class OpenLibsExtensions
         state.OpenStringLibrary();
         state.OpenTableLibrary();
         state.OpenDebugLibrary();
+        state.OpenFixedMathLibrary();
     }
 }

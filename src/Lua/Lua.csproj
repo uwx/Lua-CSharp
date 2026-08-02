@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>net10.0; net8.0; net6.0; netstandard2.1</TargetFrameworks>
+    <TargetFramework>net10.0</TargetFramework>
     <LangVersion>13</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
@@ -32,6 +32,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\FixedMathSharp\src\FixedMathSharp\FixedMathSharp.csproj" />
     <ProjectReference Include="..\Lua.SourceGenerator\Lua.SourceGenerator.csproj" />
     <ProjectReference Include="..\Lua.Annotations\Lua.Annotations.csproj" />
   </ItemGroup>
