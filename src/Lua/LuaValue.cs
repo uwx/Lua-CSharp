@@ -4,7 +4,6 @@ using System.Runtime.InteropServices;
 using FixedMathSharp;
 using Lua.Internal;
 using Lua.Runtime;
-using Maxine.Extensions.Mathematics;
 
 namespace Lua;
 
