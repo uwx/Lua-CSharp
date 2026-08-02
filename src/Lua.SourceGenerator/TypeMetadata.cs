@@ -60,12 +60,11 @@ class TypeMetadata
             .Where(x =>
             {
                 if (x.ContainsAttribute(references.LuaIgnoreMemberAttribute))
-                {
                     return false;
-                }
 
                 return x.ContainsAttribute(references.LuaMemberAttribute)
-                    || x.ContainsAttribute(references.LuaMetamethodAttribute);
+                    || x.ContainsAttribute(references.LuaMetamethodAttribute)
+                    || x.MethodKind == MethodKind.UserDefinedOperator;
             })
             .Select(x => new MethodMetadata(x, references))
             .ToArray();

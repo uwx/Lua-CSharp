@@ -56,6 +56,39 @@ public partial class LuaTestObj
 
     [LuaMember]
     public object GetObj() => this;
+
+    // C# operator overloads — auto-detected as Lua metamethods.
+    // operator + conflicts with explicit [LuaMetamethod(Add)] above;
+    // the explicit one takes precedence and the operator is silently skipped.
+    public static LuaTestObj operator +(LuaTestObj a, LuaTestObj b)
+        => new() { x = a.x + b.x, y = a.y + b.y };
+
+    public static LuaTestObj operator *(LuaTestObj a, LuaTestObj b)
+        => new() { x = a.x * b.x, y = a.y * b.y };
+
+    public static LuaTestObj operator -(LuaTestObj a)
+        => new() { x = -a.x, y = -a.y };
+
+    public static bool operator ==(LuaTestObj a, LuaTestObj b)
+        => a.x == b.x && a.y == b.y;
+
+    public static bool operator !=(LuaTestObj a, LuaTestObj b)
+        => !(a == b);
+
+    public static bool operator <(LuaTestObj a, LuaTestObj b)
+        => (a.x + a.y) < (b.x + b.y);
+
+    public static bool operator >(LuaTestObj a, LuaTestObj b)
+        => (a.x + a.y) > (b.x + b.y);
+
+    public static bool operator <=(LuaTestObj a, LuaTestObj b)
+        => (a.x + a.y) <= (b.x + b.y);
+
+    public static bool operator >=(LuaTestObj a, LuaTestObj b)
+        => (a.x + a.y) >= (b.x + b.y);
+
+    public override bool Equals(object? obj) => obj is LuaTestObj o && this == o;
+    public override int GetHashCode() => HashCode.Combine(x, y);
 }
 
 [LuaObject]
@@ -543,5 +576,74 @@ public class LuaObjectTests
         var objUnm = results[1].Read<LuaTestObj>();
         Assert.That(objUnm.X, Is.EqualTo(-1));
         Assert.That(objUnm.Y, Is.EqualTo(-2));
+    }
+
+    [Test]
+    public async Task Test_AutoDetectedOperatorMetamethods()
+    {
+        var userData = new LuaTestObj();
+
+        var state = LuaState.Create();
+        state.OpenBasicLibrary();
+        state.Environment["TestObj"] = userData;
+
+        // __mul: auto-detected from operator *
+        // __add: still uses explicit [LuaMetamethod(Add)] (operator + silently skipped)
+        // __unm: still uses explicit [LuaMetamethod(Unm)] (operator - unary silently skipped)
+        // __eq: auto-detected from operator ==
+        // __lt: auto-detected from operator <
+        // __le: auto-detected from operator <=
+        var results = await state.DoStringAsync("""
+            local a = TestObj.create(2, 3)
+            local b = TestObj.create(4, 1)
+            local addResult = a + b
+            local mulResult = a * b
+            local unmResult = -a
+            local eqResult = a == b
+            local neResult = a ~= b  -- uses __eq via negation
+            local ltResult = a < b
+            local leResult = a <= b
+            return addResult.x, addResult.y,
+                   mulResult.x, mulResult.y,
+                   unmResult.x, unmResult.y,
+                   eqResult, neResult,
+                   ltResult, leResult
+            """);
+
+        Assert.That(results, Has.Length.EqualTo(10));
+
+        // add: 2+4=6, 3+1=4
+        Assert.That(results[0].TryRead<int>(out var v), Is.True);
+        Assert.That(v, Is.EqualTo(6));
+        Assert.That(results[1].TryRead<int>(out v), Is.True);
+        Assert.That(v, Is.EqualTo(4));
+
+        // mul: 2*4=8, 3*1=3 (auto-detected __mul)
+        Assert.That(results[2].TryRead<int>(out v), Is.True);
+        Assert.That(v, Is.EqualTo(8));
+        Assert.That(results[3].TryRead<int>(out v), Is.True);
+        Assert.That(v, Is.EqualTo(3));
+
+        // unm: -2, -3 (uses explicit [LuaMetamethod(Unm)])
+        Assert.That(results[4].TryRead<int>(out v), Is.True);
+        Assert.That(v, Is.EqualTo(-2));
+        Assert.That(results[5].TryRead<int>(out v), Is.True);
+        Assert.That(v, Is.EqualTo(-3));
+
+        // eq: false (auto-detected __eq)
+        Assert.That(results[6].TryRead<bool>(out var b), Is.True);
+        Assert.That(b, Is.False);
+
+        // ne: true (uses __eq)
+        Assert.That(results[7].TryRead<bool>(out b), Is.True);
+        Assert.That(b, Is.True);
+
+        // lt: 5 < 5 = false (auto-detected __lt)
+        Assert.That(results[8].TryRead<bool>(out b), Is.True);
+        Assert.That(b, Is.False);
+
+        // le: 5 <= 5 = true (auto-detected __le)
+        Assert.That(results[9].TryRead<bool>(out b), Is.True);
+        Assert.That(b, Is.True);
     }
 }

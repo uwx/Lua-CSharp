@@ -844,6 +844,11 @@ partial class LuaObjectGenerator
                 var metaMethodName = methodMetadata.Metamethod.ToString().ToLower();
                 if (!metamethodSet.Add(methodMetadata.Metamethod))
                 {
+                    // If the duplicate is an auto-detected operator, silently skip
+                    // it — explicit [LuaMetamethod] takes precedence.
+                    if (methodMetadata.IsAutoDetectedOperator)
+                        continue;
+
                     context.ReportDiagnostic(
                         Diagnostic.Create(
                             DiagnosticDescriptors.DuplicateMetamethod,
@@ -1069,18 +1074,27 @@ partial class LuaObjectGenerator
 
         if (methodMetadata.IsStatic)
         {
-            builder.Append(
-                $"{typeMetadata.FullTypeName}.{methodMetadata.Symbol.Name}(",
-                !(methodMetadata.HasReturnValue || methodMetadata.IsAsync)
-            );
-            builder.Append(string.Join(",", callArguments), false);
-
-            if (hasCancellationToken)
+            if (methodMetadata.Symbol.MethodKind == MethodKind.UserDefinedOperator
+                && TryEmitOperatorCall(methodMetadata, builder, callArguments))
             {
-                builder.Append(callArguments.Count > 0 ? ",ct" : "ct", false);
+                // Operator expression already emitted by TryEmitOperatorCall.
+                builder.AppendLine(";", false);
             }
+            else
+            {
+                builder.Append(
+                    $"{typeMetadata.FullTypeName}.{methodMetadata.Symbol.Name}(",
+                    !(methodMetadata.HasReturnValue || methodMetadata.IsAsync)
+                );
+                builder.Append(string.Join(",", callArguments), false);
 
-            builder.AppendLine(");", false);
+                if (hasCancellationToken)
+                {
+                    builder.Append(callArguments.Count > 0 ? ",ct" : "ct", false);
+                }
+
+                builder.AppendLine(");", false);
+            }
         }
         else
         {
@@ -1165,6 +1179,58 @@ partial class LuaObjectGenerator
 
                 break;
         }
+
+    /// <summary>
+    /// Returns the C# operator symbol for the given method name, or null if it
+    /// is not a supported user-defined operator.
+    /// </summary>
+    static string? GetOperatorSymbol(string methodName, int parameterCount)
+    {
+        return methodName switch
+        {
+            "op_Addition" => "+",
+            "op_Subtraction" when parameterCount == 2 => "-",
+            "op_Subtraction" when parameterCount == 1 => "-",
+            "op_Multiply" => "*",
+            "op_Division" => "/",
+            "op_Modulus" => "%",
+            "op_UnaryNegation" => "-",
+            "op_Equality" => "==",
+            "op_LessThan" => "<",
+            "op_LessThanOrEqual" => "<=",
+            _ => null,
+        };
+    }
+
+    /// <summary>
+    /// Emits a C# operator invocation expression (e.g. "(arg0 + arg1)").
+    /// Returns true if the method was a supported operator; false otherwise.
+    /// </summary>
+    static bool TryEmitOperatorCall(
+        MethodMetadata methodMetadata,
+        CodeBuilder builder,
+        List<string> callArguments)
+    {
+        var op = GetOperatorSymbol(methodMetadata.Symbol.Name, methodMetadata.Symbol.Parameters.Length);
+        if (op == null)
+            return false;
+
+        var isUnary = methodMetadata.Symbol.Parameters.Length == 1;
+        builder.Append("(", false);
+        if (isUnary)
+        {
+            builder.Append(op, false);
+            builder.Append(callArguments[0], false);
+        }
+        else
+        {
+            builder.Append(callArguments[0], false);
+            builder.Append(" " + op + " ", false);
+            builder.Append(callArguments[1], false);
+        }
+        builder.Append(")", false);
+        return true;
+    }
     }
 
     static bool TryEmitMetatable(
