@@ -732,6 +732,8 @@ public sealed class BasicLibrary
                     LuaValueType.Table => "table",
                     LuaValueType.Fixed64 => "fixed64",
                     LuaValueType.Fixed64Vector3 => "fixed64vector3",
+                    LuaValueType.Fixed64Angle => "f64angle",
+                    LuaValueType.Fixed64Euler => "f64euler",
                     _ => throw new NotImplementedException(),
                 }
             )

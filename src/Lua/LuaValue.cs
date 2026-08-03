@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using FixedMathSharp;
 using Lua.Internal;
 using Lua.Runtime;
+using NFMWorldLibrary.FixedMath;
 
 namespace Lua;
 
@@ -21,7 +22,9 @@ public enum LuaValueType : byte
 
     // Added NFMW types
     Fixed64,
-    Fixed64Vector3
+    Fixed64Vector3,
+    Fixed64Angle,
+    Fixed64Euler
 }
 
 [StructLayout(LayoutKind.Explicit, Size = 40)]
@@ -34,6 +37,8 @@ public readonly struct LuaValue : IEquatable<LuaValue>
     [FieldOffset(16)] readonly double value;
     [FieldOffset(16)] readonly Fixed64 f64Value;
     [FieldOffset(16)] internal readonly Vector3d f64Vec3Value;
+    [FieldOffset(16)] readonly f64AngleSingle f64AngleValue;
+    [FieldOffset(16)] readonly f64Euler f64EulerValue;
 
     internal LuaValue(LuaValueType type, double value, object? referenceValue)
     {
@@ -281,6 +286,38 @@ public readonly struct LuaValue : IEquatable<LuaValue>
                 {
                     break;
                 }
+            case LuaValueType.Fixed64Angle:
+                if (t == typeof(f64AngleSingle))
+                {
+                    var v = f64AngleValue;
+                    result = Unsafe.As<f64AngleSingle, T>(ref v);
+                    return true;
+                }
+                else if (t == typeof(object))
+                {
+                    result = (T)(object)f64AngleValue;
+                    return true;
+                }
+                else
+                {
+                    break;
+                }
+            case LuaValueType.Fixed64Euler:
+                if (t == typeof(f64Euler))
+                {
+                    var v = f64EulerValue;
+                    result = Unsafe.As<f64Euler, T>(ref v);
+                    return true;
+                }
+                else if (t == typeof(object))
+                {
+                    result = (T)(object)f64EulerValue;
+                    return true;
+                }
+                else
+                {
+                    break;
+                }
         }
 
         result = default!;
@@ -389,6 +426,32 @@ public readonly struct LuaValue : IEquatable<LuaValue>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal bool TryReadFixed64Angle(out f64AngleSingle result)
+    {
+        if (Type == LuaValueType.Fixed64Angle)
+        {
+            result = f64AngleValue;
+            return true;
+        }
+
+        result = default;
+        return false;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal bool TryReadFixed64Euler(out f64Euler result)
+    {
+        if (Type == LuaValueType.Fixed64Euler)
+        {
+            result = f64EulerValue;
+            return true;
+        }
+
+        result = default;
+        return false;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal bool TryReadDouble(out double result)
     {
         if (Type == LuaValueType.Number)
@@ -460,6 +523,18 @@ public readonly struct LuaValue : IEquatable<LuaValue>
     internal Vector3d UnsafeReadFixed64Vector3()
     {
         return f64Vec3Value;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal f64AngleSingle UnsafeReadFixed64Angle()
+    {
+        return f64AngleValue;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal f64Euler UnsafeReadFixed64Euler()
+    {
+        return f64EulerValue;
     }
 
     bool TryParseToDouble(out double result)
@@ -554,6 +629,16 @@ public readonly struct LuaValue : IEquatable<LuaValue>
                 var v = f64Vec3Value;
                 return Unsafe.As<Vector3d, T>(ref v);
             }
+            case LuaValueType.Fixed64Angle:
+            {
+                var v = f64AngleValue;
+                return Unsafe.As<f64AngleSingle, T>(ref v);
+            }
+            case LuaValueType.Fixed64Euler:
+            {
+                var v = f64EulerValue;
+                return Unsafe.As<f64Euler, T>(ref v);
+            }
             case LuaValueType.String:
             case LuaValueType.Thread:
             case LuaValueType.Function:
@@ -605,6 +690,8 @@ public readonly struct LuaValue : IEquatable<LuaValue>
             float floatValue => floatValue,
             Fixed64 fixed64Value => fixed64Value,
             Vector3d vec3Value => vec3Value,
+            f64AngleSingle angleValue => new LuaValue(angleValue),
+            f64Euler eulerValue => new LuaValue(eulerValue),
             _ => new(obj),
         };
     }
@@ -697,6 +784,20 @@ public readonly struct LuaValue : IEquatable<LuaValue>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public LuaValue(f64AngleSingle value)
+    {
+        Type = LuaValueType.Fixed64Angle;
+        f64AngleValue = value;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public LuaValue(f64Euler value)
+    {
+        Type = LuaValueType.Fixed64Euler;
+        f64EulerValue = value;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static implicit operator LuaValue(bool value)
     {
         return new(value);
@@ -757,6 +858,18 @@ public readonly struct LuaValue : IEquatable<LuaValue>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static implicit operator LuaValue(f64AngleSingle value)
+    {
+        return new(value);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static implicit operator LuaValue(f64Euler value)
+    {
+        return new(value);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override int GetHashCode()
     {
         return Type switch
@@ -765,6 +878,8 @@ public readonly struct LuaValue : IEquatable<LuaValue>
             LuaValueType.Boolean or LuaValueType.Number => value.GetHashCode(),
             LuaValueType.Fixed64 => f64Value.GetHashCode(),
             LuaValueType.Fixed64Vector3 => f64Vec3Value.GetHashCode(),
+            LuaValueType.Fixed64Angle => f64AngleValue.GetHashCode(),
+            LuaValueType.Fixed64Euler => f64EulerValue.GetHashCode(),
             LuaValueType.String => Unsafe.As<string>(referenceValue)!.GetHashCode(),
             _ => referenceValue!.GetHashCode(),
         };
@@ -784,6 +899,8 @@ public readonly struct LuaValue : IEquatable<LuaValue>
             LuaValueType.Boolean or LuaValueType.Number => other.value == value,
             LuaValueType.Fixed64 => other.f64Value == f64Value,
             LuaValueType.Fixed64Vector3 => other.f64Vec3Value == f64Vec3Value,
+            LuaValueType.Fixed64Angle => other.f64AngleValue == f64AngleValue,
+            LuaValueType.Fixed64Euler => other.f64EulerValue == f64EulerValue,
             LuaValueType.String => Unsafe.As<string>(other.referenceValue)
                 == Unsafe.As<string>(referenceValue),
             _ => other.referenceValue == referenceValue,
@@ -799,6 +916,8 @@ public readonly struct LuaValue : IEquatable<LuaValue>
                 LuaValueType.Boolean or LuaValueType.Number => other.value == value,
                 LuaValueType.Fixed64 => other.f64Value == f64Value,
                 LuaValueType.Fixed64Vector3 => other.f64Vec3Value == f64Vec3Value,
+                LuaValueType.Fixed64Angle => other.f64AngleValue == f64AngleValue,
+                LuaValueType.Fixed64Euler => other.f64EulerValue == f64EulerValue,
                 LuaValueType.String => Unsafe.As<string>(other.referenceValue)
                     == Unsafe.As<string>(referenceValue),
                 _ => other.referenceValue == referenceValue,
@@ -832,6 +951,8 @@ public readonly struct LuaValue : IEquatable<LuaValue>
             LuaValueType.Number => Read<double>().ToString(CultureInfo.InvariantCulture),
             LuaValueType.Fixed64 => f64Value.ToString(),
             LuaValueType.Fixed64Vector3 => f64Vec3Value.ToString(),
+            LuaValueType.Fixed64Angle => f64AngleValue.ToString(),
+            LuaValueType.Fixed64Euler => f64EulerValue.ToString(),
             LuaValueType.Function => $"function: {referenceValue!.GetHashCode()}",
             LuaValueType.Thread => $"thread: {referenceValue!.GetHashCode()}",
             LuaValueType.Table => $"table: {referenceValue!.GetHashCode()}",
@@ -856,6 +977,8 @@ public readonly struct LuaValue : IEquatable<LuaValue>
             LuaValueType.Number => "number",
             LuaValueType.Fixed64 => "fixed64",
             LuaValueType.Fixed64Vector3 => "fixed64vector3",
+            LuaValueType.Fixed64Angle => "f64angle",
+            LuaValueType.Fixed64Euler => "f64euler",
             LuaValueType.Function => "function",
             LuaValueType.Thread => "thread",
             LuaValueType.Table => "table",
@@ -897,6 +1020,16 @@ public readonly struct LuaValue : IEquatable<LuaValue>
         else if (type == typeof(Vector3d))
         {
             result = LuaValueType.Fixed64Vector3;
+            return true;
+        }
+        else if (type == typeof(f64AngleSingle))
+        {
+            result = LuaValueType.Fixed64Angle;
+            return true;
+        }
+        else if (type == typeof(f64Euler))
+        {
+            result = LuaValueType.Fixed64Euler;
             return true;
         }
         else if (type == typeof(LuaFunction) || type.IsSubclassOf(typeof(LuaFunction)))

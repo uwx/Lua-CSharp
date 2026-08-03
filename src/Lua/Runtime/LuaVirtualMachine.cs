@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 using FixedMathSharp;
 using Lua.Internal;
 using Lua.Internal.CompilerServices;
+using NFMWorldLibrary.FixedMath;
 
 // ReSharper disable MethodHasAsyncOverload
 
@@ -721,10 +722,66 @@ public static partial class LuaVirtualMachine
                             continue;
                         }
 
-                        // Cross-type (Fixed64 + Number or vice versa) is intentionally not supported.
+                        // f64Euler + f64Euler (component-wise, wrapped)
+                        if ((opCode == OpCode.Add || opCode == OpCode.Sub)
+                            && vb.Type == LuaValueType.Fixed64Euler
+                            && vc.Type == LuaValueType.Fixed64Euler)
+                        {
+                            var a = vb.UnsafeReadFixed64Euler();
+                            var b = vc.UnsafeReadFixed64Euler();
+                            Unsafe.Add(ref stackHead, iA) = opCode == OpCode.Add ? a + b : a - b;
+                            stack.NotifyTop(iA + frameBase + 1);
+                            continue;
+                        }
+
+                        // f64Euler * f64AngleSingle scalar, f64Euler / f64AngleSingle scalar (wrapped)
+                        if ((opCode == OpCode.Mul || opCode == OpCode.Div)
+                            && vb.Type == LuaValueType.Fixed64Euler
+                            && vc.Type == LuaValueType.Fixed64Angle)
+                        {
+                            var euler = vb.UnsafeReadFixed64Euler();
+                            var scalar = vc.UnsafeReadFixed64Angle();
+                            Unsafe.Add(ref stackHead, iA) = opCode == OpCode.Mul ? euler * scalar : euler / scalar;
+                            stack.NotifyTop(iA + frameBase + 1);
+                            continue;
+                        }
+
+                        // f64AngleSingle * f64Euler (commutative scalar mul)
+                        if (opCode == OpCode.Mul
+                            && vb.Type == LuaValueType.Fixed64Angle
+                            && vc.Type == LuaValueType.Fixed64Euler)
+                        {
+                            var scalar = vb.UnsafeReadFixed64Angle();
+                            var euler = vc.UnsafeReadFixed64Euler();
+                            Unsafe.Add(ref stackHead, iA) = scalar * euler;
+                            stack.NotifyTop(iA + frameBase + 1);
+                            continue;
+                        }
+
+                        // f64AngleSingle + f64AngleSingle (radians-based)
+                        if (vb.Type == LuaValueType.Fixed64Angle && vc.Type == LuaValueType.Fixed64Angle)
+                        {
+                            var a = vb.UnsafeReadFixed64Angle();
+                            var b = vc.UnsafeReadFixed64Angle();
+                            Unsafe.Add(ref stackHead, iA) = opCode switch
+                            {
+                                OpCode.Add => (LuaValue)(a + b),
+                                OpCode.Sub => (LuaValue)(a - b),
+                                OpCode.Mul => (LuaValue)(a * b),
+                                OpCode.Div => (LuaValue)(a / b),
+                                _ => LuaValue.Nil,
+                            };
+                            stack.NotifyTop(iA + frameBase + 1);
+                            continue;
+                        }
+
+                        // Cross-type (Fixed64/Number/Fixed64Angle with different types) is intentionally not supported.
                         // Skip TryReadDouble coercion so the metamethod fallback produces the error.
-                        var skipCoercion = (vb.Type == LuaValueType.Fixed64 || vc.Type == LuaValueType.Fixed64)
-                            && vb.Type != vc.Type;
+                        var skipCoercion =
+                            ((vb.Type == LuaValueType.Fixed64 || vc.Type == LuaValueType.Fixed64)
+                                && vb.Type != vc.Type)
+                            || ((vb.Type == LuaValueType.Fixed64Angle || vc.Type == LuaValueType.Fixed64Angle)
+                                && vb.Type != vc.Type);
 
                         if (!skipCoercion && vb.TryReadDouble(out numB) && vc.TryReadDouble(out var numC))
                         {
@@ -765,6 +822,24 @@ public static partial class LuaVirtualMachine
                         {
                             ra1 = iA + frameBase + 1;
                             Unsafe.Add(ref stackHead, iA) = -vb.UnsafeReadFixed64Vector3();
+                            stack.NotifyTop(ra1);
+                            continue;
+                        }
+
+                        // f64Euler unary minus (component negation, wrapped)
+                        if (vb.Type == LuaValueType.Fixed64Euler)
+                        {
+                            ra1 = iA + frameBase + 1;
+                            Unsafe.Add(ref stackHead, iA) = -vb.UnsafeReadFixed64Euler();
+                            stack.NotifyTop(ra1);
+                            continue;
+                        }
+
+                        // f64AngleSingle unary minus
+                        if (vb.Type == LuaValueType.Fixed64Angle)
+                        {
+                            ra1 = iA + frameBase + 1;
+                            Unsafe.Add(ref stackHead, iA) = -vb.UnsafeReadFixed64Angle();
                             stack.NotifyTop(ra1);
                             continue;
                         }
@@ -899,6 +974,18 @@ public static partial class LuaVirtualMachine
                         if (vb.TryReadFixed64(out var f64B) && vc.TryReadFixed64(out var f64C))
                         {
                             var compareResult = opCode == OpCode.Lt ? f64B < f64C : f64B <= f64C;
+                            if (compareResult != (iA == 1))
+                            {
+                                context.Pc++;
+                            }
+
+                            continue;
+                        }
+
+                        // f64AngleSingle comparison
+                        if (vb.TryReadFixed64Angle(out var angB) && vc.TryReadFixed64Angle(out var angC))
+                        {
+                            var compareResult = opCode == OpCode.Lt ? angB < angC : angB <= angC;
                             if (compareResult != (iA == 1))
                             {
                                 context.Pc++;

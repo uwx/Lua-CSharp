@@ -183,6 +183,10 @@ public static class OpenLibsExtensions
             "fixed64", lib.Fixed64Constructor);
         globalState.Environment["fixed64vector3"] = new LuaFunction(
             "fixed64vector3", lib.Fixed64Vector3Constructor);
+        globalState.Environment["f64angle"] = new LuaFunction(
+            "f64angle", lib.AngleConstructor);
+        globalState.Environment["f64euler"] = new LuaFunction(
+            "f64euler", lib.EulerConstructor);
 
         // Register fixed64vec3 sub-table
         LuaTable vec3 = new(0, lib.VectorFunctions.Length);
@@ -193,6 +197,26 @@ public static class OpenLibsExtensions
 
         globalState.Environment["fixed64vec3"] = vec3;
         globalState.LoadedModules["fixed64vec3"] = vec3;
+
+        // Register f64anglelib sub-table
+        LuaTable angleLib = new(0, lib.AngleFunctions.Length);
+        foreach (var func in lib.AngleFunctions)
+        {
+            angleLib[func.Name] = func.Func;
+        }
+
+        globalState.Environment["f64anglelib"] = angleLib;
+        globalState.LoadedModules["f64anglelib"] = angleLib;
+
+        // Register f64eulerlib sub-table
+        LuaTable eulerLib = new(0, lib.EulerFunctions.Length);
+        foreach (var func in lib.EulerFunctions)
+        {
+            eulerLib[func.Name] = func.Func;
+        }
+
+        globalState.Environment["f64eulerlib"] = eulerLib;
+        globalState.LoadedModules["f64eulerlib"] = eulerLib;
     }
 
     public static void OpenStandardLibraries(this LuaState state)

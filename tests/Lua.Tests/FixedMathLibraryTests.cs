@@ -1,5 +1,6 @@
 using FixedMathSharp;
 using Lua.Standard;
+using NFMWorldLibrary.FixedMath;
 
 namespace Lua.Tests;
 
@@ -435,5 +436,251 @@ public class FixedMathLibraryTests
         Assert.That(results, Has.Length.EqualTo(1));
         Assert.That(results[0].TryReadString(out var s), Is.True);
         Assert.That(s, Is.EqualTo("fixed64vector3"));
+    }
+
+    // ---- f64angle constructor ----
+
+    [Test]
+    public async Task f64Angle_FromNumber()
+    {
+        using var state = CreateState();
+        var results = await state.DoStringAsync("return f64angle(90)");
+
+        Assert.That(results, Has.Length.EqualTo(1));
+        Assert.That(results[0].Type, Is.EqualTo(LuaValueType.Fixed64Angle));
+        Assert.That(results[0].TryReadFixed64Angle(out var a), Is.True);
+        Assert.That(a.Degrees, Is.EqualTo((Fixed64)90));
+    }
+
+    [Test]
+    public async Task f64Angle_FromString()
+    {
+        using var state = CreateState();
+        var results = await state.DoStringAsync("return f64angle('180')");
+
+        Assert.That(results, Has.Length.EqualTo(1));
+        Assert.That(results[0].Type, Is.EqualTo(LuaValueType.Fixed64Angle));
+    }
+
+    // ---- f64euler constructor ----
+
+    [Test]
+    public async Task f64Euler_FromAngles()
+    {
+        using var state = CreateState();
+        var results = await state.DoStringAsync("return f64euler(f64angle(0), f64angle(90), f64angle(0))");
+
+        Assert.That(results, Has.Length.EqualTo(1));
+        Assert.That(results[0].Type, Is.EqualTo(LuaValueType.Fixed64Euler));
+        Assert.That(results[0].TryReadFixed64Euler(out var e), Is.True);
+        Assert.That(e.Yaw.Degrees, Is.EqualTo((Fixed64)0));
+        Assert.That(e.Pitch.Degrees, Is.EqualTo((Fixed64)90));
+        Assert.That(e.Roll.Degrees, Is.EqualTo((Fixed64)0));
+    }
+
+    [Test]
+    public async Task f64Euler_FromNumbers()
+    {
+        using var state = CreateState();
+        var results = await state.DoStringAsync("return f64euler(45, 0, 0)");
+
+        Assert.That(results, Has.Length.EqualTo(1));
+        Assert.That(results[0].Type, Is.EqualTo(LuaValueType.Fixed64Euler));
+    }
+
+    // ---- f64Euler arithmetic ----
+
+    [Test]
+    public async Task f64Euler_Add()
+    {
+        using var state = CreateState();
+        var results = await state.DoStringAsync(
+            "return f64euler(45, 0, 0) + f64euler(45, 0, 0)");
+
+        Assert.That(results, Has.Length.EqualTo(1));
+        Assert.That(results[0].Type, Is.EqualTo(LuaValueType.Fixed64Euler));
+        Assert.That(results[0].TryReadFixed64Euler(out _), Is.True);
+    }
+
+    [Test]
+    public async Task f64Euler_Sub()
+    {
+        using var state = CreateState();
+        var results = await state.DoStringAsync(
+            "return f64euler(90, 0, 0) - f64euler(45, 0, 0)");
+
+        Assert.That(results, Has.Length.EqualTo(1));
+        Assert.That(results[0].Type, Is.EqualTo(LuaValueType.Fixed64Euler));
+        Assert.That(results[0].TryReadFixed64Euler(out _), Is.True);
+    }
+
+    [Test]
+    public async Task f64Euler_MulScalar()
+    {
+        using var state = CreateState();
+        var results = await state.DoStringAsync(
+            "return f64euler(30, 0, 0) * f64angle(2)");
+
+        Assert.That(results, Has.Length.EqualTo(1));
+        Assert.That(results[0].Type, Is.EqualTo(LuaValueType.Fixed64Euler));
+        Assert.That(results[0].TryReadFixed64Euler(out _), Is.True);
+    }
+
+    [Test]
+    public async Task f64Euler_DivScalar()
+    {
+        using var state = CreateState();
+        var results = await state.DoStringAsync(
+            "return f64euler(60, 0, 0) / f64angle(2)");
+
+        Assert.That(results, Has.Length.EqualTo(1));
+        Assert.That(results[0].Type, Is.EqualTo(LuaValueType.Fixed64Euler));
+        Assert.That(results[0].TryReadFixed64Euler(out _), Is.True);
+    }
+
+    [Test]
+    public async Task f64Euler_Unm()
+    {
+        using var state = CreateState();
+        var results = await state.DoStringAsync("return -f64euler(45, 30, 15)");
+
+        Assert.That(results, Has.Length.EqualTo(1));
+        Assert.That(results[0].Type, Is.EqualTo(LuaValueType.Fixed64Euler));
+        Assert.That(results[0].TryReadFixed64Euler(out _), Is.True);
+    }
+
+    // ---- f64AngleSingle arithmetic ----
+
+    [Test]
+    public async Task f64AngleSingle_Add()
+    {
+        using var state = CreateState();
+        var results = await state.DoStringAsync("return f64angle(30) + f64angle(60)");
+
+        Assert.That(results, Has.Length.EqualTo(1));
+        Assert.That(results[0].Type, Is.EqualTo(LuaValueType.Fixed64Angle));
+        Assert.That(results[0].TryReadFixed64Angle(out _), Is.True);
+    }
+
+    [Test]
+    public async Task f64AngleSingle_Sub()
+    {
+        using var state = CreateState();
+        var results = await state.DoStringAsync("return f64angle(90) - f64angle(30)");
+
+        Assert.That(results, Has.Length.EqualTo(1));
+        Assert.That(results[0].Type, Is.EqualTo(LuaValueType.Fixed64Angle));
+        Assert.That(results[0].TryReadFixed64Angle(out _), Is.True);
+    }
+
+    [Test]
+    public async Task f64AngleSingle_Unm()
+    {
+        using var state = CreateState();
+        var results = await state.DoStringAsync("return -f64angle(45)");
+
+        Assert.That(results, Has.Length.EqualTo(1));
+        Assert.That(results[0].Type, Is.EqualTo(LuaValueType.Fixed64Angle));
+        Assert.That(results[0].TryReadFixed64Angle(out _), Is.True);
+    }
+
+    // ---- Cross-type error ----
+
+    [Test]
+    public void f64Angle_CrossTypeArithmetic_Errors()
+    {
+        using var state = CreateState();
+        Assert.ThrowsAsync<LuaRuntimeException>(
+            async () => await state.DoStringAsync("return f64angle(90) + 1").AsTask());
+    }
+
+    [Test]
+    public void f64Euler_CrossTypeArithmetic_Errors()
+    {
+        using var state = CreateState();
+        Assert.ThrowsAsync<LuaRuntimeException>(
+            async () => await state.DoStringAsync("return f64euler(0,0,0) + 1").AsTask());
+    }
+
+    // ---- Type function ----
+
+    [Test]
+    public async Task TypeFunction_Returnsf64Angle()
+    {
+        using var state = CreateState();
+        var results = await state.DoStringAsync("return type(f64angle(90))");
+
+        Assert.That(results, Has.Length.EqualTo(1));
+        Assert.That(results[0].TryReadString(out var s), Is.True);
+        Assert.That(s, Is.EqualTo("f64angle"));
+    }
+
+    [Test]
+    public async Task TypeFunction_Returnsf64Euler()
+    {
+        using var state = CreateState();
+        var results = await state.DoStringAsync("return type(f64euler(0, 0, 0))");
+
+        Assert.That(results, Has.Length.EqualTo(1));
+        Assert.That(results[0].TryReadString(out var s), Is.True);
+        Assert.That(s, Is.EqualTo("f64euler"));
+    }
+
+    // ---- f64anglelib functions ----
+
+    [Test]
+    public async Task f64AngleLib_FromRadians()
+    {
+        using var state = CreateState();
+        var results = await state.DoStringAsync("return f64anglelib.from_radians(fixed64(3.14159))");
+
+        Assert.That(results, Has.Length.EqualTo(1));
+        Assert.That(results[0].Type, Is.EqualTo(LuaValueType.Fixed64Angle));
+    }
+
+    [Test]
+    public async Task f64AngleLib_Wrap()
+    {
+        using var state = CreateState();
+        var results = await state.DoStringAsync("return f64anglelib.wrap(f64angle(380))");
+
+        Assert.That(results, Has.Length.EqualTo(1));
+        Assert.That(results[0].Type, Is.EqualTo(LuaValueType.Fixed64Angle));
+        Assert.That(results[0].TryReadFixed64Angle(out _), Is.True);
+    }
+
+    [Test]
+    public async Task f64AngleLib_Degrees()
+    {
+        using var state = CreateState();
+        var results = await state.DoStringAsync("return f64anglelib.degrees(f64angle(45))");
+
+        Assert.That(results, Has.Length.EqualTo(1));
+        Assert.That(results[0].Type, Is.EqualTo(LuaValueType.Fixed64));
+        Assert.That(results[0].TryReadFixed64(out var d), Is.True);
+        Assert.That(d, Is.EqualTo((Fixed64)45));
+    }
+
+    [Test]
+    public async Task f64AngleLib_Radians()
+    {
+        using var state = CreateState();
+        var results = await state.DoStringAsync("return f64anglelib.radians(f64angle(180))");
+
+        Assert.That(results, Has.Length.EqualTo(1));
+        Assert.That(results[0].Type, Is.EqualTo(LuaValueType.Fixed64));
+    }
+
+    // ---- f64eulerlib functions ----
+
+    [Test]
+    public async Task f64EulerLib_Wrap()
+    {
+        using var state = CreateState();
+        var results = await state.DoStringAsync("return f64eulerlib.wrap(f64euler(380, 0, 0))");
+
+        Assert.That(results, Has.Length.EqualTo(1));
+        Assert.That(results[0].Type, Is.EqualTo(LuaValueType.Fixed64Euler));
+        Assert.That(results[0].TryReadFixed64Euler(out _), Is.True);
     }
 }

@@ -1,4 +1,5 @@
 using FixedMathSharp;
+using NFMWorldLibrary.FixedMath;
 
 namespace Lua.Tests;
 
@@ -377,5 +378,227 @@ public class LuaValueTests
         LuaValue b = new Vector3d(1, 2, 3);
 
         Assert.That(a.EqualsForDict(b), Is.True);
+    }
+
+    // ---- f64AngleSingle tests ----
+
+    [Test]
+    public void Constructor_f64AngleSingle_SetsCorrectType()
+    {
+        var angle = f64AngleSingle.FromDegrees((Fixed64)90);
+
+        LuaValue value = new(angle);
+
+        Assert.That(value.Type, Is.EqualTo(LuaValueType.Fixed64Angle));
+    }
+
+    [Test]
+    public void TryRead_f64AngleSingle_FromFixed64Angle()
+    {
+        var angle = f64AngleSingle.FromDegrees((Fixed64)45);
+        LuaValue value = angle;
+
+        var success = value.TryRead<f64AngleSingle>(out var result);
+
+        Assert.That(success, Is.True);
+        Assert.That(result, Is.EqualTo(angle));
+    }
+
+    [Test]
+    public void TryReadFixed64Angle_InternalMethod()
+    {
+        var angle = f64AngleSingle.FromDegrees((Fixed64)90);
+        LuaValue value = angle;
+
+        var success = value.TryReadFixed64Angle(out var result);
+
+        Assert.That(success, Is.True);
+        Assert.That(result, Is.EqualTo(angle));
+    }
+
+    [Test]
+    public void TryReadFixed64Angle_FromNonAngle_Fails()
+    {
+        LuaValue value = 42;
+
+        var success = value.TryReadFixed64Angle(out _);
+
+        Assert.That(success, Is.False);
+    }
+
+    [Test]
+    public void FromObject_f64AngleSingle()
+    {
+        var angle = f64AngleSingle.FromDegrees((Fixed64)180);
+
+        var result = LuaValue.FromObject((object)angle);
+
+        Assert.That(result.Type, Is.EqualTo(LuaValueType.Fixed64Angle));
+        Assert.That(result.Read<f64AngleSingle>(), Is.EqualTo(angle));
+    }
+
+    [Test]
+    public void GetHashCode_Samef64AngleSingle_SameHash()
+    {
+        LuaValue a = f64AngleSingle.FromDegrees((Fixed64)90);
+        LuaValue b = f64AngleSingle.FromDegrees((Fixed64)90);
+
+        Assert.That(a.GetHashCode(), Is.EqualTo(b.GetHashCode()));
+    }
+
+    [Test]
+    public void Equals_f64AngleSingle_SameValue()
+    {
+        LuaValue a = f64AngleSingle.FromDegrees((Fixed64)180);
+        LuaValue b = f64AngleSingle.FromDegrees((Fixed64)180);
+
+        Assert.That(a.Equals(b), Is.True);
+        Assert.That(a == b, Is.True);
+    }
+
+    [Test]
+    public void ImplicitOperator_f64AngleSingle_To_LuaValue()
+    {
+        var angle = f64AngleSingle.FromDegrees((Fixed64)30);
+        LuaValue value = angle;
+
+        Assert.That(value.Type, Is.EqualTo(LuaValueType.Fixed64Angle));
+        Assert.That(value.TryReadFixed64Angle(out var result), Is.True);
+        Assert.That(result, Is.EqualTo(angle));
+    }
+
+    [Test]
+    public void ToString_f64AngleSingle()
+    {
+        LuaValue value = f64AngleSingle.FromDegrees((Fixed64)45);
+
+        var str = value.ToString();
+
+        Assert.That(str, Is.Not.Empty);
+    }
+
+    [Test]
+    public void TryGetLuaValueType_Returnsf64AngleSingle()
+    {
+        Assert.That(LuaValue.TryGetLuaValueType(typeof(f64AngleSingle), out var type), Is.True);
+        Assert.That(type, Is.EqualTo(LuaValueType.Fixed64Angle));
+    }
+
+    // ---- f64Euler tests ----
+
+    [Test]
+    public void Constructor_f64Euler_SetsCorrectType()
+    {
+        var euler = new f64Euler(
+            f64AngleSingle.FromDegrees((Fixed64)0),
+            f64AngleSingle.FromDegrees((Fixed64)90),
+            f64AngleSingle.FromDegrees((Fixed64)0));
+
+        LuaValue value = new(euler);
+
+        Assert.That(value.Type, Is.EqualTo(LuaValueType.Fixed64Euler));
+    }
+
+    [Test]
+    public void TryRead_f64Euler_FromFixed64Euler()
+    {
+        var euler = new f64Euler(
+            f64AngleSingle.FromDegrees((Fixed64)45),
+            f64AngleSingle.FromDegrees((Fixed64)0),
+            f64AngleSingle.FromDegrees((Fixed64)0));
+        LuaValue value = euler;
+
+        var success = value.TryRead<f64Euler>(out var result);
+
+        Assert.That(success, Is.True);
+        Assert.That(result, Is.EqualTo(euler));
+    }
+
+    [Test]
+    public void TryReadFixed64Euler_InternalMethod()
+    {
+        var euler = new f64Euler(
+            f64AngleSingle.FromDegrees((Fixed64)10),
+            f64AngleSingle.FromDegrees((Fixed64)20),
+            f64AngleSingle.FromDegrees((Fixed64)30));
+        LuaValue value = euler;
+
+        var success = value.TryReadFixed64Euler(out var result);
+
+        Assert.That(success, Is.True);
+        Assert.That(result, Is.EqualTo(euler));
+    }
+
+    [Test]
+    public void FromObject_f64Euler()
+    {
+        var euler = new f64Euler(
+            f64AngleSingle.FromDegrees((Fixed64)1),
+            f64AngleSingle.FromDegrees((Fixed64)2),
+            f64AngleSingle.FromDegrees((Fixed64)3));
+
+        var result = LuaValue.FromObject((object)euler);
+
+        Assert.That(result.Type, Is.EqualTo(LuaValueType.Fixed64Euler));
+        Assert.That(result.Read<f64Euler>(), Is.EqualTo(euler));
+    }
+
+    [Test]
+    public void GetHashCode_Samef64Euler_SameHash()
+    {
+        LuaValue a = new f64Euler(
+            f64AngleSingle.FromDegrees((Fixed64)1),
+            f64AngleSingle.FromDegrees((Fixed64)2),
+            f64AngleSingle.FromDegrees((Fixed64)3));
+        LuaValue b = new f64Euler(
+            f64AngleSingle.FromDegrees((Fixed64)1),
+            f64AngleSingle.FromDegrees((Fixed64)2),
+            f64AngleSingle.FromDegrees((Fixed64)3));
+
+        Assert.That(a.GetHashCode(), Is.EqualTo(b.GetHashCode()));
+    }
+
+    [Test]
+    public void Equals_f64Euler_SameValue()
+    {
+        LuaValue a = new f64Euler(
+            f64AngleSingle.FromDegrees((Fixed64)1),
+            f64AngleSingle.FromDegrees((Fixed64)2),
+            f64AngleSingle.FromDegrees((Fixed64)3));
+        LuaValue b = new f64Euler(
+            f64AngleSingle.FromDegrees((Fixed64)1),
+            f64AngleSingle.FromDegrees((Fixed64)2),
+            f64AngleSingle.FromDegrees((Fixed64)3));
+
+        Assert.That(a.Equals(b), Is.True);
+        Assert.That(a == b, Is.True);
+    }
+
+    [Test]
+    public void ImplicitOperator_f64Euler_To_LuaValue()
+    {
+        var euler = new f64Euler(
+            f64AngleSingle.FromDegrees((Fixed64)10),
+            f64AngleSingle.FromDegrees((Fixed64)20),
+            f64AngleSingle.FromDegrees((Fixed64)30));
+        LuaValue value = euler;
+
+        Assert.That(value.Type, Is.EqualTo(LuaValueType.Fixed64Euler));
+        Assert.That(value.TryReadFixed64Euler(out var result), Is.True);
+        Assert.That(result, Is.EqualTo(euler));
+    }
+
+    [Test]
+    public void TryGetLuaValueType_Returnsf64Euler()
+    {
+        Assert.That(LuaValue.TryGetLuaValueType(typeof(f64Euler), out var type), Is.True);
+        Assert.That(type, Is.EqualTo(LuaValueType.Fixed64Euler));
+    }
+
+    [Test]
+    public void TypeToString_ReturnsCorrectAngleStrings()
+    {
+        Assert.That(LuaValue.ToString(LuaValueType.Fixed64Angle), Is.EqualTo("f64angle"));
+        Assert.That(LuaValue.ToString(LuaValueType.Fixed64Euler), Is.EqualTo("f64euler"));
     }
 }

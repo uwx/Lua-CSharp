@@ -33,6 +33,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\FixedMathSharp\src\FixedMathSharp\FixedMathSharp.csproj" />
+    <ProjectReference Include="..\..\..\NFMWorld.Math\NFMWorld.Math.csproj" />
     <ProjectReference Include="..\Lua.SourceGenerator\Lua.SourceGenerator.csproj" />
     <ProjectReference Include="..\Lua.Annotations\Lua.Annotations.csproj" />
   </ItemGroup>
