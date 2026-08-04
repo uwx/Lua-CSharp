@@ -1,4 +1,6 @@
+using FixedMathSharp;
 using Lua.Runtime;
+using NFMWorldLibrary.FixedMath;
 
 namespace Lua.Standard;
 
@@ -217,6 +219,93 @@ public static class OpenLibsExtensions
 
         globalState.Environment["f64eulerlib"] = eulerLib;
         globalState.LoadedModules["f64eulerlib"] = eulerLib;
+
+        // ---- Set up metatables with __index for field access ----
+
+        // fixed64: .raw → long rawValue cast to double
+        {
+            LuaValue key = default(Fixed64);
+            if (!globalState.TryGetMetatable(key, out var mt))
+            {
+                mt = new();
+                globalState.SetMetatable(key, mt);
+            }
+            mt[Metamethods.Index] = new LuaFunction("__index", (context, ct) =>
+            {
+                var self = context.GetArgument(0).UnsafeReadFixed64();
+                var field = context.GetArgument<string>(1);
+                if (field == "raw")
+                {
+                    return new(context.Return((double)self.rawValue));
+                }
+                return new(context.Return(default(LuaValue)));
+            });
+        }
+
+        // fixed64vector3: .x, .y, .z → Fixed64
+        {
+            LuaValue key = default(Vector3d);
+            if (!globalState.TryGetMetatable(key, out var mt))
+            {
+                mt = new();
+                globalState.SetMetatable(key, mt);
+            }
+            mt[Metamethods.Index] = new LuaFunction("__index", (context, ct) =>
+            {
+                var self = context.GetArgument(0).UnsafeReadFixed64Vector3();
+                var field = context.GetArgument<string>(1);
+                return field switch
+                {
+                    "x" => new(context.Return((LuaValue)self.X)),
+                    "y" => new(context.Return((LuaValue)self.Y)),
+                    "z" => new(context.Return((LuaValue)self.Z)),
+                    _ => new(context.Return(default(LuaValue))),
+                };
+            });
+        }
+
+        // f64angle: .deg, .rad → Fixed64
+        {
+            LuaValue key = default(f64AngleSingle);
+            if (!globalState.TryGetMetatable(key, out var mt))
+            {
+                mt = new();
+                globalState.SetMetatable(key, mt);
+            }
+            mt[Metamethods.Index] = new LuaFunction("__index", (context, ct) =>
+            {
+                var self = context.GetArgument(0).UnsafeReadFixed64Angle();
+                var field = context.GetArgument<string>(1);
+                return field switch
+                {
+                    "deg" => new(context.Return((LuaValue)self.Degrees)),
+                    "rad" => new(context.Return((LuaValue)self.Radians)),
+                    _ => new(context.Return(default(LuaValue))),
+                };
+            });
+        }
+
+        // f64euler: .pitch, .yaw, .roll → f64angle
+        {
+            LuaValue key = default(f64Euler);
+            if (!globalState.TryGetMetatable(key, out var mt))
+            {
+                mt = new();
+                globalState.SetMetatable(key, mt);
+            }
+            mt[Metamethods.Index] = new LuaFunction("__index", (context, ct) =>
+            {
+                var self = context.GetArgument(0).UnsafeReadFixed64Euler();
+                var field = context.GetArgument<string>(1);
+                return field switch
+                {
+                    "pitch" => new(context.Return((LuaValue)self.Pitch)),
+                    "yaw" => new(context.Return((LuaValue)self.Yaw)),
+                    "roll" => new(context.Return((LuaValue)self.Roll)),
+                    _ => new(context.Return(default(LuaValue))),
+                };
+            });
+        }
     }
 
     public static void OpenStandardLibraries(this LuaState state)

@@ -683,4 +683,172 @@ public class FixedMathLibraryTests
         Assert.That(results[0].Type, Is.EqualTo(LuaValueType.Fixed64Euler));
         Assert.That(results[0].TryReadFixed64Euler(out _), Is.True);
     }
+
+    // ---- Metatable __index field access ----
+
+    [Test]
+    public async Task Metatable_Fixed64_Raw()
+    {
+        using var state = CreateState();
+        var results = await state.DoStringAsync("return fixed64(42).raw");
+
+        Assert.That(results, Has.Length.EqualTo(1));
+        Assert.That(results[0].Type, Is.EqualTo(LuaValueType.Number));
+        Assert.That(results[0].TryReadDouble(out var d), Is.True);
+        Assert.That(d, Is.GreaterThan(0));
+    }
+
+    [Test]
+    public async Task Metatable_Fixed64Vector3_X()
+    {
+        using var state = CreateState();
+        var results = await state.DoStringAsync("return fixed64vector3(1, 2, 3).x");
+
+        Assert.That(results, Has.Length.EqualTo(1));
+        Assert.That(results[0].Type, Is.EqualTo(LuaValueType.Fixed64));
+        Assert.That(results[0].TryReadFixed64(out var f64), Is.True);
+        Assert.That(f64, Is.EqualTo((Fixed64)1));
+    }
+
+    [Test]
+    public async Task Metatable_Fixed64Vector3_Y()
+    {
+        using var state = CreateState();
+        var results = await state.DoStringAsync("return fixed64vector3(1, 2, 3).y");
+
+        Assert.That(results, Has.Length.EqualTo(1));
+        Assert.That(results[0].Type, Is.EqualTo(LuaValueType.Fixed64));
+        Assert.That(results[0].TryReadFixed64(out var f64), Is.True);
+        Assert.That(f64, Is.EqualTo((Fixed64)2));
+    }
+
+    [Test]
+    public async Task Metatable_Fixed64Vector3_Z()
+    {
+        using var state = CreateState();
+        var results = await state.DoStringAsync("return fixed64vector3(1, 2, 3).z");
+
+        Assert.That(results, Has.Length.EqualTo(1));
+        Assert.That(results[0].Type, Is.EqualTo(LuaValueType.Fixed64));
+        Assert.That(results[0].TryReadFixed64(out var f64), Is.True);
+        Assert.That(f64, Is.EqualTo((Fixed64)3));
+    }
+
+    [Test]
+    public async Task Metatable_Fixed64Vector3_UnknownField_Nil()
+    {
+        using var state = CreateState();
+        var results = await state.DoStringAsync("return fixed64vector3(1, 2, 3).w");
+
+        Assert.That(results, Has.Length.EqualTo(1));
+        Assert.That(results[0].Type, Is.EqualTo(LuaValueType.Nil));
+    }
+
+    [Test]
+    public async Task Metatable_f64Angle_Deg()
+    {
+        using var state = CreateState();
+        var results = await state.DoStringAsync("return f64angle(90).deg");
+
+        Assert.That(results, Has.Length.EqualTo(1));
+        Assert.That(results[0].Type, Is.EqualTo(LuaValueType.Fixed64));
+        Assert.That(results[0].TryReadFixed64(out var f64), Is.True);
+        Assert.That(f64, Is.EqualTo((Fixed64)90));
+    }
+
+    [Test]
+    public async Task Metatable_f64Angle_Rad()
+    {
+        using var state = CreateState();
+        var results = await state.DoStringAsync("return f64angle(180).rad");
+
+        Assert.That(results, Has.Length.EqualTo(1));
+        Assert.That(results[0].Type, Is.EqualTo(LuaValueType.Fixed64));
+        Assert.That(results[0].TryReadFixed64(out var f64), Is.True);
+        // 180° = π ≈ 3.14159 in radians
+        Assert.That((double)f64, Is.InRange(3.14, 3.142));
+    }
+
+    [Test]
+    public async Task Metatable_f64Angle_UnknownField_Nil()
+    {
+        using var state = CreateState();
+        var results = await state.DoStringAsync("return f64angle(45).unknown");
+
+        Assert.That(results, Has.Length.EqualTo(1));
+        Assert.That(results[0].Type, Is.EqualTo(LuaValueType.Nil));
+    }
+
+    [Test]
+    public async Task Metatable_f64Euler_Yaw()
+    {
+        using var state = CreateState();
+        var results = await state.DoStringAsync("return f64euler(10, 20, 30).yaw");
+
+        Assert.That(results, Has.Length.EqualTo(1));
+        Assert.That(results[0].Type, Is.EqualTo(LuaValueType.Fixed64Angle));
+        Assert.That(results[0].TryReadFixed64Angle(out var a), Is.True);
+        Assert.That(a.Degrees, Is.EqualTo((Fixed64)10));
+    }
+
+    [Test]
+    public async Task Metatable_f64Euler_Pitch()
+    {
+        using var state = CreateState();
+        var results = await state.DoStringAsync("return f64euler(10, 20, 30).pitch");
+
+        Assert.That(results, Has.Length.EqualTo(1));
+        Assert.That(results[0].Type, Is.EqualTo(LuaValueType.Fixed64Angle));
+        Assert.That(results[0].TryReadFixed64Angle(out var a), Is.True);
+        Assert.That(a.Degrees, Is.EqualTo((Fixed64)20));
+    }
+
+    [Test]
+    public async Task Metatable_f64Euler_Roll()
+    {
+        using var state = CreateState();
+        var results = await state.DoStringAsync("return f64euler(10, 20, 30).roll");
+
+        Assert.That(results, Has.Length.EqualTo(1));
+        Assert.That(results[0].Type, Is.EqualTo(LuaValueType.Fixed64Angle));
+        Assert.That(results[0].TryReadFixed64Angle(out var a), Is.True);
+        Assert.That(a.Degrees, Is.EqualTo((Fixed64)30));
+    }
+
+    [Test]
+    public async Task Metatable_f64Euler_UnknownField_Nil()
+    {
+        using var state = CreateState();
+        var results = await state.DoStringAsync("return f64euler(0, 0, 0).x");
+
+        Assert.That(results, Has.Length.EqualTo(1));
+        Assert.That(results[0].Type, Is.EqualTo(LuaValueType.Nil));
+    }
+
+    [Test]
+    public async Task Metatable_f64Euler_ChainedAccess()
+    {
+        using var state = CreateState();
+        // Access .deg on an angle obtained from .yaw
+        var results = await state.DoStringAsync("return f64euler(45, 30, 15).yaw.deg");
+
+        Assert.That(results, Has.Length.EqualTo(1));
+        Assert.That(results[0].Type, Is.EqualTo(LuaValueType.Fixed64));
+        Assert.That(results[0].TryReadFixed64(out var f64), Is.True);
+        Assert.That(f64, Is.EqualTo((Fixed64)45));
+    }
+
+    [Test]
+    public async Task Metatable_fixed64_Raw_UsedInArithmetic()
+    {
+        using var state = CreateState();
+        // Verify .raw returns a usable Lua number
+        var results = await state.DoStringAsync("local r = fixed64(10).raw; return r + 5");
+
+        Assert.That(results, Has.Length.EqualTo(1));
+        Assert.That(results[0].Type, Is.EqualTo(LuaValueType.Number));
+        Assert.That(results[0].TryReadDouble(out var d), Is.True);
+        // 10.raw returns the underlying raw long as double
+        Assert.That(d, Is.GreaterThan(5));
+    }
 }
