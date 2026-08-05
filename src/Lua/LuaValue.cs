@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -47,7 +48,7 @@ public readonly struct LuaValue : IEquatable<LuaValue>
         this.referenceValue = referenceValue;
     }
 
-    public bool TryRead<T>(out T result)
+    public bool TryRead<T>([MaybeNullWhen(false)] out T result)
     {
         var t = typeof(T);
 
@@ -670,7 +671,7 @@ public readonly struct LuaValue : IEquatable<LuaValue>
         return true;
     }
 
-    public static LuaValue FromObject(object obj)
+    public static LuaValue FromObject<T>(T obj)
     {
         return obj switch
         {
