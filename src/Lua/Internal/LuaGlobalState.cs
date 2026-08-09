@@ -76,6 +76,7 @@ sealed class LuaGlobalState
             LuaValueType.Fixed64Angle => fixed64AngleMetatable,
             LuaValueType.Fixed64Euler => fixed64EulerMetatable,
             LuaValueType.UserData => value.UnsafeRead<ILuaUserData>().Metatable,
+            LuaValueType.UserData2 => value.UnsafeRead<UserDataObject>().Metatable,
             LuaValueType.Table => value.UnsafeRead<LuaTable>().Metatable,
             _ => null,
         };
@@ -123,6 +124,9 @@ sealed class LuaGlobalState
                 break;
             case LuaValueType.Table:
                 value.UnsafeRead<LuaTable>().Metatable = metatable;
+                break;
+            case LuaValueType.UserData2:
+                value.UnsafeRead<UserDataObject>().Metatable = metatable;
                 break;
         }
     }

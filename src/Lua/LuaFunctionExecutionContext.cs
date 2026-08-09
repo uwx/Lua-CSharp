@@ -86,6 +86,15 @@ public readonly record struct LuaFunctionExecutionContext
                     arg.UnsafeRead<object>()?.GetType().ToString() ?? "userdata: 0"
                 );
             }
+            else if (arg.Type is LuaValueType.UserData2)
+            {
+                LuaRuntimeException.BadArgument(
+                    State,
+                    index + 1,
+                    t.Name,
+                    arg.UnsafeRead<UserDataObject>()?.Value?.GetType().ToString() ?? "userdata: 0"
+                );
+            }
             else
             {
                 LuaRuntimeException.BadArgument(State, index + 1, t.Name, arg.TypeToString());
@@ -125,6 +134,65 @@ public readonly record struct LuaFunctionExecutionContext
                     index + 1,
                     t.Name,
                     arg.UnsafeRead<object>()?.GetType().ToString() ?? "userdata: 0"
+                );
+            }
+            else if (arg.Type is LuaValueType.UserData2)
+            {
+                LuaRuntimeException.BadArgument(
+                    State,
+                    index + 1,
+                    t.Name,
+                    arg.UnsafeRead<UserDataObject>()?.Value?.GetType().ToString() ?? "userdata: 0"
+                );
+            }
+            else
+            {
+                LuaRuntimeException.BadArgument(State, index + 1, t.Name, arg.TypeToString());
+            }
+        }
+
+        return argValue;
+    }
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public T? GetArgumentOrNullClass<T>(int index) where T : class
+    {
+        ThrowIfArgumentNotExists(index);
+
+        var arg = Arguments[index];
+
+        if (arg.Type is LuaValueType.Nil)
+        {
+            return null;
+        }
+
+        if (!arg.TryRead<T>(out var argValue))
+        {
+            var t = typeof(T);
+            if ((t == typeof(int) || t == typeof(long)) && arg.TryReadNumber(out _))
+            {
+                LuaRuntimeException.BadArgumentNumberIsNotInteger(State, index + 1);
+            }
+            else if (LuaValue.TryGetLuaValueType(t, out var type))
+            {
+                LuaRuntimeException.BadArgument(State, index + 1, type, arg.Type);
+            }
+            else if (arg.Type is LuaValueType.UserData or LuaValueType.LightUserData)
+            {
+                LuaRuntimeException.BadArgument(
+                    State,
+                    index + 1,
+                    t.Name,
+                    arg.UnsafeRead<object>()?.GetType().ToString() ?? "userdata: 0"
+                );
+            }
+            else if (arg.Type is LuaValueType.UserData2)
+            {
+                LuaRuntimeException.BadArgument(
+                    State,
+                    index + 1,
+                    t.Name,
+                    arg.UnsafeRead<UserDataObject>()?.Value?.GetType().ToString() ?? "userdata: 0"
                 );
             }
             else
@@ -169,6 +237,15 @@ public readonly record struct LuaFunctionExecutionContext
                     index + 1,
                     t.Name,
                     arg.UnsafeRead<object>()?.GetType().ToString() ?? "userdata: 0"
+                );
+            }
+            else if (arg.Type is LuaValueType.UserData2)
+            {
+                LuaRuntimeException.BadArgument(
+                    State,
+                    index + 1,
+                    t.Name,
+                    arg.UnsafeRead<UserDataObject>()?.Value?.GetType().ToString() ?? "userdata: 0"
                 );
             }
             else

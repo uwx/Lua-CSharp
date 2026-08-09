@@ -729,6 +729,7 @@ public sealed class BasicLibrary
                     LuaValueType.Thread => "thread",
                     LuaValueType.LightUserData => "userdata",
                     LuaValueType.UserData => "userdata",
+                    LuaValueType.UserData2 => "userdata",
                     LuaValueType.Table => "table",
                     LuaValueType.Fixed64 => "fixed64",
                     LuaValueType.Fixed64Vector3 => "fixed64vector3",

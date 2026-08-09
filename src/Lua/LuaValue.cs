@@ -25,7 +25,14 @@ public enum LuaValueType : byte
     Fixed64,
     Fixed64Vector3,
     Fixed64Angle,
-    Fixed64Euler
+    Fixed64Euler,
+    UserData2 // this is like userdata but the type is wrapped so you don't need to make your type implement ILuaUserData, useful for e.g making userdatas out of standard library objects
+}
+
+internal class UserDataObject : ILuaUserData
+{
+    public object? Value { get; set; }
+    public LuaTable? Metatable { get; set; }
 }
 
 [StructLayout(LayoutKind.Explicit, Size = 40)]
@@ -228,6 +235,26 @@ public readonly struct LuaValue : IEquatable<LuaValue>
                 {
                     result = (T)referenceValue!;
                     return true;
+                }
+                else
+                {
+                    break;
+                }
+            case LuaValueType.UserData2:
+                if (t == typeof(object))
+                {
+                    result = (T)(referenceValue as UserDataObject)?.Value!;
+                    return true;
+                }
+                else if ((referenceValue as UserDataObject)?.Value?.GetType().IsAssignableTo(t) == true)
+                {
+                    if ((referenceValue as UserDataObject)?.Value is T tValue)
+                    {
+                        result = tValue;
+                        return true;
+                    }
+
+                    break;
                 }
                 else
                 {
@@ -650,6 +677,11 @@ public readonly struct LuaValue : IEquatable<LuaValue>
                 var v = referenceValue!;
                 return Unsafe.As<object, T>(ref v);
             }
+            case LuaValueType.UserData2:
+            {
+                var v = (referenceValue as UserDataObject)?.Value!;
+                return Unsafe.As<object, T>(ref v);
+            }
         }
 
         return default!;
@@ -707,11 +739,28 @@ public readonly struct LuaValue : IEquatable<LuaValue>
         return new(userData);
     }
 
+    public static LuaValue FromUserData(object? userData, LuaTable metatable)
+    {
+        if (userData is null)
+        {
+            return Nil;
+        }
+
+        return new(userData, metatable);
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     LuaValue(object obj)
     {
         Type = LuaValueType.LightUserData;
         referenceValue = obj;
+    }
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    LuaValue(object obj, LuaTable metatable)
+    {
+        Type = LuaValueType.UserData2;
+        referenceValue = new UserDataObject { Value = obj, Metatable = metatable };
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -959,6 +1008,7 @@ public readonly struct LuaValue : IEquatable<LuaValue>
             LuaValueType.Table => $"table: {referenceValue!.GetHashCode()}",
             LuaValueType.LightUserData => $"userdata: {referenceValue!.GetHashCode()}",
             LuaValueType.UserData => $"userdata: {referenceValue!.GetHashCode()}",
+            LuaValueType.UserData2 => $"userdata: {(referenceValue as UserDataObject)?.Value!.GetHashCode()}",
             _ => "",
         };
     }
@@ -985,6 +1035,7 @@ public readonly struct LuaValue : IEquatable<LuaValue>
             LuaValueType.Table => "table",
             LuaValueType.LightUserData => "light userdata",
             LuaValueType.UserData => "userdata",
+            LuaValueType.UserData2 => "userdata",
             _ => "",
         };
     }
