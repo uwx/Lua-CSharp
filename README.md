@@ -70,6 +70,21 @@ Console.WriteLine(results[0]);
 > [!WARNING]
 > `LuaState` is not thread-safe. Do not access it from multiple threads simultaneously.
 
+### Synchronous execution
+
+`DoString`, `Execute`, `DoFile` and `Run` execute Lua code synchronously and return the results directly.
+
+```cs
+var results = state.DoString("return 1 + 1");
+Console.WriteLine(results[0]); // 2
+```
+
+- These methods throw a `LuaYieldException` if the code attempts to suspend execution (for example, by calling an async C# function that does not complete synchronously).
+- Coroutine yields are allowed when they are absorbed synchronously by `coroutine.resume` / `coroutine.wrap` (the resume completes inline with the yield values).
+- `coroutine.yield()` on the main thread throws a `LuaRuntimeException`, as with the async API.
+- `LuaYieldException` derives from `LuaRuntimeException`, so `pcall` can catch it from Lua.
+- `DoFile` requires the file system implementation to complete synchronously; the built-in `FileSystem` does, but custom asynchronous `ILuaFileSystem` implementations cause an `InvalidOperationException`.
+
 ## LuaValue
 
 Values in Lua scripts are represented by the `LuaValue` type. The value of a `LuaValue` can be read using `TryRead<T>(out T value)` or `Read<T>()`.

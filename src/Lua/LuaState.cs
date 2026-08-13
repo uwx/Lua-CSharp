@@ -172,6 +172,10 @@ public class LuaState : IDisposable
     internal LuaGlobalState GlobalState { get; }
     ThreadCoreData? CoreData;
     CoroutineCore? coroutine;
+
+    // True while a synchronous execution entry point (DoString/Execute/DoFile/Run) is active.
+    // Suspending during sync execution throws LuaYieldException.
+    internal bool IsSyncExecution;
     internal bool IsLineHookEnabled;
     internal BitFlags2 CallOrReturnHookMask;
     internal bool IsInHook;
@@ -497,6 +501,59 @@ public class LuaState : IDisposable
         {
             PopCallStackFrameUntil(callStackTop - 1);
         }
+    }
+
+    internal T RunSyncCore<T>(Func<ValueTask<T>> factory)
+    {
+        var previous = IsSyncExecution;
+        IsSyncExecution = true;
+        try
+        {
+            var task = factory();
+            if (!task.IsCompleted)
+            {
+                ThrowDidNotCompleteSynchronously();
+            }
+
+            return task.GetAwaiter().GetResult();
+        }
+        finally
+        {
+            IsSyncExecution = previous;
+        }
+
+        static void ThrowDidNotCompleteSynchronously()
+        {
+            throw new InvalidOperationException(
+                "The operation did not complete synchronously during synchronous "
+                + "execution (an async C# function or an asynchronous file system)."
+            );
+        }
+    }
+
+    // Synchronous counterparts of RunAsync.
+    public int Run(LuaFunction function, CancellationToken cancellationToken = default)
+    {
+        return Run(function, 0, Stack.Count, cancellationToken);
+    }
+
+    public int Run(
+        LuaFunction function,
+        int argumentCount,
+        CancellationToken cancellationToken = default
+    )
+    {
+        return Run(function, argumentCount, Stack.Count - argumentCount, cancellationToken);
+    }
+
+    public int Run(
+        LuaFunction function,
+        int argumentCount,
+        int returnBase,
+        CancellationToken cancellationToken = default
+    )
+    {
+        return RunSyncCore(() => RunAsync(function, argumentCount, returnBase, cancellationToken));
     }
 
     public unsafe LuaClosure Load(

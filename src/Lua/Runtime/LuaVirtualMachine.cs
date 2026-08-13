@@ -269,6 +269,11 @@ public static partial class LuaVirtualMachine
                 while (MoveNext(this))
                 {
                     toCatchFlag = true;
+                    if (!Task.IsCompleted && State.IsSyncExecution)
+                    {
+                        ThrowAttemptedToYieldDuringSyncExecution(State);
+                    }
+
                     await Task;
                     Task = default;
                     ref readonly var frame = ref State.GetCurrentFrame();
@@ -317,6 +322,14 @@ public static partial class LuaVirtualMachine
             finally
             {
                 pool.TryPush(this);
+            }
+
+            static void ThrowAttemptedToYieldDuringSyncExecution(LuaState state)
+            {
+                throw new LuaYieldException(
+                    state,
+                    "attempt to yield during synchronous execution"
+                );
             }
         }
 

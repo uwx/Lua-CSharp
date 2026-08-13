@@ -527,6 +527,13 @@ public class LuaRuntimeException : Exception, ILuaTracebackBuildable
 public class LuaAssertionException(LuaState? traceback, string message)
     : LuaRuntimeException(traceback, message);
 
+/// <summary>
+/// Thrown when a script attempts to suspend execution (yield, async C# function, async hook)
+/// during synchronous execution via DoString, Execute, DoFile or Run.
+/// </summary>
+public class LuaYieldException(LuaState? state, string message)
+    : LuaRuntimeException(state, message);
+
 public class LuaModuleNotFoundException(string moduleName)
     : Exception($"module '{moduleName}' not found");
 

@@ -161,6 +161,99 @@ public static class LuaStateExtensions
         return results.AsSpan().ToArray();
     }
 
+    // ---- Synchronous execution -------------------------------------------------
+
+    // Executes a Lua script string synchronously.
+    // Throws LuaYieldException if the script attempts to suspend execution
+    // (e.g. calling an async C# function that does not complete synchronously).
+    // Coroutine yields absorbed by coroutine.resume / coroutine.wrap do not throw.
+    public static LuaValue[] DoString(
+        this LuaState state,
+        string source,
+        string? chunkName = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var closure = state.Load(source, chunkName ?? source);
+        return Execute(state, closure, cancellationToken);
+    }
+
+    public static int DoString(
+        this LuaState state,
+        string source,
+        Memory<LuaValue> results,
+        string? chunkName = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var closure = state.Load(source, chunkName ?? source);
+        return Execute(state, closure, results, cancellationToken);
+    }
+
+    public static LuaValue[] Execute(
+        this LuaState state,
+        LuaClosure closure,
+        CancellationToken cancellationToken = default
+    )
+    {
+        return state.RunSyncCore(() => ExecuteAsync(state, closure, cancellationToken));
+    }
+
+    public static int Execute(
+        this LuaState state,
+        LuaClosure closure,
+        Memory<LuaValue> results,
+        CancellationToken cancellationToken = default
+    )
+    {
+        return state.RunSyncCore(() => ExecuteAsync(state, closure, results, cancellationToken));
+    }
+
+    public static LuaValue[] Execute(
+        this LuaState state,
+        ReadOnlySpan<byte> source,
+        string chunkName,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var closure = state.Load(source, chunkName);
+        return Execute(state, closure, cancellationToken);
+    }
+
+    public static int Execute(
+        this LuaState state,
+        ReadOnlySpan<byte> source,
+        Memory<LuaValue> results,
+        string chunkName,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var closure = state.Load(source, chunkName);
+        return Execute(state, closure, results, cancellationToken);
+    }
+
+    // Requires the file system implementation to complete synchronously;
+    // the built-in FileSystem does. Custom async ILuaFileSystem implementations
+    // cause an InvalidOperationException.
+    public static LuaValue[] DoFile(
+        this LuaState state,
+        string path,
+        CancellationToken cancellationToken = default
+    )
+    {
+        return state.RunSyncCore(() => DoFileAsync(state, path, cancellationToken));
+    }
+
+    public static int DoFile(
+        this LuaState state,
+        string path,
+        Memory<LuaValue> results,
+        CancellationToken cancellationToken = default
+    )
+    {
+        return state.RunSyncCore(() => DoFileAsync(state, path, results, cancellationToken));
+    }
+
     public static void Push(this LuaState state, LuaValue value)
     {
         state.Stack.Push(value);
