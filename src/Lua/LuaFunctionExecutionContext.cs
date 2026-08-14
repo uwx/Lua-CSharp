@@ -92,7 +92,7 @@ public readonly record struct LuaFunctionExecutionContext
                     State,
                     index + 1,
                     t.Name,
-                    arg.UnsafeRead<UserDataObject>()?.Value?.GetType().ToString() ?? "userdata: 0"
+                    arg.UnsafeRead<object>()?.GetType().ToString() ?? "userdata: 0"
                 );
             }
             else
@@ -142,7 +142,7 @@ public readonly record struct LuaFunctionExecutionContext
                     State,
                     index + 1,
                     t.Name,
-                    arg.UnsafeRead<UserDataObject>()?.Value?.GetType().ToString() ?? "userdata: 0"
+                    arg.UnsafeRead<object>()?.GetType().ToString() ?? "userdata: 0"
                 );
             }
             else
@@ -192,7 +192,7 @@ public readonly record struct LuaFunctionExecutionContext
                     State,
                     index + 1,
                     t.Name,
-                    arg.UnsafeRead<UserDataObject>()?.Value?.GetType().ToString() ?? "userdata: 0"
+                    arg.UnsafeRead<object>()?.GetType().ToString() ?? "userdata: 0"
                 );
             }
             else
@@ -245,7 +245,7 @@ public readonly record struct LuaFunctionExecutionContext
                     State,
                     index + 1,
                     t.Name,
-                    arg.UnsafeRead<UserDataObject>()?.Value?.GetType().ToString() ?? "userdata: 0"
+                    arg.UnsafeRead<object>()?.GetType().ToString() ?? "userdata: 0"
                 );
             }
             else
