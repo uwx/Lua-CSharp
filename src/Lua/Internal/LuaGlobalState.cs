@@ -76,7 +76,8 @@ sealed class LuaGlobalState
             LuaValueType.Fixed64Angle => fixed64AngleMetatable,
             LuaValueType.Fixed64Euler => fixed64EulerMetatable,
             LuaValueType.UserData => value.UnsafeRead<ILuaUserData>().Metatable,
-            LuaValueType.UserData2 => value.UnsafeRead<UserDataObject>().Metatable,
+            // UnsafeRead here just gets you down to the object inside the UserDataObject, which is not what we want
+            LuaValueType.UserData2 => Unsafe.As<object, UserDataObject>(ref Unsafe.AsRef(in value.referenceValue)!).Metatable,
             LuaValueType.Table => value.UnsafeRead<LuaTable>().Metatable,
             _ => null,
         };
