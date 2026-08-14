@@ -41,7 +41,7 @@ public readonly struct LuaValue : IEquatable<LuaValue>
     public static readonly LuaValue Nil = default;
 
     [FieldOffset(0)] public readonly LuaValueType Type;
-    [FieldOffset(8)] readonly object? referenceValue;
+    [FieldOffset(8)] internal readonly object? referenceValue;
     [FieldOffset(16)] readonly double value;
     [FieldOffset(16)] readonly Fixed64 f64Value;
     [FieldOffset(16)] internal readonly Vector3d f64Vec3Value;
@@ -870,9 +870,21 @@ public readonly struct LuaValue : IEquatable<LuaValue>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static implicit operator LuaValue(string value)
+    public static implicit operator LuaValue(string? value)
     {
-        return new(value);
+        return value != null ? new(value) : Nil;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static implicit operator LuaValue(bool? value)
+    {
+        return value != null ? new(value.Value) : Nil;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static implicit operator LuaValue(double? value)
+    {
+        return value != null ? new(value.Value) : Nil;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -927,6 +939,18 @@ public readonly struct LuaValue : IEquatable<LuaValue>
     public static implicit operator LuaValue(f64Euler value)
     {
         return new(value);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static implicit operator LuaValue(f64AngleSingle? value)
+    {
+        return value != null ? new(value.Value) : Nil;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static implicit operator LuaValue(f64Euler? value)
+    {
+        return value != null ? new(value.Value) : Nil;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
