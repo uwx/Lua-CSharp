@@ -749,6 +749,16 @@ public readonly struct LuaValue : IEquatable<LuaValue>
         return new(userData, metatable);
     }
 
+    public static LuaValue FromLightUserData(object? userData)
+    {
+        if (userData is null)
+        {
+            return Nil;
+        }
+
+        return new(userData);
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     LuaValue(object obj)
     {
