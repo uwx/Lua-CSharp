@@ -232,8 +232,11 @@ static class LuaTypeMapping
         if (!method.HasReturnValue)
             return null;
 
-        return GetLuaCATSTypeName(
-            method.Symbol.ReturnType, references, compilation, knownTypes);
+        var returnType = method.IsConstructor
+            ? method.Symbol.ContainingType!
+            : method.Symbol.ReturnType;
+
+        return GetLuaCATSTypeName(returnType, references, compilation, knownTypes);
     }
 
     /// <summary>

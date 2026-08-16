@@ -13,7 +13,7 @@ public sealed class LuaObjectAttribute : Attribute
     public string? Name { get; }
 }
 
-[AttributeUsage(AttributeTargets.Method | AttributeTargets.Field | AttributeTargets.Property)]
+[AttributeUsage(AttributeTargets.Method | AttributeTargets.Field | AttributeTargets.Property | AttributeTargets.Constructor)]
 public sealed class LuaMemberAttribute : Attribute
 {
     public LuaMemberAttribute() { }

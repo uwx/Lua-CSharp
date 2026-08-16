@@ -409,7 +409,7 @@ unsafe ref struct UndumpState(
         var isVarArg = ReadByte() == 1; // 1
         var codeLength = ReadInt();
         var code = new Instruction[codeLength];
-        ReadInToIntSpan(MemoryMarshal.Cast<Instruction, int>(code));
+        ReadInToIntSpan(MemoryMarshal.Cast<Instruction, int>((Span<Instruction>)code));
         var constants = ReadConstants();
         var prototypes = ReadPrototypes();
         var upValues = ReadUpValues();

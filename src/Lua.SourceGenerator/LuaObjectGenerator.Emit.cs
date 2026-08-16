@@ -45,7 +45,54 @@ partial class LuaObjectGenerator
         Compilation compilation
     )
     {
+        if (TryUnwrapNullable(typeSymbol, out var underlyingType))
+        {
+            var inner = GetLuaValueExpression(
+                $"{expression}.Value",
+                underlyingType,
+                references,
+                compilation
+            );
+            return $"({expression}.HasValue ? {inner} : global::Lua.LuaValue.Nil)";
+        }
+
         return $"{GetLuaValuePrefix(typeSymbol, references, compilation)}{expression})";
+    }
+
+    static bool TryUnwrapNullable(ITypeSymbol typeSymbol, out ITypeSymbol underlyingType)
+    {
+        if (typeSymbol is INamedTypeSymbol { IsGenericType: true } namedType
+            && namedType.ConstructedFrom.SpecialType == SpecialType.System_Nullable_T)
+        {
+            underlyingType = namedType.TypeArguments[0];
+            return true;
+        }
+
+        underlyingType = typeSymbol;
+        return false;
+    }
+
+    static ITypeSymbol UnwrapNullable(ITypeSymbol typeSymbol)
+    {
+        return TryUnwrapNullable(typeSymbol, out var underlyingType)
+            ? underlyingType
+            : typeSymbol;
+    }
+
+    static string GetArgumentReadExpression(ITypeSymbol typeSymbol, string indexExpression)
+    {
+        if (TryUnwrapNullable(typeSymbol, out var underlyingType))
+        {
+            var typeName = underlyingType.ToDisplayString(
+                SymbolDisplayFormat.FullyQualifiedFormat
+            );
+            return $"context.GetArgumentOrNull<{typeName}>({indexExpression})";
+        }
+
+        var fullName = typeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+        return typeSymbol.IsReferenceType
+            ? $"context.GetArgumentOrNullClass<{fullName}>({indexExpression})"
+            : $"context.GetArgument<{fullName}>({indexExpression})";
     }
 
     static bool TryEmit(
@@ -323,35 +370,37 @@ partial class LuaObjectGenerator
 
         foreach (var property in typeMetadata.Properties)
         {
-            if (SymbolEqualityComparer.Default.Equals(property.Type, references.LuaValue))
+            var propertyType = UnwrapNullable(property.Type);
+
+            if (SymbolEqualityComparer.Default.Equals(propertyType, references.LuaValue))
             {
                 continue;
             }
 
-            if (SymbolEqualityComparer.Default.Equals(property.Type, references.LuaUserData))
+            if (SymbolEqualityComparer.Default.Equals(propertyType, references.LuaUserData))
             {
                 continue;
             }
 
-            if (SymbolEqualityComparer.Default.Equals(property.Type, typeMetadata.Symbol))
+            if (SymbolEqualityComparer.Default.Equals(propertyType, typeMetadata.Symbol))
             {
                 continue;
             }
 
-            if (compilation.ClassifyConversion(property.Type, references.LuaUserData).Exists
-                || (property.Type is INamedTypeSymbol namedPropType && metaDict.ContainsKey(namedPropType))
-                || HasLuaObjectAttribute(property.Type, references))
+            if (compilation.ClassifyConversion(propertyType, references.LuaUserData).Exists
+                || (propertyType is INamedTypeSymbol namedPropType && metaDict.ContainsKey(namedPropType))
+                || HasLuaObjectAttribute(propertyType, references))
             {
                 continue;
             }
 
-            var conversion = compilation.ClassifyConversion(property.Type, references.LuaValue);
+            var conversion = compilation.ClassifyConversion(propertyType, references.LuaValue);
             if (
                 !conversion.Exists
                 && (
-                    property.Type is not INamedTypeSymbol namedTypeSymbol
+                    propertyType is not INamedTypeSymbol namedTypeSymbol
                     || (!metaDict.ContainsKey(namedTypeSymbol)
-                        && !HasLuaObjectAttribute(property.Type, references))
+                        && !HasLuaObjectAttribute(propertyType, references))
                 )
             )
             {
@@ -370,7 +419,7 @@ partial class LuaObjectGenerator
 
         foreach (var method in typeMetadata.Methods)
         {
-            if (!method.Symbol.ReturnsVoid)
+            if (!method.Symbol.ReturnsVoid && !method.IsConstructor)
             {
                 var typeSymbol = method.Symbol.ReturnType;
 
@@ -384,6 +433,8 @@ partial class LuaObjectGenerator
 
                     typeSymbol = namedType.TypeArguments[0];
                 }
+
+                typeSymbol = UnwrapNullable(typeSymbol);
 
                 if (SymbolEqualityComparer.Default.Equals(typeSymbol, references.LuaValue))
                 {
@@ -433,7 +484,7 @@ partial class LuaObjectGenerator
             for (var index = 0; index < method.Symbol.Parameters.Length; index++)
             {
                 var parameterSymbol = method.Symbol.Parameters[index];
-                var typeSymbol = parameterSymbol.Type;
+                var typeSymbol = UnwrapNullable(parameterSymbol.Type);
                 if (
                     index == method.Symbol.Parameters.Length - 1
                     && SymbolEqualityComparer.Default.Equals(
@@ -586,23 +637,17 @@ partial class LuaObjectGenerator
                         continue;
                     }
 
-                    var conversionPrefix = GetLuaValuePrefix(
+                    var luaValueExpression = GetLuaValueExpression(
+                        propertyMetadata.IsStatic
+                            ? $"{typeMetadata.FullTypeName}.{propertyMetadata.Symbol.Name}"
+                            : $"userData.{propertyMetadata.Symbol.Name}",
                         propertyMetadata.Type,
                         references,
                         compilation
                     );
-                    if (propertyMetadata.IsStatic)
-                    {
-                        builder.AppendLine(
-                            @$"if (stringKey == ""{propertyMetadata.LuaMemberName}"") return new global::System.Threading.Tasks.ValueTask<int>(context.Return({conversionPrefix}{typeMetadata.FullTypeName}.{propertyMetadata.Symbol.Name})));"
-                        );
-                    }
-                    else
-                    {
-                        builder.AppendLine(
-                            @$"if (stringKey == ""{propertyMetadata.LuaMemberName}"") return new global::System.Threading.Tasks.ValueTask<int>(context.Return({conversionPrefix}userData.{propertyMetadata.Symbol.Name})));"
-                        );
-                    }
+                    builder.AppendLine(
+                        @$"if (stringKey == ""{propertyMetadata.LuaMemberName}"") return new global::System.Threading.Tasks.ValueTask<int>(context.Return({luaValueExpression}));"
+                    );
                 }
 
                 foreach (
@@ -773,7 +818,7 @@ partial class LuaObjectGenerator
                             else
                             {
                                 builder.AppendLine(
-                                    $"{typeMetadata.FullTypeName}.{propertyMetadata.Symbol.Name} = context.GetArgument<{propertyMetadata.TypeFullName}>(2);"
+                                    $"{typeMetadata.FullTypeName}.{propertyMetadata.Symbol.Name} = {GetArgumentReadExpression(propertyMetadata.Type, "2")};"
                                 );
                             }
 
@@ -797,7 +842,7 @@ partial class LuaObjectGenerator
                             else
                             {
                                 builder.AppendLine(
-                                    $"userData.{propertyMetadata.Symbol.Name} = context.GetArgument<{propertyMetadata.TypeFullName}>(2);"
+                                    $"userData.{propertyMetadata.Symbol.Name} = {GetArgumentReadExpression(propertyMetadata.Type, "2")};"
                                 );
                             }
 
@@ -1147,7 +1192,7 @@ partial class LuaObjectGenerator
                 else
                 {
                     builder.AppendLine(
-                        $"var {variableName} = context.HasArgument({luaArgumentIndex}) ? context.GetArgument<{parameterTypeName}>({luaArgumentIndex}) : {syntax.Default!.Value.ToFullString()};"
+                        $"var {variableName} = context.HasArgument({luaArgumentIndex}) ? {GetArgumentReadExpression(parameterType, luaArgumentIndex.ToString())} : {syntax.Default!.Value.ToFullString()};"
                     );
                 }
             }
@@ -1162,7 +1207,7 @@ partial class LuaObjectGenerator
                 else
                 {
                     builder.AppendLine(
-                        $"var {variableName} = context.GetArgument<{parameterTypeName}>({luaArgumentIndex});"
+                        $"var {variableName} = {GetArgumentReadExpression(parameterType, luaArgumentIndex.ToString())};"
                     );
                 }
             }
@@ -1203,8 +1248,12 @@ partial class LuaObjectGenerator
             }
             else
             {
+                var invokeExpression =
+                    methodMetadata.Symbol.MethodKind == MethodKind.Constructor
+                        ? $"new {typeMetadata.FullTypeName}"
+                        : $"{typeMetadata.FullTypeName}.{methodMetadata.Symbol.Name}";
                 builder.Append(
-                    $"{typeMetadata.FullTypeName}.{methodMetadata.Symbol.Name}(",
+                    $"{invokeExpression}(",
                     !(methodMetadata.HasReturnValue || methodMetadata.IsAsync)
                 );
                 builder.Append(string.Join(",", callArguments), false);
@@ -1236,7 +1285,9 @@ partial class LuaObjectGenerator
         var returnValueExpressions = new List<string>();
         if (methodMetadata.HasReturnValue)
         {
-            var returnType = methodMetadata.Symbol.ReturnType;
+            var returnType = methodMetadata.IsConstructor
+                ? methodMetadata.Symbol.ContainingType!
+                : methodMetadata.Symbol.ReturnType;
             if (methodMetadata.IsAsync)
             {
                 var namedType = (INamedTypeSymbol)returnType;

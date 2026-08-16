@@ -6,6 +6,7 @@ class MethodMetadata
 {
     public IMethodSymbol Symbol { get; }
     public bool IsStatic { get; }
+    public bool IsConstructor { get; }
     public bool IsAsync { get; }
     public bool HasReturnValue { get; }
     public bool HasMemberAttribute { get; }
@@ -17,7 +18,8 @@ class MethodMetadata
     public MethodMetadata(IMethodSymbol symbol, SymbolReferences references)
     {
         Symbol = symbol;
-        IsStatic = symbol.IsStatic;
+        IsConstructor = symbol.MethodKind == MethodKind.Constructor;
+        IsStatic = symbol.IsStatic || IsConstructor;
 
         var returnType = symbol.ReturnType;
         var fullName =
@@ -34,10 +36,13 @@ class MethodMetadata
                     or "UnityEngine.Awaitable";
 
         HasReturnValue =
-            !symbol.ReturnsVoid
-            && !(IsAsync && returnType is INamedTypeSymbol n && !n.IsGenericType);
+            IsConstructor
+            || (
+                !symbol.ReturnsVoid
+                && !(IsAsync && returnType is INamedTypeSymbol n && !n.IsGenericType)
+            );
 
-        LuaMemberName = symbol.Name;
+        LuaMemberName = IsConstructor ? "new" : symbol.Name;
 
         var memberAttribute = symbol.GetAttribute(references.LuaMemberAttribute);
         HasMemberAttribute = memberAttribute != null;

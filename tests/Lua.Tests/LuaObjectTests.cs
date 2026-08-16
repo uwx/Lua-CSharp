@@ -8,6 +8,17 @@ public partial class LuaTestObj
     int x;
     int y;
 
+    public LuaTestObj()
+    {
+    }
+
+    [LuaMember("new")]
+    public LuaTestObj(int x, int y)
+    {
+        this.x = x;
+        this.y = y;
+    }
+
     [LuaMember("x")]
     public int X
     {
@@ -308,6 +319,48 @@ public sealed class LuaTestImpl : ILuaTestInterface
         Name = name;
         Value = value;
     }
+}
+
+[LuaObject]
+public partial class LuaCtorDefaultNameObj
+{
+    [LuaMember]
+    public int Value { get; }
+
+    [LuaMember]
+    public LuaCtorDefaultNameObj(int value)
+    {
+        Value = value;
+    }
+}
+
+[LuaObject]
+public partial class NullableArgObj
+{
+    [LuaMember("label")]
+    public string? Label { get; set; }
+
+    [LuaMember("count")]
+    public int? Count { get; set; }
+
+    [LuaMember("structProp")]
+    public LuaTestStruct? StructProp { get; set; }
+
+    [LuaMember("echoString")]
+    public static string? EchoString(string? s) => s;
+
+    [LuaMember("echoInt")]
+    public static int? EchoInt(int? x) => x;
+
+    [LuaMember("echoDouble")]
+    public static double? EchoDouble(double? x) => x;
+
+    [LuaMember("echoStruct")]
+    public static LuaTestStruct? EchoStruct(LuaTestStruct? s) => s;
+
+    [LuaMember("describe")]
+    public string? Describe(string? prefix, int? count) =>
+        prefix == null ? null : $"{prefix}:{count}";
 }
 
 public class LuaObjectTests
@@ -828,5 +881,151 @@ public class LuaObjectTests
         Assert.That(name, Is.EqualTo("world"));
         Assert.That(results[1].TryRead<int>(out var value), Is.True);
         Assert.That(value, Is.EqualTo(99));
+    }
+
+    [Test]
+    public async Task Test_ConstructorAsStaticMember()
+    {
+        var state = LuaState.Create();
+        state.Environment["TestObj"] = new LuaTestObj();
+        var results = await state.DoStringAsync("""
+            local obj = TestObj.new(5, 6)
+            return obj.x, obj.y
+            """);
+
+        Assert.That(results, Has.Length.EqualTo(2));
+        Assert.That(results[0].TryRead<int>(out var x), Is.True);
+        Assert.That(x, Is.EqualTo(5));
+        Assert.That(results[1].TryRead<int>(out var y), Is.True);
+        Assert.That(y, Is.EqualTo(6));
+    }
+
+    [Test]
+    public async Task Test_ConstructorWithoutExplicitNameDefaultsToNew()
+    {
+        var state = LuaState.Create();
+        state.Environment["TestObj"] = new LuaCtorDefaultNameObj(0);
+        var results = await state.DoStringAsync("""
+            local obj = TestObj.new(42)
+            return obj.Value
+            """);
+
+        Assert.That(results, Has.Length.EqualTo(1));
+        Assert.That(results[0].TryRead<int>(out var value), Is.True);
+        Assert.That(value, Is.EqualTo(42));
+    }
+
+    [Test]
+    public async Task Test_NullableReferenceParam_NilAndValue()
+    {
+        var userData = new NullableArgObj();
+
+        var state = LuaState.Create();
+        state.Environment["test"] = userData;
+        var results = await state.DoStringAsync("""
+            local a = test.echoString(nil)
+            local b = test.echoString("hello")
+            return a, b
+            """);
+
+        Assert.That(results, Has.Length.EqualTo(2));
+        Assert.That(results[0], Is.EqualTo(LuaValue.Nil));
+        Assert.That(results[1].TryRead<string>(out var s), Is.True);
+        Assert.That(s, Is.EqualTo("hello"));
+    }
+
+    [Test]
+    public async Task Test_NullableValueParam_NilAndValue()
+    {
+        var userData = new NullableArgObj();
+
+        var state = LuaState.Create();
+        state.Environment["test"] = userData;
+        var results = await state.DoStringAsync("""
+            local a = test.echoInt(nil)
+            local b = test.echoInt(42)
+            local c = test.echoDouble(3.5)
+            return a, b, c
+            """);
+
+        Assert.That(results, Has.Length.EqualTo(3));
+        Assert.That(results[0], Is.EqualTo(LuaValue.Nil));
+        Assert.That(results[1].TryRead<int>(out var i), Is.True);
+        Assert.That(i, Is.EqualTo(42));
+        Assert.That(results[2].TryRead<double>(out var d), Is.True);
+        Assert.That(d, Is.EqualTo(3.5));
+    }
+
+    [Test]
+    public async Task Test_NullableStructParam_NilAndValue()
+    {
+        var userData = new NullableArgObj();
+
+        var state = LuaState.Create();
+        state.Environment["test"] = userData;
+        state.Environment["LuaTestStruct"] = default(LuaTestStruct);
+        var results = await state.DoStringAsync("""
+            local a = test.echoStruct(nil)
+            local s = LuaTestStruct.create(3, 4)
+            local b = test.echoStruct(s)
+            return a, b
+            """);
+
+        Assert.That(results, Has.Length.EqualTo(2));
+        Assert.That(results[0], Is.EqualTo(LuaValue.Nil));
+        Assert.That(results[1].Read<object>(), Is.TypeOf<LuaTestStruct>());
+        var structResult = results[1].Read<LuaTestStruct>();
+        Assert.That(structResult.X, Is.EqualTo(3));
+        Assert.That(structResult.Y, Is.EqualTo(4));
+    }
+
+    [Test]
+    public async Task Test_NullableInstanceMethod_MixedArgs()
+    {
+        var userData = new NullableArgObj();
+
+        var state = LuaState.Create();
+        state.Environment["test"] = userData;
+        var results = await state.DoStringAsync("""
+            local a = test:describe("item", 3)
+            local b = test:describe(nil, 3)
+            return a, b
+            """);
+
+        Assert.That(results, Has.Length.EqualTo(2));
+        Assert.That(results[0].TryRead<string>(out var s), Is.True);
+        Assert.That(s, Is.EqualTo("item:3"));
+        Assert.That(results[1], Is.EqualTo(LuaValue.Nil));
+    }
+
+    [Test]
+    public async Task Test_NullableProperty_GetSet()
+    {
+        var userData = new NullableArgObj { Label = "initial", Count = 7 };
+
+        var state = LuaState.Create();
+        state.Environment["test"] = userData;
+        var results = await state.DoStringAsync("""
+            local a = test.label
+            local b = test.count
+            test.label = nil
+            test.count = nil
+            test.count = 42
+            test.structProp = nil
+            return a, b, test.label, test.count, test.structProp
+            """);
+
+        Assert.That(results, Has.Length.EqualTo(5));
+        Assert.That(results[0].TryRead<string>(out var label), Is.True);
+        Assert.That(label, Is.EqualTo("initial"));
+        Assert.That(results[1].TryRead<int>(out var count), Is.True);
+        Assert.That(count, Is.EqualTo(7));
+        Assert.That(results[2], Is.EqualTo(LuaValue.Nil));
+        Assert.That(results[3].TryRead<int>(out count), Is.True);
+        Assert.That(count, Is.EqualTo(42));
+        Assert.That(results[4], Is.EqualTo(LuaValue.Nil));
+        Assert.That(userData.Label, Is.Null);
+        Assert.That(userData.Count, Is.EqualTo(42));
+        Assert.That(userData.StructProp, Is.Null);
     }
 }
