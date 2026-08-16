@@ -220,6 +220,22 @@ public static class OpenLibsExtensions
         globalState.Environment["f64eulerlib"] = eulerLib;
         globalState.LoadedModules["f64eulerlib"] = eulerLib;
 
+        // Register f64math sub-table
+        LuaTable f64math = new(0, lib.MathFunctions.Length);
+        foreach (var func in lib.MathFunctions)
+        {
+            f64math[func.Name] = func.Func;
+        }
+
+        f64math["minValue"] = (LuaValue)Fixed64.MinValue;
+        f64math["maxValue"] = (LuaValue)Fixed64.MaxValue;
+        f64math["pi"] = (LuaValue)FixedMath.PI;
+        f64math["halfpi"] = (LuaValue)FixedMath.PiOver2;
+        f64math["twopi"] = (LuaValue)FixedMath.TwoPI;
+
+        globalState.Environment["f64math"] = f64math;
+        globalState.LoadedModules["f64math"] = f64math;
+
         // ---- Set up metatables with __index for field access ----
 
         // fixed64: .raw → long rawValue cast to double

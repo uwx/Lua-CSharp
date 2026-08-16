@@ -851,4 +851,249 @@ public class FixedMathLibraryTests
         // 10.raw returns the underlying raw long as double
         Assert.That(d, Is.GreaterThan(5));
     }
+
+    // ---- f64math constants ----
+
+    [Test]
+    public async Task f64math_Pi()
+    {
+        using var state = CreateState();
+        var results = await state.DoStringAsync("return f64math.pi");
+
+        Assert.That(results, Has.Length.EqualTo(1));
+        Assert.That(results[0].Type, Is.EqualTo(LuaValueType.Fixed64));
+        Assert.That(results[0].TryReadFixed64(out var f64), Is.True);
+        Assert.That(f64, Is.EqualTo(FixedMath.PI));
+    }
+
+    [Test]
+    public async Task f64math_HalfPi()
+    {
+        using var state = CreateState();
+        var results = await state.DoStringAsync("return f64math.halfpi");
+
+        Assert.That(results, Has.Length.EqualTo(1));
+        Assert.That(results[0].Type, Is.EqualTo(LuaValueType.Fixed64));
+        Assert.That(results[0].TryReadFixed64(out var f64), Is.True);
+        Assert.That(f64, Is.EqualTo(FixedMath.PiOver2));
+    }
+
+    [Test]
+    public async Task f64math_TwoPi()
+    {
+        using var state = CreateState();
+        var results = await state.DoStringAsync("return f64math.twopi");
+
+        Assert.That(results, Has.Length.EqualTo(1));
+        Assert.That(results[0].Type, Is.EqualTo(LuaValueType.Fixed64));
+        Assert.That(results[0].TryReadFixed64(out var f64), Is.True);
+        Assert.That(f64, Is.EqualTo(FixedMath.TwoPI));
+    }
+
+    // ---- f64math scalar functions ----
+
+    [Test]
+    public async Task f64math_Sin_Zero()
+    {
+        using var state = CreateState();
+        var results = await state.DoStringAsync("return f64math.sin(fixed64(0))");
+
+        Assert.That(results, Has.Length.EqualTo(1));
+        Assert.That(results[0].Type, Is.EqualTo(LuaValueType.Fixed64));
+        Assert.That(results[0].TryReadFixed64(out var f64), Is.True);
+        Assert.That(f64, Is.EqualTo(Fixed64.Zero));
+    }
+
+    [Test]
+    public async Task f64math_Sin_Pi()
+    {
+        using var state = CreateState();
+        var results = await state.DoStringAsync("return f64math.sin(f64math.pi)");
+
+        Assert.That(results, Has.Length.EqualTo(1));
+        Assert.That(results[0].Type, Is.EqualTo(LuaValueType.Fixed64));
+        Assert.That(results[0].TryReadFixed64(out var f64), Is.True);
+        Assert.That(f64, Is.EqualTo(Fixed64.Zero));
+    }
+
+    [Test]
+    public async Task f64math_Cos_Zero()
+    {
+        using var state = CreateState();
+        var results = await state.DoStringAsync("return f64math.cos(fixed64(0))");
+
+        Assert.That(results, Has.Length.EqualTo(1));
+        Assert.That(results[0].Type, Is.EqualTo(LuaValueType.Fixed64));
+        Assert.That(results[0].TryReadFixed64(out var f64), Is.True);
+        Assert.That(f64, Is.EqualTo(Fixed64.One));
+    }
+
+    [Test]
+    public async Task f64math_Tan_Zero()
+    {
+        using var state = CreateState();
+        var results = await state.DoStringAsync("return f64math.tan(fixed64(0))");
+
+        Assert.That(results, Has.Length.EqualTo(1));
+        Assert.That(results[0].Type, Is.EqualTo(LuaValueType.Fixed64));
+        Assert.That(results[0].TryReadFixed64(out var f64), Is.True);
+        Assert.That(f64, Is.EqualTo(Fixed64.Zero));
+    }
+
+    [Test]
+    public async Task f64math_Floor()
+    {
+        using var state = CreateState();
+        var results = await state.DoStringAsync("return f64math.floor(fixed64(3.7))");
+
+        Assert.That(results, Has.Length.EqualTo(1));
+        Assert.That(results[0].Type, Is.EqualTo(LuaValueType.Fixed64));
+        Assert.That(results[0].TryReadFixed64(out var f64), Is.True);
+        Assert.That(f64, Is.EqualTo((Fixed64)3));
+    }
+
+    [Test]
+    public async Task f64math_Ceil()
+    {
+        using var state = CreateState();
+        var results = await state.DoStringAsync("return f64math.ceil(fixed64(3.2))");
+
+        Assert.That(results, Has.Length.EqualTo(1));
+        Assert.That(results[0].Type, Is.EqualTo(LuaValueType.Fixed64));
+        Assert.That(results[0].TryReadFixed64(out var f64), Is.True);
+        Assert.That(f64, Is.EqualTo((Fixed64)4));
+    }
+
+    [Test]
+    public async Task f64math_Round()
+    {
+        using var state = CreateState();
+        var results = await state.DoStringAsync("return f64math.round(fixed64(2.6))");
+
+        Assert.That(results, Has.Length.EqualTo(1));
+        Assert.That(results[0].Type, Is.EqualTo(LuaValueType.Fixed64));
+        Assert.That(results[0].TryReadFixed64(out var f64), Is.True);
+        Assert.That(f64, Is.EqualTo((Fixed64)3));
+    }
+
+    [Test]
+    public async Task f64math_Abs()
+    {
+        using var state = CreateState();
+        var results = await state.DoStringAsync("return f64math.abs(fixed64(-5))");
+
+        Assert.That(results, Has.Length.EqualTo(1));
+        Assert.That(results[0].Type, Is.EqualTo(LuaValueType.Fixed64));
+        Assert.That(results[0].TryReadFixed64(out var f64), Is.True);
+        Assert.That(f64, Is.EqualTo((Fixed64)5));
+    }
+
+    [Test]
+    public async Task f64math_Sqrt()
+    {
+        using var state = CreateState();
+        var results = await state.DoStringAsync("return f64math.sqrt(fixed64(9))");
+
+        Assert.That(results, Has.Length.EqualTo(1));
+        Assert.That(results[0].Type, Is.EqualTo(LuaValueType.Fixed64));
+        Assert.That(results[0].TryReadFixed64(out var f64), Is.True);
+        Assert.That((double)f64, Is.InRange(2.999, 3.001));
+    }
+
+    [Test]
+    public async Task f64math_Min()
+    {
+        using var state = CreateState();
+        var results = await state.DoStringAsync("return f64math.min(fixed64(2), fixed64(5))");
+
+        Assert.That(results, Has.Length.EqualTo(1));
+        Assert.That(results[0].Type, Is.EqualTo(LuaValueType.Fixed64));
+        Assert.That(results[0].TryReadFixed64(out var f64), Is.True);
+        Assert.That(f64, Is.EqualTo((Fixed64)2));
+    }
+
+    [Test]
+    public async Task f64math_Max()
+    {
+        using var state = CreateState();
+        var results = await state.DoStringAsync("return f64math.max(fixed64(2), fixed64(5))");
+
+        Assert.That(results, Has.Length.EqualTo(1));
+        Assert.That(results[0].Type, Is.EqualTo(LuaValueType.Fixed64));
+        Assert.That(results[0].TryReadFixed64(out var f64), Is.True);
+        Assert.That(f64, Is.EqualTo((Fixed64)5));
+    }
+
+    [Test]
+    public async Task f64math_Clamp()
+    {
+        using var state = CreateState();
+        var results = await state.DoStringAsync("return f64math.clamp(fixed64(10), fixed64(0), fixed64(5))");
+
+        Assert.That(results, Has.Length.EqualTo(1));
+        Assert.That(results[0].Type, Is.EqualTo(LuaValueType.Fixed64));
+        Assert.That(results[0].TryReadFixed64(out var f64), Is.True);
+        Assert.That(f64, Is.EqualTo((Fixed64)5));
+    }
+
+    [Test]
+    public async Task f64math_Clamp01()
+    {
+        using var state = CreateState();
+        var results = await state.DoStringAsync("return f64math.clamp01(fixed64(1.5))");
+
+        Assert.That(results, Has.Length.EqualTo(1));
+        Assert.That(results[0].Type, Is.EqualTo(LuaValueType.Fixed64));
+        Assert.That(results[0].TryReadFixed64(out var f64), Is.True);
+        Assert.That(f64, Is.EqualTo(Fixed64.One));
+    }
+
+    [Test]
+    public async Task f64math_Sign()
+    {
+        using var state = CreateState();
+        var results = await state.DoStringAsync("return f64math.sign(fixed64(-4))");
+
+        Assert.That(results, Has.Length.EqualTo(1));
+        Assert.That(results[0].Type, Is.EqualTo(LuaValueType.Fixed64));
+        Assert.That(results[0].TryReadFixed64(out var f64), Is.True);
+        Assert.That(f64, Is.EqualTo(-Fixed64.One));
+    }
+
+    [Test]
+    public async Task f64math_Lerp()
+    {
+        using var state = CreateState();
+        var results = await state.DoStringAsync("return f64math.lerp(fixed64(0), fixed64(10), fixed64(0.5))");
+
+        Assert.That(results, Has.Length.EqualTo(1));
+        Assert.That(results[0].Type, Is.EqualTo(LuaValueType.Fixed64));
+        Assert.That(results[0].TryReadFixed64(out var f64), Is.True);
+        Assert.That(f64, Is.EqualTo((Fixed64)5));
+    }
+
+    [Test]
+    public async Task f64math_Atan2()
+    {
+        using var state = CreateState();
+        var results = await state.DoStringAsync("return f64math.atan2(fixed64(0), fixed64(1))");
+
+        Assert.That(results, Has.Length.EqualTo(1));
+        Assert.That(results[0].Type, Is.EqualTo(LuaValueType.Fixed64));
+        Assert.That(results[0].TryReadFixed64(out var f64), Is.True);
+        Assert.That(f64, Is.EqualTo(Fixed64.Zero));
+    }
+
+    [Test]
+    public async Task f64math_DegToRad_RadToDeg()
+    {
+        using var state = CreateState();
+        var results = await state.DoStringAsync("return f64math.rad2deg(f64math.deg2rad(fixed64(90)))");
+
+        Assert.That(results, Has.Length.EqualTo(1));
+        Assert.That(results[0].Type, Is.EqualTo(LuaValueType.Fixed64));
+        Assert.That(results[0].TryReadFixed64(out var f64), Is.True);
+        // Fixed64 round-trip within precision
+        Assert.That((double)f64, Is.InRange(89.9, 90.1));
+    }
 }

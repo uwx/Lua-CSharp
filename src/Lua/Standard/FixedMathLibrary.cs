@@ -47,11 +47,41 @@ public sealed class FixedMathLibrary
             new(eulerLibName, "wrap", EulerWrap),
             new(eulerLibName, "wrap_positive", EulerWrapPositive),
         ];
+
+        var mathLibName = "f64math";
+        MathFunctions =
+        [
+            new(mathLibName, "sin", Fixed64Sin),
+            new(mathLibName, "cos", Fixed64Cos),
+            new(mathLibName, "tan", Fixed64Tan),
+            new(mathLibName, "asin", Fixed64Asin),
+            new(mathLibName, "acos", Fixed64Acos),
+            new(mathLibName, "atan", Fixed64Atan),
+            new(mathLibName, "atan2", Fixed64Atan2),
+            new(mathLibName, "sqrt", Fixed64Sqrt),
+            new(mathLibName, "pow", Fixed64Pow),
+            new(mathLibName, "ln", Fixed64Ln),
+            new(mathLibName, "log2", Fixed64Log2),
+            new(mathLibName, "abs", Fixed64Abs),
+            new(mathLibName, "floor", Fixed64Floor),
+            new(mathLibName, "ceil", Fixed64Ceil),
+            new(mathLibName, "round", Fixed64Round),
+            new(mathLibName, "min", Fixed64Min),
+            new(mathLibName, "max", Fixed64Max),
+            new(mathLibName, "clamp", Fixed64Clamp),
+            new(mathLibName, "clamp01", Fixed64Clamp01),
+            new(mathLibName, "sign", Fixed64Sign),
+            new(mathLibName, "lerp", Fixed64Lerp),
+            new(mathLibName, "hypot", Fixed64Hypot),
+            new(mathLibName, "deg2rad", Fixed64DegToRad),
+            new(mathLibName, "rad2deg", Fixed64RadToDeg),
+        ];
     }
 
     public readonly LibraryFunction[] VectorFunctions;
     public readonly LibraryFunction[] AngleFunctions;
     public readonly LibraryFunction[] EulerFunctions;
+    public readonly LibraryFunction[] MathFunctions;
 
     // ---- Global constructor functions ----
 
@@ -370,5 +400,208 @@ public sealed class FixedMathLibrary
     {
         var v = context.GetArgument<Vector3d>(0);
         return new(context.Return((LuaValue)Vector3d.Sign(v)));
+    }
+
+    // ---- f64math.* scalar math functions (Fixed64) ----
+
+    public ValueTask<int> Fixed64Sin(
+        LuaFunctionExecutionContext context,
+        CancellationToken cancellationToken)
+    {
+        var x = context.GetArgument<Fixed64>(0);
+        return new(context.Return((LuaValue)FixedMath.Sin(x)));
+    }
+
+    public ValueTask<int> Fixed64Cos(
+        LuaFunctionExecutionContext context,
+        CancellationToken cancellationToken)
+    {
+        var x = context.GetArgument<Fixed64>(0);
+        return new(context.Return((LuaValue)FixedMath.Cos(x)));
+    }
+
+    public ValueTask<int> Fixed64Tan(
+        LuaFunctionExecutionContext context,
+        CancellationToken cancellationToken)
+    {
+        var x = context.GetArgument<Fixed64>(0);
+        return new(context.Return((LuaValue)FixedMath.Tan(x)));
+    }
+
+    public ValueTask<int> Fixed64Asin(
+        LuaFunctionExecutionContext context,
+        CancellationToken cancellationToken)
+    {
+        var x = context.GetArgument<Fixed64>(0);
+        return new(context.Return((LuaValue)FixedMath.Asin(x)));
+    }
+
+    public ValueTask<int> Fixed64Acos(
+        LuaFunctionExecutionContext context,
+        CancellationToken cancellationToken)
+    {
+        var x = context.GetArgument<Fixed64>(0);
+        return new(context.Return((LuaValue)FixedMath.Acos(x)));
+    }
+
+    public ValueTask<int> Fixed64Atan(
+        LuaFunctionExecutionContext context,
+        CancellationToken cancellationToken)
+    {
+        var x = context.GetArgument<Fixed64>(0);
+        return new(context.Return((LuaValue)FixedMath.Atan(x)));
+    }
+
+    public ValueTask<int> Fixed64Atan2(
+        LuaFunctionExecutionContext context,
+        CancellationToken cancellationToken)
+    {
+        var y = context.GetArgument<Fixed64>(0);
+        var x = context.GetArgument<Fixed64>(1);
+        return new(context.Return((LuaValue)FixedMath.Atan2(y, x)));
+    }
+
+    public ValueTask<int> Fixed64Sqrt(
+        LuaFunctionExecutionContext context,
+        CancellationToken cancellationToken)
+    {
+        var x = context.GetArgument<Fixed64>(0);
+        return new(context.Return((LuaValue)FixedMath.Sqrt(x)));
+    }
+
+    public ValueTask<int> Fixed64Pow(
+        LuaFunctionExecutionContext context,
+        CancellationToken cancellationToken)
+    {
+        var b = context.GetArgument<Fixed64>(0);
+        var e = context.GetArgument<Fixed64>(1);
+        return new(context.Return((LuaValue)FixedMath.Pow(b, e)));
+    }
+
+    public ValueTask<int> Fixed64Ln(
+        LuaFunctionExecutionContext context,
+        CancellationToken cancellationToken)
+    {
+        var x = context.GetArgument<Fixed64>(0);
+        return new(context.Return((LuaValue)FixedMath.Ln(x)));
+    }
+
+    public ValueTask<int> Fixed64Log2(
+        LuaFunctionExecutionContext context,
+        CancellationToken cancellationToken)
+    {
+        var x = context.GetArgument<Fixed64>(0);
+        return new(context.Return((LuaValue)FixedMath.Log2(x)));
+    }
+
+    public ValueTask<int> Fixed64Abs(
+        LuaFunctionExecutionContext context,
+        CancellationToken cancellationToken)
+    {
+        var x = context.GetArgument<Fixed64>(0);
+        return new(context.Return((LuaValue)FixedMath.Abs(x)));
+    }
+
+    public ValueTask<int> Fixed64Floor(
+        LuaFunctionExecutionContext context,
+        CancellationToken cancellationToken)
+    {
+        var x = context.GetArgument<Fixed64>(0);
+        return new(context.Return((LuaValue)FixedMath.Floor(x)));
+    }
+
+    public ValueTask<int> Fixed64Ceil(
+        LuaFunctionExecutionContext context,
+        CancellationToken cancellationToken)
+    {
+        var x = context.GetArgument<Fixed64>(0);
+        return new(context.Return((LuaValue)FixedMath.Ceiling(x)));
+    }
+
+    public ValueTask<int> Fixed64Round(
+        LuaFunctionExecutionContext context,
+        CancellationToken cancellationToken)
+    {
+        var x = context.GetArgument<Fixed64>(0);
+        return new(context.Return((LuaValue)FixedMath.Round(x)));
+    }
+
+    public ValueTask<int> Fixed64Min(
+        LuaFunctionExecutionContext context,
+        CancellationToken cancellationToken)
+    {
+        var a = context.GetArgument<Fixed64>(0);
+        var b = context.GetArgument<Fixed64>(1);
+        return new(context.Return((LuaValue)FixedMath.Min(a, b)));
+    }
+
+    public ValueTask<int> Fixed64Max(
+        LuaFunctionExecutionContext context,
+        CancellationToken cancellationToken)
+    {
+        var a = context.GetArgument<Fixed64>(0);
+        var b = context.GetArgument<Fixed64>(1);
+        return new(context.Return((LuaValue)FixedMath.Max(a, b)));
+    }
+
+    public ValueTask<int> Fixed64Clamp(
+        LuaFunctionExecutionContext context,
+        CancellationToken cancellationToken)
+    {
+        var v = context.GetArgument<Fixed64>(0);
+        var min = context.GetArgument<Fixed64>(1);
+        var max = context.GetArgument<Fixed64>(2);
+        return new(context.Return((LuaValue)FixedMath.Clamp(v, min, max)));
+    }
+
+    public ValueTask<int> Fixed64Clamp01(
+        LuaFunctionExecutionContext context,
+        CancellationToken cancellationToken)
+    {
+        var v = context.GetArgument<Fixed64>(0);
+        return new(context.Return((LuaValue)FixedMath.Clamp01(v)));
+    }
+
+    public ValueTask<int> Fixed64Sign(
+        LuaFunctionExecutionContext context,
+        CancellationToken cancellationToken)
+    {
+        var x = context.GetArgument<Fixed64>(0);
+        return new(context.Return((LuaValue)(Fixed64)Fixed64.Sign(x)));
+    }
+
+    public ValueTask<int> Fixed64Lerp(
+        LuaFunctionExecutionContext context,
+        CancellationToken cancellationToken)
+    {
+        var a = context.GetArgument<Fixed64>(0);
+        var b = context.GetArgument<Fixed64>(1);
+        var t = context.GetArgument<Fixed64>(2);
+        return new(context.Return((LuaValue)Fixed64.Lerp(a, b, t)));
+    }
+
+    public ValueTask<int> Fixed64Hypot(
+        LuaFunctionExecutionContext context,
+        CancellationToken cancellationToken)
+    {
+        var a = context.GetArgument<Fixed64>(0);
+        var b = context.GetArgument<Fixed64>(1);
+        return new(context.Return((LuaValue)Fixed64.Hypot(a, b)));
+    }
+
+    public ValueTask<int> Fixed64DegToRad(
+        LuaFunctionExecutionContext context,
+        CancellationToken cancellationToken)
+    {
+        var x = context.GetArgument<Fixed64>(0);
+        return new(context.Return((LuaValue)FixedMath.DegToRad(x)));
+    }
+
+    public ValueTask<int> Fixed64RadToDeg(
+        LuaFunctionExecutionContext context,
+        CancellationToken cancellationToken)
+    {
+        var x = context.GetArgument<Fixed64>(0);
+        return new(context.Return((LuaValue)FixedMath.RadToDeg(x)));
     }
 }
