@@ -611,6 +611,15 @@ public static class LuaStateExtensions
         return LuaVirtualMachine.Call(state, funcIndex, funcIndex, cancellationToken);
     }
 
+    public static int Call(
+        this LuaState state,
+        int funcIndex,
+        CancellationToken cancellationToken = default
+    )
+    {
+        return state.RunSyncCore(() => LuaVirtualMachine.Call(state, funcIndex, funcIndex, cancellationToken));
+    }
+
     public static ValueTask<int> CallAsync(
         this LuaState state,
         int funcIndex,
@@ -619,6 +628,16 @@ public static class LuaStateExtensions
     )
     {
         return LuaVirtualMachine.Call(state, funcIndex, returnBase, cancellationToken);
+    }
+
+    public static int Call(
+        this LuaState state,
+        int funcIndex,
+        int returnBase,
+        CancellationToken cancellationToken = default
+    )
+    {
+        return state.RunSyncCore(() => LuaVirtualMachine.Call(state, funcIndex, returnBase, cancellationToken));
     }
 
     public static ValueTask<LuaValue[]> CallAsync(
@@ -632,6 +651,32 @@ public static class LuaStateExtensions
         state.Stack.Push(function);
         state.Stack.PushRange(arguments);
         return Impl(state, funcIndex, cancellationToken);
+
+        [AsyncMethodBuilder(typeof(LightAsyncValueTaskMethodBuilder<>))]
+        static async ValueTask<LuaValue[]> Impl(
+            LuaState state,
+            int funcIndex,
+            CancellationToken cancellationToken
+        )
+        {
+            await LuaVirtualMachine.Call(state, funcIndex, funcIndex, cancellationToken);
+            var count = state.Stack.Count - funcIndex;
+            using var results = state.ReadStack(count);
+            return results.AsSpan().ToArray();
+        }
+    }
+
+    public static LuaValue[] Call(
+        this LuaState state,
+        LuaValue function,
+        ReadOnlySpan<LuaValue> arguments,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var funcIndex = state.Stack.Count;
+        state.Stack.Push(function);
+        state.Stack.PushRange(arguments);
+        return state.RunSyncCore(() => Impl(state, funcIndex, cancellationToken));
 
         [AsyncMethodBuilder(typeof(LightAsyncValueTaskMethodBuilder<>))]
         static async ValueTask<LuaValue[]> Impl(
