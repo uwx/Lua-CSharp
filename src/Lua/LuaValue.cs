@@ -888,21 +888,21 @@ public readonly struct LuaValue : IEquatable<LuaValue>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static implicit operator LuaValue(LuaTable value)
+    public static implicit operator LuaValue(LuaTable? value)
     {
-        return new(value);
+        return value != null ? new(value) : Nil;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static implicit operator LuaValue(LuaFunction value)
+    public static implicit operator LuaValue(LuaFunction? value)
     {
-        return new(value);
+        return value != null ? new(value) : Nil;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static implicit operator LuaValue(LuaState value)
+    public static implicit operator LuaValue(LuaState? value)
     {
-        return new(value);
+        return value != null ? new(value) : Nil;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
