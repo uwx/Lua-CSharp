@@ -412,7 +412,7 @@ public class LuaRuntimeException : Exception, ILuaTracebackBuildable
                 return null;
             }
 
-            luaTraceback = new(State, callStack);
+            luaTraceback = new(State, callStack, InnerException);
             State.ExceptionTrace.Clear();
             State = null;
         }
@@ -513,8 +513,12 @@ public class LuaRuntimeException : Exception, ILuaTracebackBuildable
             pooledList.AddRange(Message);
             pooledList.Add('\n');
             pooledList.AddRange(LuaTraceback.ToString());
-            pooledList.Add('\n');
-            pooledList.AddRange(StackTrace);
+            if (InnerException == null)
+            {
+                pooledList.Add('\n');
+                pooledList.AddRange(StackTrace);
+            }
+
             return pooledList.AsSpan().ToString();
         }
         finally
@@ -589,7 +593,7 @@ public sealed class LuaCanceledException : OperationCanceledException, ILuaTrace
                 return null;
             }
 
-            luaTraceback = new(State, callStack);
+            luaTraceback = new(State, callStack, InnerException);
             State.ExceptionTrace.Clear();
             State = null!;
         }

@@ -3,13 +3,19 @@ using Lua.Internal;
 
 namespace Lua.Runtime;
 
-public class Traceback(LuaState state, ReadOnlySpan<CallStackFrame> stackFrames)
+public class Traceback(
+    LuaState state,
+    ReadOnlySpan<CallStackFrame> stackFrames,
+    Exception? managedException = null
+)
 {
     readonly CallStackFrame[] stackFramesArray = stackFrames.ToArray();
 
     internal LuaGlobalState GlobalState => state.GlobalState;
 
     public LuaState State => state;
+
+    public Exception? ManagedException { get; } = managedException;
     public LuaFunction RootFunc => StackFrames[0].Function;
     public ReadOnlySpan<CallStackFrame> StackFrames => stackFramesArray;
 
@@ -124,7 +130,12 @@ public class Traceback(LuaState state, ReadOnlySpan<CallStackFrame> stackFrames)
 
     public override string ToString()
     {
-        return CreateTracebackMessage(GlobalState, StackFrames, LuaValue.Nil);
+        return CreateTracebackMessage(
+            GlobalState,
+            StackFrames,
+            LuaValue.Nil,
+            managedException: ManagedException
+        );
     }
 
     public string ToString(int skipFrames)
@@ -134,7 +145,13 @@ public class Traceback(LuaState state, ReadOnlySpan<CallStackFrame> stackFrames)
             return "stack traceback:\n";
         }
 
-        return CreateTracebackMessage(GlobalState, StackFrames, LuaValue.Nil, skipFrames);
+        return CreateTracebackMessage(
+            GlobalState,
+            StackFrames,
+            LuaValue.Nil,
+            skipFrames,
+            ManagedException
+        );
     }
 
     public static string CreateTracebackMessage(
@@ -155,7 +172,8 @@ public class Traceback(LuaState state, ReadOnlySpan<CallStackFrame> stackFrames)
         LuaGlobalState globalState,
         ReadOnlySpan<CallStackFrame> stackFrames,
         LuaValue message,
-        int skipCount = 0
+        int skipCount = 0,
+        Exception? managedException = null
     )
     {
         using var list = new PooledList<char>(64);
@@ -168,6 +186,7 @@ public class Traceback(LuaState state, ReadOnlySpan<CallStackFrame> stackFrames)
         list.AddRange("stack traceback:\n");
         var intFormatBuffer = (stackalloc char[15]);
         var shortSourceBuffer = (stackalloc char[59]);
+        var renderedManagedTrace = false;
 
         for (var index = stackFrames.Length - 1; index >= 0; index--)
         {
@@ -182,6 +201,26 @@ public class Traceback(LuaState state, ReadOnlySpan<CallStackFrame> stackFrames)
                 list.AddRange("\t[C#]: in function '");
                 list.AddRange(lastFunc.Name);
                 list.AddRange("'\n");
+
+                if (
+                    !renderedManagedTrace
+                    && managedException?.StackTrace is { Length: > 0 } stackTrace
+                )
+                {
+                    renderedManagedTrace = true;
+                    foreach (var lineRange in stackTrace.AsSpan().Split('\n'))
+                    {
+                        var line = stackTrace.AsSpan()[lineRange].Trim();
+                        if (line.Length == 0)
+                        {
+                            continue;
+                        }
+
+                        list.AddRange("\t[C#]: ");
+                        list.AddRange(line);
+                        list.Add('\n');
+                    }
+                }
             }
             else if (lastFunc is LuaClosure closure)
             {
