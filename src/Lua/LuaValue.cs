@@ -81,6 +81,50 @@ public readonly struct LuaValue : IEquatable<LuaValue>
                     result = Unsafe.As<double, T>(ref v);
                     return true;
                 }
+                else if (t == typeof(byte))
+                {
+                    if (!MathEx.IsInteger(value))
+                    {
+                        break;
+                    }
+
+                    var v = (byte)value;
+                    result = Unsafe.As<byte, T>(ref v);
+                    return true;
+                }
+                else if (t == typeof(sbyte))
+                {
+                    if (!MathEx.IsInteger(value))
+                    {
+                        break;
+                    }
+
+                    var v = (sbyte)value;
+                    result = Unsafe.As<sbyte, T>(ref v);
+                    return true;
+                }
+                else if (t == typeof(short))
+                {
+                    if (!MathEx.IsInteger(value))
+                    {
+                        break;
+                    }
+
+                    var v = (short)value;
+                    result = Unsafe.As<short, T>(ref v);
+                    return true;
+                }
+                else if (t == typeof(ushort))
+                {
+                    if (!MathEx.IsInteger(value))
+                    {
+                        break;
+                    }
+
+                    var v = (ushort)value;
+                    result = Unsafe.As<ushort, T>(ref v);
+                    return true;
+                }
                 else if (t == typeof(int))
                 {
                     if (!MathEx.IsInteger(value))
@@ -1079,6 +1123,10 @@ public readonly struct LuaValue : IEquatable<LuaValue>
         if (
             type == typeof(double)
             || type == typeof(float)
+            || type == typeof(byte)
+            || type == typeof(sbyte)
+            || type == typeof(short)
+            || type == typeof(ushort)
             || type == typeof(int)
             || type == typeof(long)
             || type == typeof(uint)

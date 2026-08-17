@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Lua.Runtime;
@@ -68,40 +69,10 @@ public readonly record struct LuaFunctionExecutionContext
         var arg = Arguments[index];
         if (!arg.TryRead<T>(out var argValue))
         {
-            var t = typeof(T);
-            if ((t == typeof(int) || t == typeof(long)) && arg.TryReadNumber(out _))
-            {
-                LuaRuntimeException.BadArgumentNumberIsNotInteger(State, index + 1);
-            }
-            else if (LuaValue.TryGetLuaValueType(t, out var type))
-            {
-                LuaRuntimeException.BadArgument(State, index + 1, type, arg.Type);
-            }
-            else if (arg.Type is LuaValueType.UserData or LuaValueType.LightUserData)
-            {
-                LuaRuntimeException.BadArgument(
-                    State,
-                    index + 1,
-                    t.Name,
-                    arg.UnsafeRead<object>()?.GetType().ToString() ?? "userdata: 0"
-                );
-            }
-            else if (arg.Type is LuaValueType.UserData2)
-            {
-                LuaRuntimeException.BadArgument(
-                    State,
-                    index + 1,
-                    t.Name,
-                    arg.UnsafeRead<object>()?.GetType().ToString() ?? "userdata: 0"
-                );
-            }
-            else
-            {
-                LuaRuntimeException.BadArgument(State, index + 1, t.Name, arg.TypeToString());
-            }
+            ThrowBadArgument<T>(index, arg);
         }
 
-        return argValue;
+        return argValue!;
     }
     
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -118,37 +89,7 @@ public readonly record struct LuaFunctionExecutionContext
 
         if (!arg.TryRead<T>(out var argValue))
         {
-            var t = typeof(T);
-            if ((t == typeof(int) || t == typeof(long)) && arg.TryReadNumber(out _))
-            {
-                LuaRuntimeException.BadArgumentNumberIsNotInteger(State, index + 1);
-            }
-            else if (LuaValue.TryGetLuaValueType(t, out var type))
-            {
-                LuaRuntimeException.BadArgument(State, index + 1, type, arg.Type);
-            }
-            else if (arg.Type is LuaValueType.UserData or LuaValueType.LightUserData)
-            {
-                LuaRuntimeException.BadArgument(
-                    State,
-                    index + 1,
-                    t.Name,
-                    arg.UnsafeRead<object>()?.GetType().ToString() ?? "userdata: 0"
-                );
-            }
-            else if (arg.Type is LuaValueType.UserData2)
-            {
-                LuaRuntimeException.BadArgument(
-                    State,
-                    index + 1,
-                    t.Name,
-                    arg.UnsafeRead<object>()?.GetType().ToString() ?? "userdata: 0"
-                );
-            }
-            else
-            {
-                LuaRuntimeException.BadArgument(State, index + 1, t.Name, arg.TypeToString());
-            }
+            ThrowBadArgument<T>(index, arg);
         }
 
         return argValue;
@@ -168,37 +109,7 @@ public readonly record struct LuaFunctionExecutionContext
 
         if (!arg.TryRead<T>(out var argValue))
         {
-            var t = typeof(T);
-            if ((t == typeof(int) || t == typeof(long)) && arg.TryReadNumber(out _))
-            {
-                LuaRuntimeException.BadArgumentNumberIsNotInteger(State, index + 1);
-            }
-            else if (LuaValue.TryGetLuaValueType(t, out var type))
-            {
-                LuaRuntimeException.BadArgument(State, index + 1, type, arg.Type);
-            }
-            else if (arg.Type is LuaValueType.UserData or LuaValueType.LightUserData)
-            {
-                LuaRuntimeException.BadArgument(
-                    State,
-                    index + 1,
-                    t.Name,
-                    arg.UnsafeRead<object>()?.GetType().ToString() ?? "userdata: 0"
-                );
-            }
-            else if (arg.Type is LuaValueType.UserData2)
-            {
-                LuaRuntimeException.BadArgument(
-                    State,
-                    index + 1,
-                    t.Name,
-                    arg.UnsafeRead<object>()?.GetType().ToString() ?? "userdata: 0"
-                );
-            }
-            else
-            {
-                LuaRuntimeException.BadArgument(State, index + 1, t.Name, arg.TypeToString());
-            }
+            ThrowBadArgument<T>(index, arg);
         }
 
         return argValue;
@@ -221,40 +132,45 @@ public readonly record struct LuaFunctionExecutionContext
 
         if (!arg.TryRead<T>(out var argValue))
         {
-            var t = typeof(T);
-            if ((t == typeof(int) || t == typeof(long)) && arg.TryReadNumber(out _))
-            {
-                LuaRuntimeException.BadArgumentNumberIsNotInteger(State, index + 1);
-            }
-            else if (LuaValue.TryGetLuaValueType(t, out var type))
-            {
-                LuaRuntimeException.BadArgument(State, index + 1, type, arg.Type);
-            }
-            else if (arg.Type is LuaValueType.UserData or LuaValueType.LightUserData)
-            {
-                LuaRuntimeException.BadArgument(
-                    State,
-                    index + 1,
-                    t.Name,
-                    arg.UnsafeRead<object>()?.GetType().ToString() ?? "userdata: 0"
-                );
-            }
-            else if (arg.Type is LuaValueType.UserData2)
-            {
-                LuaRuntimeException.BadArgument(
-                    State,
-                    index + 1,
-                    t.Name,
-                    arg.UnsafeRead<object>()?.GetType().ToString() ?? "userdata: 0"
-                );
-            }
-            else
-            {
-                LuaRuntimeException.BadArgument(State, index + 1, t.Name, arg.TypeToString());
-            }
+            ThrowBadArgument<T>(index, arg);
         }
 
-        return argValue;
+        return argValue!;
+    }
+
+    private void ThrowBadArgument<T>(int index, LuaValue arg)
+    {
+        var t = typeof(T);
+        if ((t == typeof(byte) || t == typeof(sbyte) || t == typeof(short) || t == typeof(ushort) || t == typeof(int) || t == typeof(long) || t == typeof(uint) || t == typeof(ulong)) && arg.TryReadNumber(out _))
+        {
+            LuaRuntimeException.BadArgumentNumberIsNotInteger(State, index + 1);
+        }
+        else if (LuaValue.TryGetLuaValueType(t, out var type))
+        {
+            LuaRuntimeException.BadArgument(State, index + 1, type, arg.Type);
+        }
+        else if (arg.Type is LuaValueType.UserData or LuaValueType.LightUserData)
+        {
+            LuaRuntimeException.BadArgument(
+                State,
+                index + 1,
+                t.Name,
+                arg.UnsafeRead<object?>()?.GetType().ToString() ?? "userdata: 0"
+            );
+        }
+        else if (arg.Type is LuaValueType.UserData2)
+        {
+            LuaRuntimeException.BadArgument(
+                State,
+                index + 1,
+                t.Name,
+                arg.UnsafeRead<object?>()?.GetType().ToString() ?? "userdata: 0"
+            );
+        }
+        else
+        {
+            LuaRuntimeException.BadArgument(State, index + 1, t.Name, arg.TypeToString());
+        }
     }
 
     public int Return()
