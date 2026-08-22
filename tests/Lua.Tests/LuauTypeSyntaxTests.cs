@@ -180,6 +180,25 @@ return 42";
     }
 
     [Test]
+    public async Task GenericInstantiation_Explicit()
+    {
+        var source =
+            "local function identity<T>(x: T): T\n"
+            + "  return x\n"
+            + "end\n\n"
+            + "local a = identity<<number>>(42)\n"
+            + "local b = identity<<string>>(\"hi\")\n"
+            + "local c = identity<<\"hi\">>(\"hi\")\n"
+            + "return a, b, c";
+        var result = await RunAsync(source);
+
+        Assert.That(result, Has.Length.EqualTo(3));
+        Assert.That(result[0], Is.EqualTo(new LuaValue(42)));
+        Assert.That(result[1], Is.EqualTo(new LuaValue("hi")));
+        Assert.That(result[2], Is.EqualTo(new LuaValue("hi")));
+    }
+
+    [Test]
     public async Task AsExpression_Cast()
     {
         var result = await RunAsync("local x = (5 :: number) + 1 return x");

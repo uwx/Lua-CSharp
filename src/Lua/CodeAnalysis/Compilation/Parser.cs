@@ -292,6 +292,15 @@ class Parser : IPoolNode<Parser>, IDisposable
                 case '{':
                     e = FunctionArguments(Function.ExpressionToNextRegister(e), line);
                     break;
+                case '<':
+                    // explicit type instantiation: f<<T, U>>(args)
+                    if (Scanner.LookAhead() == '<')
+                    {
+                        SkipTypeInstantiation();
+                        break;
+                    }
+
+                    return e;
                 default:
                     return e;
             }
@@ -675,6 +684,87 @@ class Parser : IPoolNode<Parser>, IDisposable
                     break;
                 case '>':
                     if (paren == 0 && curly == 0 && square == 0)
+                    {
+                        angle--;
+                    }
+
+                    break;
+            }
+
+            Next();
+        }
+    }
+
+    public void SkipTypeInstantiation()
+    {
+        // Current token is '<' and the next is '<' (verified by the caller):
+        // 'f<<T, U>>' — explicit type arguments. Skipped and ignored.
+        Next();
+        Next();
+        var paren = 0;
+        var curly = 0;
+        var square = 0;
+        var angle = 0;
+        while (true)
+        {
+            var t = T;
+
+            // consume '->' as a unit so its '>' is not mistaken for a closing '>'
+            if (t == '-' && Scanner.LookAhead() == '>')
+            {
+                Next();
+                Next();
+                continue;
+            }
+
+            // '>>' at the outermost level closes the instantiation
+            if (t == '>' && paren + curly + square + angle == 0 && Scanner.LookAhead() == '>')
+            {
+                Next();
+                Next();
+                return;
+            }
+
+            switch (t)
+            {
+                case TkEos:
+                    Scanner.SyntaxError("unfinished type instantiation");
+                    return;
+                case '(':
+                    paren++;
+                    break;
+                case ')':
+                    if (paren > 0)
+                    {
+                        paren--;
+                    }
+
+                    break;
+                case '{':
+                    curly++;
+                    break;
+                case '}':
+                    if (curly > 0)
+                    {
+                        curly--;
+                    }
+
+                    break;
+                case '[':
+                    square++;
+                    break;
+                case ']':
+                    if (square > 0)
+                    {
+                        square--;
+                    }
+
+                    break;
+                case '<':
+                    angle++;
+                    break;
+                case '>':
+                    if (angle > 0)
                     {
                         angle--;
                     }
