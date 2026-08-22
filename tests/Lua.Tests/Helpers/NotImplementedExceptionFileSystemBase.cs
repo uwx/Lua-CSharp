@@ -9,6 +9,11 @@ abstract class NotImplementedExceptionFileSystemBase : ILuaFileSystem
         throw new NotImplementedException();
     }
 
+    public virtual bool DirectoryExists(string path)
+    {
+        throw new NotImplementedException();
+    }
+
     public virtual ValueTask<ILuaStream> Open(
         string path,
         LuaFileOpenMode mode,

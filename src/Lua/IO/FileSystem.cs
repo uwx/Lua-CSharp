@@ -37,6 +37,11 @@ public sealed class FileSystem(string? baseDirectory = null) : ILuaFileSystem
         return File.Exists(GetFullPath(path));
     }
 
+    public bool DirectoryExists(string path)
+    {
+        return Directory.Exists(GetFullPath(path));
+    }
+
     public ValueTask<ILuaStream> Open(
         string path,
         LuaFileOpenMode openMode,

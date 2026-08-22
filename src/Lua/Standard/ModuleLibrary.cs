@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using Lua.Internal.CompilerServices;
+using Lua.Runtime;
 
 namespace Lua.Standard;
 
@@ -26,8 +27,44 @@ public sealed class ModuleLibrary
     {
         var arg0 = context.GetArgument<string>(0);
         var loaded = context.GlobalState.LoadedModules;
+        LuaValue loadedTable;
 
-        if (!loaded.TryGetValue(arg0, out var loadedTable))
+        // Luau-style "require by string": relative paths ("./" or "../") are
+        // resolved against the directory of the requiring file, with
+        // ".luau"/".lua" and "init.luau"/"init.lua" resolution. Optional;
+        // enabled via LuaPlatform.RequireByString (off by default).
+        if (
+            context.GlobalState.Platform.RequireByString
+            && (
+                arg0.StartsWith("./", StringComparison.Ordinal)
+                || arg0.StartsWith("../", StringComparison.Ordinal)
+            )
+        )
+        {
+            var callerSource = GetCallerSource(context.State);
+            var resolvedPath = ResolveRequireByString(context.State, arg0, callerSource);
+            if (resolvedPath == null)
+            {
+                throw new LuaRuntimeException(context.State, $"Module '{arg0}' not found");
+            }
+
+            if (!loaded.TryGetValue(resolvedPath, out loadedTable))
+            {
+                var loader = await context.State.LoadFileAsync(
+                    resolvedPath,
+                    "bt",
+                    null,
+                    cancellationToken
+                );
+                await context.State.RunAsync(loader, 0, context.ReturnFrameBase, cancellationToken);
+                loadedTable = context.State.Stack.Get(context.ReturnFrameBase);
+                loaded[resolvedPath] = loadedTable;
+            }
+
+            return context.Return(loadedTable);
+        }
+
+        if (!loaded.TryGetValue(arg0, out loadedTable))
         {
             LuaFunction loader;
             var moduleLoader = context.GlobalState.ModuleLoader;
@@ -51,6 +88,152 @@ public sealed class ModuleLibrary
 
         return context.Return(loadedTable);
     }
+
+    static string? GetCallerSource(LuaState state)
+    {
+        var frames = state.GetCallStackFrames();
+        if (frames.Length < 1)
+        {
+            return null;
+        }
+
+        // A tail-called require (e.g. `return require("./x")`) reuses the
+        // caller's frame: the tail caller's function is preserved in
+        // LuaState.LastCallerFunction rather than in the call stack.
+        LuaFunction? caller;
+        if (frames[^1].IsTailCall)
+        {
+            caller = state.LastCallerFunction;
+        }
+        else
+        {
+            if (frames.Length < 2)
+            {
+                return null;
+            }
+
+            caller = frames[^2].Function;
+        }
+
+        return caller is LuaClosure closure ? closure.Proto.ChunkName : null;
+    }
+
+    static string? ResolveRequireByString(LuaState state, string name, string? callerSource)
+    {
+        // File-backed chunks carry "@path" as their chunk name (see
+        // LuaStateExtensions.LoadFileAsync); DoString/load chunks carry the
+        // name verbatim. Strip the '@' marker before deriving the directory.
+        if (string.IsNullOrEmpty(callerSource))
+        {
+            throw new LuaRuntimeException(
+                state,
+                $"cannot use relative require '{name}' from a chunk without a file"
+            );
+        }
+
+        var source = callerSource.TrimStart('@');
+        if (
+            source.Length == 0
+            || source[0] == '='
+            || (source[0] == '[' && source.EndsWith(']'))
+        )
+        {
+            throw new LuaRuntimeException(
+                state,
+                $"cannot use relative require '{name}' from a chunk without a file ('{source}')"
+            );
+        }
+
+        // Normalize to the canonical '/' separator used by the interpreter/VFS.
+        source = source.Replace('\\', '/');
+        var lastSlash = source.LastIndexOf('/');
+        var baseDir = lastSlash < 0 ? "" : source[..lastSlash];
+
+        var combined = CombineRelativePath(baseDir, name);
+        if (combined == null)
+        {
+            return null;
+        }
+
+        var fileSystem = state.GlobalState.Platform.FileSystem;
+
+        // Luau's updated resolution rule: implicit extension order is not
+        // supported — if more than one candidate matches, require is ambiguous.
+        var candidates = new List<string>(5);
+
+        if (fileSystem.IsReadable(combined))
+        {
+            candidates.Add(combined);
+        }
+
+        foreach (var extension in Extensions)
+        {
+            var candidate = combined + extension;
+            if (fileSystem.IsReadable(candidate))
+            {
+                candidates.Add(candidate);
+            }
+        }
+
+        if (fileSystem.DirectoryExists(combined))
+        {
+            foreach (var initFile in InitFiles)
+            {
+                var candidate = combined + "/" + initFile;
+                if (fileSystem.IsReadable(candidate))
+                {
+                    candidates.Add(candidate);
+                }
+            }
+        }
+
+        switch (candidates.Count)
+        {
+            case 0:
+                return null;
+            case > 1:
+                throw new LuaRuntimeException(
+                    state,
+                    $"ambiguous require '{name}': multiple files match ({string.Join(", ", candidates)})"
+                );
+            default:
+                return candidates[0];
+        }
+    }
+
+    static string? CombineRelativePath(string baseDir, string relative)
+    {
+        var segments = new List<string>();
+
+        if (baseDir.Length > 0)
+        {
+            segments.AddRange(baseDir.Split('/'));
+        }
+
+        foreach (var part in relative.Split('/'))
+        {
+            switch (part)
+            {
+                case "":
+                case ".":
+                    continue;
+                case "..":
+                    if (segments.Count > 0)
+                    {
+                        segments.RemoveAt(segments.Count - 1);
+                    }
+                    break;
+                default:
+                    segments.Add(part);
+                    break;
+            }
+        }
+
+        return segments.Count == 0 ? null : string.Join('/', segments);
+    }
+
+    static readonly string[] Extensions = [".luau", ".lua"];
+    static readonly string[] InitFiles = ["init.luau", "init.lua"];
 
     [AsyncMethodBuilder(typeof(LightAsyncValueTaskMethodBuilder<>))]
     internal static async ValueTask<string?> FindFile(

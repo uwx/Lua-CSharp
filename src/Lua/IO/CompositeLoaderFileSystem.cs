@@ -44,6 +44,11 @@ public class CompositeLoaderFileSystem(ILuaFileLoader[] loaders, ILuaFileSystem?
         return false;
     }
 
+    public bool DirectoryExists(string path)
+    {
+        return system?.DirectoryExists(path) ?? false;
+    }
+
     public async ValueTask<ILuaStream> Open(
         string path,
         LuaFileOpenMode mode,

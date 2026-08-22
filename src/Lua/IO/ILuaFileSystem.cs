@@ -3,6 +3,9 @@
 public interface ILuaFileSystem
 {
     bool IsReadable(string path);
+
+    bool DirectoryExists(string path) => false;
+
     ValueTask<ILuaStream> Open(
         string path,
         LuaFileOpenMode mode,

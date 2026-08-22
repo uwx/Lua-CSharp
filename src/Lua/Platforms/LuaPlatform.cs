@@ -17,6 +17,14 @@ public record LuaPlatform(
 )
 {
     /// <summary>
+    /// Enables Luau-style "require by string" semantics: relative module paths
+    /// (starting with "./" or "../") are resolved against the directory of the
+    /// requiring file, with ".luau"/".lua" and "init.luau"/"init.lua" fallbacks.
+    /// Disabled by default for backward compatibility.
+    /// </summary>
+    public bool RequireByString { get; init; } = false;
+
+    /// <summary>
     /// Standard console platform implementation.
     /// Uses real file system, console I/O, and system operations.
     /// </summary>
