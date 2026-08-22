@@ -129,6 +129,23 @@ class Function : IPoolNode<Function>
         return e;
     }
 
+    public void CloseFunctionDiscard()
+    {
+        // Like CloseFunction, but emits no Closure instruction and reserves no register in
+        // the parent: used for Luau type functions whose bodies are parsed then thrown away.
+        P.Function.ReturnNone();
+        P.Function.LeaveBlock();
+        Assert(P.Function.Block == null);
+        var f = P.Function;
+        P.Function = f.Previous;
+        f.Release();
+
+        // Drop the now-unreferenced child prototype so it is not materialized.
+        var proto = P.Function.Proto.PrototypeList[P.Function.Proto.PrototypeList.Length - 1];
+        P.Function.Proto.PrototypeList.Pop();
+        proto.Release();
+    }
+
     public void EnterBlock(bool isLoop)
     {
         var b = Block.Get(

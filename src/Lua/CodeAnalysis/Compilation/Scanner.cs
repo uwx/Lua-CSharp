@@ -15,6 +15,7 @@ struct Scanner
         LastLine;
     public string Source;
     public Token LookAheadToken;
+    public Token LookAheadToken2;
     int lastNewLinePos;
     public StringInternPool StringPool;
 
@@ -906,7 +907,8 @@ struct Scanner
         if (LookAheadToken.T != TkEos)
         {
             Token = LookAheadToken;
-            LookAheadToken = new(0, TkEos);
+            LookAheadToken = LookAheadToken2;
+            LookAheadToken2 = new(0, TkEos);
         }
         else
         {
@@ -916,9 +918,27 @@ struct Scanner
 
     public int LookAhead()
     {
-        Assert(LookAheadToken.T == TkEos);
-        LookAheadToken = Scan();
+        if (LookAheadToken.T == TkEos)
+        {
+            LookAheadToken = Scan();
+        }
+
         return LookAheadToken.T;
+    }
+
+    public int LookAhead2()
+    {
+        if (LookAheadToken.T == TkEos)
+        {
+            LookAheadToken = Scan();
+        }
+
+        if (LookAheadToken2.T == TkEos)
+        {
+            LookAheadToken2 = Scan();
+        }
+
+        return LookAheadToken2.T;
     }
 
     public bool TestNext(int t)

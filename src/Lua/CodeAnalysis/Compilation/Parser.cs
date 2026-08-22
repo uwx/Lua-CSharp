@@ -414,6 +414,17 @@ class Parser : IPoolNode<Parser>, IDisposable
             e = SimpleExpression();
         }
 
+        if (
+            T == TkDoubleColon
+            && !(Scanner.LookAhead() == TkName && Scanner.LookAhead2() == TkDoubleColon)
+        )
+        {
+            // Luau type cast: 'exp :: Type'. A ':: name ::' sequence is a Lua 5.2
+            // label and is left for the statement parser.
+            Next();
+            SkipTypeAnnotation();
+        }
+
         var op = BinaryOp(T);
         while (op != OprNoBinary && priority[op].Left > limit)
         {
@@ -432,6 +443,247 @@ class Parser : IPoolNode<Parser>, IDisposable
     {
         var (e, _) = SubExpression(0);
         return e;
+    }
+
+    // Skips a Luau type annotation. The type content is never validated: any token
+    // stream that lexes cleanly is consumed until a structural terminator is reached, so
+    // type-level errors never interrupt parsing. Only an unterminated delimiter (EOF while
+    // still inside brackets) is reported, as the parser cannot recover from that.
+    public void SkipTypeAnnotation()
+    {
+        var paren = 0;
+        var curly = 0;
+        var square = 0;
+        var angle = 0;
+        var expectAtom = true;
+        var lastWasTypeof = false;
+        while (true)
+        {
+            var t = T;
+
+            // '->' is always consumed as a unit so its '>' is never mistaken for a
+            // generic-argument close.
+            if (t == '-' && Scanner.LookAhead() == '>')
+            {
+                Next();
+                Next();
+                if (paren + curly + square + angle == 0)
+                {
+                    expectAtom = true;
+                }
+
+                continue;
+            }
+
+            if (paren + curly + square + angle > 0)
+            {
+                switch (t)
+                {
+                    case TkEos:
+                        Scanner.SyntaxError("unfinished type annotation");
+                        return;
+                    case '(':
+                        paren++;
+                        break;
+                    case ')':
+                        if (paren > 0)
+                        {
+                            paren--;
+                        }
+
+                        break;
+                    case '{':
+                        curly++;
+                        break;
+                    case '}':
+                        if (curly > 0)
+                        {
+                            curly--;
+                        }
+
+                        break;
+                    case '[':
+                        square++;
+                        break;
+                    case ']':
+                        if (square > 0)
+                        {
+                            square--;
+                        }
+
+                        break;
+                    case '<':
+                        angle++;
+                        break;
+                    case '>':
+                        if (angle > 0)
+                        {
+                            angle--;
+                        }
+
+                        break;
+                }
+
+                Next();
+                if (paren + curly + square + angle == 0)
+                {
+                    expectAtom = false;
+                }
+
+                continue;
+            }
+
+            if (expectAtom)
+            {
+                switch (t)
+                {
+                    case TkName:
+                    {
+                        var name = Scanner.Token.S;
+                        Next();
+                        expectAtom = false;
+                        lastWasTypeof = name == "typeof";
+                        continue;
+                    }
+                    case TkString:
+                    case TkNumber:
+                    case TkNil:
+                    case TkTrue:
+                    case TkFalse:
+                        Next();
+                        expectAtom = false;
+                        lastWasTypeof = false;
+                        continue;
+                    case '(':
+                        paren = 1;
+                        Next();
+                        continue;
+                    case '{':
+                        curly = 1;
+                        Next();
+                        continue;
+                    case '<':
+                        angle = 1;
+                        Next();
+                        continue;
+                    case TkDots:
+                        // '...' Type (variadic type pack)
+                        Next();
+                        continue;
+                    default:
+                        return;
+                }
+            }
+
+            // After a type atom only continuations are consumed; anything else (including
+            // a bare NAME that starts the next statement) ends the type.
+            switch (t)
+            {
+                case '|':
+                case '&':
+                    Next();
+                    expectAtom = true;
+                    continue;
+                case '?':
+                case TkDots:
+                    Next();
+                    continue;
+                case '.':
+                    Next();
+                    expectAtom = true;
+                    continue;
+                case '(' when lastWasTypeof:
+                    // 'typeof' '(' exp ')'
+                    paren = 1;
+                    lastWasTypeof = false;
+                    Next();
+                    continue;
+                case '<':
+                    if (Scanner.LookAhead() is TkName or TkDots)
+                    {
+                        Next();
+                        angle = 1;
+                        continue;
+                    }
+
+                    return;
+                default:
+                    return;
+            }
+        }
+    }
+
+    // Skips a generic type parameter list (current token must be '<'), used both for
+    // function declarations and type aliases. Tracks ()/[]/{} nesting so a '>' belonging
+    // to a nested function type does not close the list early.
+    public void SkipGenericTypeParameters()
+    {
+        var paren = 0;
+        var curly = 0;
+        var square = 0;
+        var angle = 1;
+        Next();
+        while (angle > 0)
+        {
+            var t = T;
+
+            // consume '->' as a unit so its '>' is not treated as a closing '>'
+            if (t == '-' && Scanner.LookAhead() == '>')
+            {
+                Next();
+                Next();
+                continue;
+            }
+
+            switch (t)
+            {
+                case TkEos:
+                    Scanner.SyntaxError("unfinished generic type parameter list");
+                    return;
+                case '(':
+                    paren++;
+                    break;
+                case ')':
+                    if (paren > 0)
+                    {
+                        paren--;
+                    }
+
+                    break;
+                case '{':
+                    curly++;
+                    break;
+                case '}':
+                    if (curly > 0)
+                    {
+                        curly--;
+                    }
+
+                    break;
+                case '[':
+                    square++;
+                    break;
+                case ']':
+                    if (square > 0)
+                    {
+                        square--;
+                    }
+
+                    break;
+                case '<':
+                    angle++;
+                    break;
+                case '>':
+                    if (paren == 0 && curly == 0 && square == 0)
+                    {
+                        angle--;
+                    }
+
+                    break;
+            }
+
+            Next();
+        }
     }
 
     public bool BlockFollow(bool withUntil)
@@ -569,6 +821,12 @@ class Parser : IPoolNode<Parser>, IDisposable
         while (TestNext(','))
         {
             Function.MakeLocalVariable(CheckName());
+            if (T == ':')
+            {
+                Next();
+                SkipTypeAnnotation();
+            }
+
             n++;
         }
 
@@ -585,6 +843,12 @@ class Parser : IPoolNode<Parser>, IDisposable
         Function.EnterBlock(true);
         Next();
         var name = CheckName();
+        if (T == ':')
+        {
+            Next();
+            SkipTypeAnnotation();
+        }
+
         switch (T)
         {
             case '=':
@@ -757,11 +1021,23 @@ class Parser : IPoolNode<Parser>, IDisposable
                 {
                     case TkName:
                         Function.MakeLocalVariable(CheckName());
+                        if (T == ':')
+                        {
+                            Next();
+                            SkipTypeAnnotation();
+                        }
+
                         n++;
                         break;
                     case TkDots:
                         Next();
                         isVarArg = true;
+                        if (T == ':')
+                        {
+                            Next();
+                            SkipTypeAnnotation();
+                        }
+
                         break;
                     default:
                         Scanner.SyntaxError("<name> or '...' expected");
@@ -777,9 +1053,15 @@ class Parser : IPoolNode<Parser>, IDisposable
         Function.ReserveRegisters(Function.ActiveVariableCount);
     }
 
-    public ExprDesc Body(bool isMethod, int line)
+    public ExprDesc Body(bool isMethod, int line, bool discard = false)
     {
         Function.OpenFunction(line);
+        if (T == '<')
+        {
+            // generic type parameters, e.g. 'function f<T, U...>()'
+            SkipGenericTypeParameters();
+        }
+
         CheckNext('(');
         if (isMethod)
         {
@@ -789,9 +1071,23 @@ class Parser : IPoolNode<Parser>, IDisposable
 
         ParameterList();
         CheckNext(')');
+        if (T == ':')
+        {
+            // return type annotation
+            Next();
+            SkipTypeAnnotation();
+        }
+
         StatementList();
         Function.Proto.LastLineDefined = Scanner.LineNumber;
         Scanner.CheckMatch(TkEnd, TkFunction, line);
+        if (discard)
+        {
+            // Luau type function: parse the body but do not create a closure
+            Function.CloseFunctionDiscard();
+            return default;
+        }
+
         return Function.CloseFunction();
     }
 
@@ -836,6 +1132,12 @@ class Parser : IPoolNode<Parser>, IDisposable
         for (var first = true; first || TestNext(','); first = false)
         {
             Function.MakeLocalVariable(CheckName());
+            if (T == ':')
+            {
+                Next();
+                SkipTypeAnnotation();
+            }
+
             v++;
         }
 
@@ -881,6 +1183,29 @@ class Parser : IPoolNode<Parser>, IDisposable
         }
 
         TestNext(';');
+    }
+
+    public void TypeStatement(int line)
+    {
+        // skip 'type' keyword
+        Next();
+        if (T == TkFunction)
+        {
+            // 'type function NAME funcbody' — parsed and discarded
+            Next();
+            CheckName();
+            Body(false, line, true);
+            return;
+        }
+
+        CheckName();
+        if (T == '<')
+        {
+            SkipGenericTypeParameters();
+        }
+
+        CheckNext('=');
+        SkipTypeAnnotation();
     }
 
     public void Statement()
@@ -937,6 +1262,35 @@ class Parser : IPoolNode<Parser>, IDisposable
                 GotoStatement(Function.Jump());
                 break;
             default:
+                if (T == TkName)
+                {
+                    var name = Scanner.Token.S;
+                    if (name == "type" && Scanner.LookAhead() is TkName or TkFunction)
+                    {
+                        TypeStatement(line);
+                        break;
+                    }
+
+                    if (
+                        name == "export"
+                        && Scanner.LookAhead() == TkName
+                        && Scanner.LookAheadToken.S == "type"
+                    )
+                    {
+                        Next(); // skip 'export'
+                        if (Scanner.LookAhead() is TkName or TkFunction)
+                        {
+                            TypeStatement(line);
+                        }
+                        else
+                        {
+                            Scanner.SyntaxError("type name expected");
+                        }
+
+                        break;
+                    }
+                }
+
                 ExpressionStatement();
                 break;
         }
@@ -968,6 +1322,7 @@ class Parser : IPoolNode<Parser>, IDisposable
                 LineNumber = 1,
                 LastLine = 1,
                 LookAheadToken = new(0, TkEos),
+                LookAheadToken2 = new(0, TkEos),
                 L = l,
                 Source = name,
                 Buffer = new(r.Length),
