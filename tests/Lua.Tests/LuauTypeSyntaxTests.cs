@@ -304,4 +304,13 @@ return 42";
             }
         );
     }
+
+    [Test]
+    public async Task DoubleGeneric_Ignored()
+    {
+        var result = await RunAsync(
+            "local contextStack: Array<{ctx: R.Context<any>, value: any}> = 0\nreturn contextStack"
+        );
+        Assert.That(result[0], Is.EqualTo(new LuaValue(0)));
+    }
 }

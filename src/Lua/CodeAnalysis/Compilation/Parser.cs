@@ -608,14 +608,12 @@ class Parser : IPoolNode<Parser>, IDisposable
                     Next();
                     continue;
                 case '<':
-                    if (Scanner.LookAhead() is TkName or TkDots)
-                    {
-                        Next();
-                        angle = 1;
-                        continue;
-                    }
-
-                    return;
+                    // In type position '<' after a name always introduces generic
+                    // type arguments (matching Luau's parseSimpleType); the first
+                    // argument may be any type, e.g. a table type 'Array<{...}>'.
+                    Next();
+                    angle = 1;
+                    continue;
                 default:
                     return;
             }
