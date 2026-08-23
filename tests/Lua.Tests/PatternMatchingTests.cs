@@ -129,6 +129,26 @@ public class PatternMatchingTests
     }
 
     [Test]
+    public async Task Test_StringMatch_EmptyString_TrimPattern()
+    {
+        var state = LuaState.Create();
+        state.OpenStringLibrary();
+
+        // Regression: matching against an empty string must still try position 1,
+        // so anchored zero-width patterns return "" rather than nil.
+        var result = await state.DoStringAsync("return string.match('', '^%s*(.-)%s*$')");
+        Assert.That(result[0].Read<string>(), Is.EqualTo(""));
+
+        // Whitespace-only input trims to empty too.
+        result = await state.DoStringAsync("return string.match('   ', '^%s*(.-)%s*$')");
+        Assert.That(result[0].Read<string>(), Is.EqualTo(""));
+
+        // Leading/trailing whitespace is stripped, content preserved.
+        result = await state.DoStringAsync("return string.match('  abc  ', '^%s*(.-)%s*$')");
+        Assert.That(result[0].Read<string>(), Is.EqualTo("abc"));
+    }
+
+    [Test]
     public async Task Test_StringMatch_WithInitPosition()
     {
         var state = LuaState.Create();
@@ -478,13 +498,13 @@ public class PatternMatchingTests
         var result = await state.DoStringAsync(
             @"
             local text = 'The quick brown fox jumps over the lazy dog'
-            
+
             -- Find first word
             local start, end_pos, word1 = string.find(text, '(%a+)')
-            
+
             -- Get first word from gmatch
             local word2 = string.gmatch(text, '%a+')()
-            
+
             return word1, word2, start, end_pos
         "
         );
@@ -815,7 +835,7 @@ public class PatternMatchingTests
         // URL path extraction
         result = await state.DoStringAsync(
             @"
-            return string.gsub('http://example.com/path/to/file.html', 
+            return string.gsub('http://example.com/path/to/file.html',
                                '^https?://[^/]+(/.*)', '%1')
         "
         );
@@ -835,22 +855,22 @@ public class PatternMatchingTests
             @"
             local text = 'The quick brown fox jumps over the lazy dog'
             local pattern = '%a+'
-            
+
             -- Test find
             local start, end_pos, word = string.find(text, '(' .. pattern .. ')')
-            
-            -- Test match  
+
+            -- Test match
             local match = string.match(text, pattern)
-            
+
             -- Test gsub count
             local _, count = string.gsub(text, pattern, function(s) return s end)
-            
+
             -- Test gmatch count
             local gmatch_count = 0
             for word in string.gmatch(text, pattern) do
                 gmatch_count = gmatch_count + 1
             end
-            
+
             return word, match, count, gmatch_count, start, end_pos
         "
         );
@@ -933,12 +953,12 @@ public class PatternMatchingTests
             @"
             local prog = 'Hello $world$ and $123$ test'
             local matches = {}
-            
+
             -- Wrong pattern (will not match correctly)
             for s in string.gmatch(prog, '$([^$]+)') do
                 table.insert(matches, s)
             end
-            
+
             return #matches
         "
         );
@@ -949,12 +969,12 @@ public class PatternMatchingTests
             @"
             local prog = 'Hello $world$ and $123$ test'
             local matches = {}
-            
+
             -- Correct pattern (with escaped dollar signs)
             for s in string.gmatch(prog, '%$([^%$]+)') do
                 table.insert(matches, s)
             end
-            
+
             return table.unpack(matches)
         "
         );
@@ -983,7 +1003,7 @@ public class PatternMatchingTests
                 [2] = function() return 'SECOND' end
             }
             local output = {}
-            
+
             -- Process the string with correct pattern
             local lastPos = 1
             for match, content in string.gmatch(prog, '()%$([^%$]+)%$()') do
@@ -991,7 +1011,7 @@ public class PatternMatchingTests
                 if match > lastPos then
                     table.insert(output, prog:sub(lastPos, match - 1))
                 end
-                
+
                 -- Process the content
                 local n = tonumber(content)
                 if n and F[n] then
@@ -999,15 +1019,15 @@ public class PatternMatchingTests
                 else
                     table.insert(output, content)
                 end
-                
+
                 lastPos = match + #content + 2 -- +2 for the two $ signs
             end
-            
+
             -- Add remaining text
             if lastPos <= #prog then
                 table.insert(output, prog:sub(lastPos))
             end
-            
+
             return table.concat(output)
         "
         );

@@ -898,8 +898,12 @@ public sealed class StringLibrary
         var anchor = pattern.Length > 0 && pattern[0] == '^';
         var pIdx = anchor ? 1 : 0;
 
-        // For empty patterns, we need to match at every position including after the last character
-        var sEndIdx = s.Length + (pattern.Length == 0 ? 1 : 0);
+        // A match can begin at any position from init up to and including the
+        // end of the string (index s.Length). Trying the end position is what
+        // allows zero-width patterns ('$', '.*', '()', '%s*', ...) to match an
+        // empty string, and — crucially — allows the empty string "" itself to
+        // be matched at position 1 (standard Lua: (""):match("^%s*(.-)%s*$") -> "").
+        var sEndIdx = s.Length + 1;
 
         for (var sIdx = init; sIdx < sEndIdx; sIdx++)
         {
