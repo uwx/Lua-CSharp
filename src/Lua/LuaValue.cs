@@ -676,6 +676,16 @@ public readonly struct LuaValue : IEquatable<LuaValue>
         return result;
     }
 
+    public T? ReadOrDefault<T>(T? @default = default)
+    {
+        if (!TryRead<T>(out var result))
+        {
+            return @default;
+        }
+
+        return result;
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal T UnsafeRead<T>()
     {
