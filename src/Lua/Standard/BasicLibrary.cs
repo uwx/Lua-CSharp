@@ -773,8 +773,22 @@ public sealed class BasicLibrary
 
             if (ex is LuaRuntimeException luaEx)
             {
-                luaEx.Forget();
-                state.Push(luaEx.ErrorObject);
+                // A wrapped managed exception (InnerException != null) has a Nil
+                // ErrorObject, so surface its minimal message — which includes the
+                // Lua traceback and the managed stack trace — instead of pushing
+                // Nil to the error handler. Plain Lua errors keep their raw object.
+                if (luaEx.InnerException != null)
+                {
+                    var message = luaEx.MinimalMessage();
+                    luaEx.Forget();
+                    state.Push(message);
+                }
+                else
+                {
+                    var errorObject = luaEx.ErrorObject;
+                    luaEx.Forget();
+                    state.Push(errorObject);
+                }
             }
             else
             {
