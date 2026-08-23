@@ -26,7 +26,7 @@ public sealed class TableLibrary
 
     public readonly LibraryFunction[] Functions;
 
-    public ValueTask<int> Concat(
+    public static ValueTask<int> Concat(
         LuaFunctionExecutionContext context,
         CancellationToken cancellationToken
     )
@@ -67,7 +67,7 @@ public sealed class TableLibrary
         return new(context.Return(builder.AsSpan().ToString()));
     }
 
-    public ValueTask<int> Insert(
+    public static ValueTask<int> Insert(
         LuaFunctionExecutionContext context,
         CancellationToken cancellationToken
     )
@@ -96,7 +96,7 @@ public sealed class TableLibrary
         return new(context.Return());
     }
 
-    public ValueTask<int> Pack(
+    public static ValueTask<int> Pack(
         LuaFunctionExecutionContext context,
         CancellationToken cancellationToken
     )
@@ -114,7 +114,7 @@ public sealed class TableLibrary
         return new(context.Return(table));
     }
 
-    public ValueTask<int> Remove(
+    public static ValueTask<int> Remove(
         LuaFunctionExecutionContext context,
         CancellationToken cancellationToken
     )
@@ -142,7 +142,7 @@ public sealed class TableLibrary
         return new(context.Return(table.RemoveAt(n)));
     }
 
-    public ValueTask<int> Sort(
+    public static ValueTask<int> Sort(
         LuaFunctionExecutionContext context,
         CancellationToken cancellationToken
     )
@@ -184,7 +184,7 @@ public sealed class TableLibrary
     }
 
     [AsyncMethodBuilder(typeof(LightAsyncValueTaskMethodBuilder))]
-    async ValueTask AuxSortAsync(
+    static async ValueTask AuxSortAsync(
         LuaState state,
         Memory<LuaValue> memory,
         int lo,
@@ -285,7 +285,7 @@ public sealed class TableLibrary
     }
 
     [AsyncMethodBuilder(typeof(LightAsyncValueTaskMethodBuilder<>))]
-    async ValueTask<int> PartitionAsync(
+    static async ValueTask<int> PartitionAsync(
         LuaState state,
         Memory<LuaValue> memory,
         int lo,
@@ -326,7 +326,7 @@ public sealed class TableLibrary
         }
     }
 
-    ValueTask<bool> CompareAsync(
+    static ValueTask<bool> CompareAsync(
         LuaState state,
         LuaFunction? comparer,
         LuaValue left,
@@ -371,12 +371,12 @@ public sealed class TableLibrary
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    void Swap(Span<LuaValue> span, int i, int j)
+    static void Swap(Span<LuaValue> span, int i, int j)
     {
         (span[i], span[j]) = (span[j], span[i]);
     }
 
-    public ValueTask<int> Unpack(
+    public static ValueTask<int> Unpack(
         LuaFunctionExecutionContext context,
         CancellationToken cancellationToken
     )
