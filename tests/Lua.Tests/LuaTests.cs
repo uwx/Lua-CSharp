@@ -78,6 +78,7 @@ public class LuaTests
     [TestCase("tests-lua/math.lua")]
     [TestCase("tests-lua/bitwise.lua")]
     [TestCase("tests-lua/strings.lua")]
+    [TestCase("tests-lua/integer.lua")]
     [TestCase("tests-lua/coroutine.lua")]
     [TestCase("tests-lua/db.lua")]
     [TestCase("tests-lua/verybig.lua")]
