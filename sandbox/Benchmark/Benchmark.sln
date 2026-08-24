@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.5.002.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Benchmark", "Benchmark.csproj", "{ECA61AB3-09C9-4990-8201-2E83BB9FD48B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LuaBenchmark", "LuaBenchmark.csproj", "{ECA61AB3-09C9-4990-8201-2E83BB9FD48B}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "bin", "bin", "{B33416D1-661B-461E-95CD-C3BCC7DDC23F}"
 EndProject

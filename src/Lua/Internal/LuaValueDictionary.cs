@@ -187,6 +187,11 @@ sealed class LuaValueDictionary
 
     void Insert(LuaValue key, LuaValue value)
     {
+        if (MetamethodCache.IsMetamethodKey(key))
+        {
+            MetamethodCache.Invalidate();
+        }
+
         if (value.Type is LuaValueType.Nil)
         {
             _nilCount++;
@@ -408,6 +413,12 @@ sealed class LuaValueDictionary
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryGetNext(LuaValue key, out KeyValuePair<LuaValue, LuaValue> pair)
     {
+        if (_count == 0)
+        {
+            pair = default;
+            return false;
+        }
+
         ref var valRef = ref FindValue(key, out var index);
         if (!Unsafe.IsNullRef(ref valRef))
         {

@@ -177,6 +177,7 @@ public class LuaState : IDisposable
     // Suspending during sync execution throws LuaYieldException.
     internal bool IsSyncExecution;
     internal bool IsLineHookEnabled;
+    internal bool HooksEnabled;
     internal BitFlags2 CallOrReturnHookMask;
     internal bool IsInHook;
     internal long HookCount;
@@ -380,6 +381,7 @@ public class LuaState : IDisposable
         {
             HookCount = 0;
             BaseHookCount = 0;
+            HooksEnabled = false;
             Hook = null;
             IsLineHookEnabled = false;
             IsCallHookEnabled = false;
@@ -393,6 +395,7 @@ public class LuaState : IDisposable
         IsLineHookEnabled = mask.Contains('l');
         IsCallHookEnabled = mask.Contains('c');
         IsReturnHookEnabled = mask.Contains('r');
+        HooksEnabled = count > 0 || IsLineHookEnabled;
 
         if (IsLineHookEnabled)
         {

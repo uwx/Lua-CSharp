@@ -14,7 +14,7 @@ static class LuaRuntimeExtensions
     {
         result = default;
         return globalState.TryGetMetatable(value, out var metatable)
-            && metatable.TryGetValue(methodName, out result);
+            && globalState.TryGetCachedMetamethod(metatable, methodName, out result);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

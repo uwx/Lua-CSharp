@@ -44,6 +44,22 @@ sealed class LuaGlobalState
     LuaTable? fixed64AngleMetatable;
     LuaTable? fixed64EulerMetatable;
 
+    // Inline cache for metamethod resolution, keyed by (metatable identity, name).
+    // Entries are invalidated via MetamethodCache.Epoch (bumped on setmetatable or any
+    // "__"-prefixed table write). Metatables are stable in practice, so the hit rate is
+    // very high (e.g. an enum's __eq is resolved once per metatable, not per comparison).
+    const int MetamethodCacheSize = 128;
+    readonly MetamethodCacheEntry[] metamethodCache = new MetamethodCacheEntry[MetamethodCacheSize];
+
+    struct MetamethodCacheEntry
+    {
+        public LuaTable? Metatable;
+        public string? Name;
+        public LuaValue Value;
+        public int Epoch;
+        public bool Found;
+    }
+
     public static LuaGlobalState Create(LuaPlatform? platform = null)
     {
         LuaGlobalState globalState = new(platform ?? LuaPlatform.Default);
@@ -85,9 +101,44 @@ sealed class LuaGlobalState
         return result != null;
     }
 
+    /// <summary>
+    /// Resolves a metamethod for <paramref name="metatable"/>, caching the result so
+    /// repeated lookups of the same (metatable, name) pair avoid a dictionary probe.
+    /// The cache is direct-mapped and identity-verified; a collision is just a miss.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal bool TryGetCachedMetamethod(
+        LuaTable metatable,
+        string methodName,
+        out LuaValue result
+    )
+    {
+        var cache = metamethodCache;
+        var key = unchecked(RuntimeHelpers.GetHashCode(metatable) ^ methodName.GetHashCode());
+        ref var entry = ref cache[key & (cache.Length - 1)];
+        if (
+            entry.Metatable == metatable
+            && entry.Name == methodName
+            && entry.Epoch == MetamethodCache.Epoch
+        )
+        {
+            result = entry.Value;
+            return entry.Found;
+        }
+
+        var found = metatable.TryGetValue(methodName, out result);
+        entry.Metatable = metatable;
+        entry.Name = methodName;
+        entry.Value = result;
+        entry.Found = found;
+        entry.Epoch = MetamethodCache.Epoch;
+        return found;
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal void SetMetatable(LuaValue value, LuaTable metatable)
     {
+        MetamethodCache.Invalidate();
         switch (value.Type)
         {
             case LuaValueType.Nil:

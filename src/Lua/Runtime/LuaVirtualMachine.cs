@@ -382,6 +382,7 @@ public static partial class LuaVirtualMachine
 
     static long DummyHookCount;
     static bool DummyLineHookEnabled;
+    static bool DummyHooksActive;
 
     static bool MoveNext(VirtualMachineExecutionContext context)
     {
@@ -400,6 +401,12 @@ public static partial class LuaVirtualMachine
             ref var hookCount = ref context.State.IsInHook
                 ? ref DummyHookCount
                 : ref context.State.HookCount;
+            // Fast path: skip all per-instruction hook bookkeeping when no count/line
+            // hooks are installed. This is a ref so sethook()/removehook() mid-execution
+            // still take effect immediately.
+            ref var hooksActive = ref context.State.IsInHook
+                ? ref DummyHooksActive
+                : ref context.State.HooksEnabled;
             goto Loop;
 
             LineHook:
@@ -421,12 +428,15 @@ public static partial class LuaVirtualMachine
             {
                 var instruction = Unsafe.Add(ref instructionsHead, ++context.Pc);
                 context.Instruction = instruction;
-                if (--hookCount == 0 || (lineHookFlag && context.Pc != context.LastHookPc))
+                if (hooksActive)
                 {
-                    goto LineHook;
-                }
+                    if (--hookCount == 0 || (lineHookFlag && context.Pc != context.LastHookPc))
+                    {
+                        goto LineHook;
+                    }
 
-                context.LastHookPc = -1;
+                    context.LastHookPc = -1;
+                }
                 var iA = instruction.A;
                 var opCode = instruction.OpCode;
                 switch (opCode)
@@ -542,6 +552,13 @@ public static partial class LuaVirtualMachine
                                 && valueRef.Type != LuaValueType.Nil
                             )
                             {
+                                // Overwriting a live entry: if it's a metamethod key, the
+                                // inline metamethod cache must be invalidated.
+                                if (MetamethodCache.IsMetamethodKey(vb))
+                                {
+                                    MetamethodCache.Invalidate();
+                                }
+
                                 valueRef = RKC(ref stackHead, ref constHead, instruction);
                                 continue;
                             }
@@ -944,25 +961,49 @@ public static partial class LuaVirtualMachine
                             continue;
                         }
 
+                        // Lua 5.2 semantics: __eq is only consulted when both operands are
+                        // the same kind (table or userdata) and at least one carries a
+                        // metatable. Mixed-type and primitive comparisons are never equal via
+                        // a metamethod, so resolve them directly and skip the probe.
                         if (
-                            ExecuteCompareOperationMetaMethod(
-                                vb,
-                                vc,
-                                context,
-                                OpCode.Eq,
-                                out doRestart
+                            vb.Type == vc.Type
+                            && vb.Type
+                                is LuaValueType.Table
+                                    or LuaValueType.UserData
+                                    or LuaValueType.UserData2
+                            && (
+                                context.GlobalState.TryGetMetatable(vb, out _)
+                                || context.GlobalState.TryGetMetatable(vc, out _)
                             )
                         )
                         {
-                            if (doRestart)
+                            if (
+                                ExecuteCompareOperationMetaMethod(
+                                    vb,
+                                    vc,
+                                    context,
+                                    OpCode.Eq,
+                                    out doRestart
+                                )
+                            )
                             {
-                                goto Restart;
+                                if (doRestart)
+                                {
+                                    goto Restart;
+                                }
+
+                                continue;
                             }
 
-                            continue;
+                            return true;
                         }
 
-                        return true;
+                        if (iA == 1)
+                        {
+                            context.Pc++;
+                        }
+
+                        continue;
                     case OpCode.Lt:
                     case OpCode.Le:
                         Markers.Lt();
@@ -1020,23 +1061,40 @@ public static partial class LuaVirtualMachine
                         }
 
                         if (
-                            ExecuteCompareOperationMetaMethod(
-                                vb,
-                                vc,
-                                context,
-                                opCode,
-                                out doRestart
-                            )
+                            context.GlobalState.TryGetMetatable(vb, out _)
+                            || context.GlobalState.TryGetMetatable(vc, out _)
                         )
                         {
-                            if (doRestart)
+                            if (
+                                ExecuteCompareOperationMetaMethod(
+                                    vb,
+                                    vc,
+                                    context,
+                                    opCode,
+                                    out doRestart
+                                )
+                            )
                             {
-                                goto Restart;
+                                if (doRestart)
+                                {
+                                    goto Restart;
+                                }
+
+                                continue;
                             }
 
-                            continue;
+                            return true;
                         }
 
+                        // Neither operand carries a metatable that could provide __lt/__le,
+                        // so the comparison is invalid — raise the same error the metamethod
+                        // path would have produced.
+                        LuaRuntimeException.AttemptInvalidOperation(
+                            GetstateWithCurrentPc(context),
+                            "compare",
+                            vb,
+                            vc
+                        );
                         return true;
                     case OpCode.Test:
                         Markers.Test();
