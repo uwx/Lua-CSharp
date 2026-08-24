@@ -947,7 +947,7 @@ public readonly struct LuaValue : IEquatable<LuaValue>
         Type = LuaValueType.LightUserData;
         referenceValue = obj;
     }
-
+    
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     LuaValue(object obj, LuaTable metatable)
     {

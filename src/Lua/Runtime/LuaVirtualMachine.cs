@@ -1788,36 +1788,6 @@ public static partial class LuaVirtualMachine
         }
 
         var state = context.State;
-
-        // Fast path: fixed-argument call to a non-vararg Lua closure (the common
-        // case). Skips PrepareForFunctionCall entirely — the compiler has already
-        // placed exactly B-1 args at R(A+1).. and set the stack top, so only a
-        // truncation guard (PopUntil) is needed, not a SetTop. Varargs, dynamic
-        // arg counts (B==0), metamethod calls and C# functions take the general path.
-        if (
-            !isMetamethod
-            && instruction.B != 0
-            && func is LuaClosure { Proto.HasVariableArguments: false }
-        )
-        {
-            var fixedArgumentCount = instruction.B - 1;
-            state.Stack.PopUntil(newBase + fixedArgumentCount);
-            var fixedFrame = func.CreateNewFrame(context, newBase, RA, 0);
-
-            state.PushCallStackFrame(fixedFrame);
-            if (state.CallOrReturnHookMask.Value != 0 && !state.IsInHook)
-            {
-                context.PostOperation = PostOperationType.Call;
-                context.Task = ExecuteCallHook(context, fixedFrame, fixedArgumentCount);
-                doRestart = false;
-                return false;
-            }
-
-            context.Push(fixedFrame);
-            doRestart = true;
-            return true;
-        }
-
         var (argumentCount, variableArgumentCount) = PrepareForFunctionCall(
             state,
             func,
@@ -1826,6 +1796,7 @@ public static partial class LuaVirtualMachine
             isMetamethod
         );
         newBase += variableArgumentCount;
+        state.Stack.PopUntil(newBase + argumentCount);
 
         var newFrame = func.CreateNewFrame(context, newBase, RA, variableArgumentCount);
 
