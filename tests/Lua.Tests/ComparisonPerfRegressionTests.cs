@@ -171,4 +171,27 @@ public class ComparisonPerfRegressionTests
 
         Assert.That(result[0].Read<double>(), Is.EqualTo(1000));
     }
+
+    [Test]
+    public async Task TableLength_DenseAndAppend_IsBorder()
+    {
+        var state = CreateState();
+        var result = await state.DoStringAsync(
+            """
+            local a = {}
+            for i = 1, 1000 do a[i] = i end
+            local b = {}
+            for i = 1, 500 do b[#b + 1] = i end
+            local c = {}
+            c[3] = 1
+            return #a, #b, #c
+            """
+        );
+
+        // Dense arrays built by indexing or by the `t[#t + 1]` append pattern report
+        // their true length in O(1). Sparse `{[3]=1}` has t[1] nil -> border 0.
+        Assert.That(result[0].Read<double>(), Is.EqualTo(1000));
+        Assert.That(result[1].Read<double>(), Is.EqualTo(500));
+        Assert.That(result[2].Read<double>(), Is.EqualTo(0));
+    }
 }
