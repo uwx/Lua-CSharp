@@ -128,7 +128,14 @@ public sealed class MathematicsLibrary
     )
     {
         var arg0 = context.GetArgument<double>(0);
-        return new(context.Return(Math.Ceiling(arg0)));
+        var result = Math.Ceiling(arg0);
+        // Lua 5.3: math.ceil returns an integer when the result fits in a long.
+        // Range is [-2^63, 2^63) — the double literal 2^63 is exactly representable.
+        return new(
+            result >= -9223372036854775808.0 && result < 9223372036854775808.0
+                ? context.Return((long)result)
+                : context.Return(result)
+        );
     }
 
     public ValueTask<int> Cos(
@@ -173,7 +180,14 @@ public sealed class MathematicsLibrary
     )
     {
         var arg0 = context.GetArgument<double>(0);
-        return new(context.Return(Math.Floor(arg0)));
+        var result = Math.Floor(arg0);
+        // Lua 5.3: math.floor returns an integer when the result fits in a long.
+        // Range is [-2^63, 2^63) — the double literal 2^63 is exactly representable.
+        return new(
+            result >= -9223372036854775808.0 && result < 9223372036854775808.0
+                ? context.Return((long)result)
+                : context.Return(result)
+        );
     }
 
     public ValueTask<int> Fmod(
