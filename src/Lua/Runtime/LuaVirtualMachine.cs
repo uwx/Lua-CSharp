@@ -650,6 +650,18 @@ public static partial class LuaVirtualMachine
                             return mod;
                         }
 
+                        [MethodImpl(MethodImplOptions.NoInlining)]
+                        static long IntegerMod(long a, long b)
+                        {
+                            var mod = a % b;
+                            if ((b > 0 && mod < 0) || (b < 0 && mod > 0))
+                            {
+                                mod += b;
+                            }
+
+                            return mod;
+                        }
+
                         [MethodImpl(MethodImplOptions.AggressiveInlining)]
                         static double ArithmeticOperation(OpCode code, double a, double b)
                         {
@@ -688,6 +700,32 @@ public static partial class LuaVirtualMachine
                                 vb.UnsafeReadDouble(),
                                 vc.UnsafeReadDouble()
                             );
+                            stack.NotifyTop(iA + frameBase + 1);
+                            continue;
+                        }
+
+                        // Integer + Integer fast path (Lua 5.3 semantics: + - * % stay
+                        // integer; / and ^ always produce float). Mod by zero falls through
+                        // to the double path (NaN), matching existing behavior.
+                        if (
+                            vb.Type == LuaValueType.Integer
+                            && vc.Type == LuaValueType.Integer
+                            && (
+                                opCode is OpCode.Add or OpCode.Sub or OpCode.Mul
+                                || (opCode == OpCode.Mod && vc.UnsafeReadLong() != 0)
+                            )
+                        )
+                        {
+                            var a = vb.UnsafeReadLong();
+                            var b = vc.UnsafeReadLong();
+                            var result = opCode switch
+                            {
+                                OpCode.Add => a + b,
+                                OpCode.Sub => a - b,
+                                OpCode.Mul => a * b,
+                                _ => IntegerMod(a, b),
+                            };
+                            Unsafe.Add(ref stackHead, iA) = result;
                             stack.NotifyTop(iA + frameBase + 1);
                             continue;
                         }
@@ -837,6 +875,15 @@ public static partial class LuaVirtualMachine
                         Markers.Unm();
                         stackHead = ref stack.FastGet(frameBase);
                         vb = ref Unsafe.Add(ref stackHead, instruction.B);
+
+                        // Integer unary minus (wraps on long.MinValue, matching Lua 5.3)
+                        if (vb.Type == LuaValueType.Integer)
+                        {
+                            ra1 = iA + frameBase + 1;
+                            Unsafe.Add(ref stackHead, iA) = -vb.UnsafeReadLong();
+                            stack.NotifyTop(ra1);
+                            continue;
+                        }
 
                         // Fixed64 unary minus (must precede TryReadDouble to preserve type)
                         if (vb.Type == LuaValueType.Fixed64)
@@ -1013,6 +1060,20 @@ public static partial class LuaVirtualMachine
                         vb = ref RKB(ref stackHead, ref constHead, instruction);
                         vc = ref RKC(ref stackHead, ref constHead, instruction);
 
+                        // Integer comparison fast path (no double round-trip).
+                        if (vb.Type == LuaValueType.Integer && vc.Type == LuaValueType.Integer)
+                        {
+                            var compareResult = opCode == OpCode.Lt
+                                ? vb.UnsafeReadLong() < vc.UnsafeReadLong()
+                                : vb.UnsafeReadLong() <= vc.UnsafeReadLong();
+                            if (compareResult != (iA == 1))
+                            {
+                                context.Pc++;
+                            }
+
+                            continue;
+                        }
+
                         if (vb.TryReadNumber(out numB) && vc.TryReadNumber(out numC))
                         {
                             var compareResult = opCode == OpCode.Lt ? numB < numC : numB <= numC;
@@ -1162,6 +1223,29 @@ public static partial class LuaVirtualMachine
                         Markers.ForLoop();
 
                         ref var indexRef = ref stack.Get(iA + frameBase);
+
+                        // Integer fast path. ForPrep guarantees all control slots share a
+                        // type, so an Integer index implies Integer limit and step.
+                        if (indexRef.Type == LuaValueType.Integer)
+                        {
+                            var intLimit = Unsafe.Add(ref indexRef, 1).UnsafeReadLong();
+                            var intStep = Unsafe.Add(ref indexRef, 2).UnsafeReadLong();
+                            var intIndex = indexRef.UnsafeReadLong() + intStep;
+
+                            if (intStep >= 0 ? intIndex <= intLimit : intLimit <= intIndex)
+                            {
+                                context.Pc += instruction.SBx;
+                                indexRef = intIndex;
+                                Unsafe.Add(ref indexRef, 3) = intIndex;
+                                stack.NotifyTop(iA + frameBase + 4);
+                                context.ThrowIfCancellationRequested();
+                                continue;
+                            }
+
+                            stack.NotifyTop(iA + frameBase + 1);
+                            continue;
+                        }
+
                         var limit = Unsafe.Add(ref indexRef, 1).UnsafeReadDouble();
                         var step = Unsafe.Add(ref indexRef, 2).UnsafeReadDouble();
                         var index = indexRef.UnsafeReadDouble() + step;
@@ -1181,6 +1265,23 @@ public static partial class LuaVirtualMachine
                     case OpCode.ForPrep:
                         Markers.ForPrep();
                         indexRef = ref stack.Get(iA + frameBase);
+
+                        // Integer fast path: all three control values are already integers,
+                        // so keep them Integer and iterate with long arithmetic (the loop
+                        // variable stays an integer; no double round-trip).
+                        if (
+                            indexRef.Type == LuaValueType.Integer
+                            && Unsafe.Add(ref indexRef, 1).Type == LuaValueType.Integer
+                            && Unsafe.Add(ref indexRef, 2).Type == LuaValueType.Integer
+                        )
+                        {
+                            indexRef =
+                                indexRef.UnsafeReadLong()
+                                - Unsafe.Add(ref indexRef, 2).UnsafeReadLong();
+                            stack.NotifyTop(iA + frameBase + 1);
+                            context.Pc += instruction.SBx;
+                            continue;
+                        }
 
                         if (!indexRef.TryReadDouble(out var init))
                         {
