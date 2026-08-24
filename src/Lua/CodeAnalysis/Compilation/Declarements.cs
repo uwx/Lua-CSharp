@@ -101,6 +101,7 @@ struct ExprDesc
     public int T,
         F;
     public double Value;
+    public bool IsInteger;
 
     public readonly bool HasJumps()
     {

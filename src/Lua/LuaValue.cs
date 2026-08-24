@@ -15,6 +15,7 @@ public enum LuaValueType : byte
     Boolean,
     String,
     Number,
+    Integer,
     Function,
     Thread,
     LightUserData,
@@ -43,6 +44,7 @@ public readonly struct LuaValue : IEquatable<LuaValue>
     [FieldOffset(0)] public readonly LuaValueType Type;
     [FieldOffset(8)] internal readonly object? referenceValue;
     [FieldOffset(16)] readonly double value;
+    [FieldOffset(16)] readonly long integer;
     [FieldOffset(16)] readonly Fixed64 f64Value;
     [FieldOffset(16)] internal readonly Vector3d f64Vec3Value;
     [FieldOffset(16)] readonly f64AngleSingle f64AngleValue;
@@ -179,6 +181,82 @@ public readonly struct LuaValue : IEquatable<LuaValue>
                 else if (t == typeof(object))
                 {
                     result = (T)(object)value;
+                    return true;
+                }
+                else
+                {
+                    break;
+                }
+            case LuaValueType.Integer:
+                if (t == typeof(double))
+                {
+                    var v = (double)integer;
+                    result = Unsafe.As<double, T>(ref v);
+                    return true;
+                }
+                else if (t == typeof(float))
+                {
+                    var v = (float)integer;
+                    result = Unsafe.As<float, T>(ref v);
+                    return true;
+                }
+                else if (t == typeof(byte))
+                {
+                    var v = (byte)integer;
+                    result = Unsafe.As<byte, T>(ref v);
+                    return true;
+                }
+                else if (t == typeof(sbyte))
+                {
+                    var v = (sbyte)integer;
+                    result = Unsafe.As<sbyte, T>(ref v);
+                    return true;
+                }
+                else if (t == typeof(short))
+                {
+                    var v = (short)integer;
+                    result = Unsafe.As<short, T>(ref v);
+                    return true;
+                }
+                else if (t == typeof(ushort))
+                {
+                    var v = (ushort)integer;
+                    result = Unsafe.As<ushort, T>(ref v);
+                    return true;
+                }
+                else if (t == typeof(int))
+                {
+                    var v = (int)integer;
+                    result = Unsafe.As<int, T>(ref v);
+                    return true;
+                }
+                else if (t == typeof(long))
+                {
+                    var v = integer;
+                    result = Unsafe.As<long, T>(ref v);
+                    return true;
+                }
+                else if (t == typeof(uint))
+                {
+                    var v = (uint)integer;
+                    result = Unsafe.As<uint, T>(ref v);
+                    return true;
+                }
+                else if (t == typeof(ulong))
+                {
+                    var v = (ulong)integer;
+                    result = Unsafe.As<ulong, T>(ref v);
+                    return true;
+                }
+                else if (t == typeof(Fixed64))
+                {
+                    var v = (Fixed64)integer;
+                    result = Unsafe.As<Fixed64, T>(ref v);
+                    return true;
+                }
+                else if (t == typeof(object))
+                {
+                    result = (T)(object)integer;
                     return true;
                 }
                 else
@@ -418,7 +496,32 @@ public readonly struct LuaValue : IEquatable<LuaValue>
             return true;
         }
 
+        if (Type == LuaValueType.Integer)
+        {
+            result = integer;
+            return true;
+        }
+
         result = default!;
+        return false;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal bool TryReadInteger(out long result)
+    {
+        if (Type == LuaValueType.Integer)
+        {
+            result = integer;
+            return true;
+        }
+
+        if (Type == LuaValueType.Number && MathEx.IsInteger(value))
+        {
+            result = (long)value;
+            return true;
+        }
+
+        result = default;
         return false;
     }
 
@@ -480,6 +583,13 @@ public readonly struct LuaValue : IEquatable<LuaValue>
             return true;
         }
 
+        // Convert Integer → Fixed64
+        if (Type == LuaValueType.Integer)
+        {
+            result = (Fixed64)integer;
+            return true;
+        }
+
         result = default;
         return false;
     }
@@ -532,6 +642,12 @@ public readonly struct LuaValue : IEquatable<LuaValue>
             return true;
         }
 
+        if (Type == LuaValueType.Integer)
+        {
+            result = integer;
+            return true;
+        }
+
         // Fixed64 → double coercion (lossy)
         if (Type == LuaValueType.Fixed64)
         {
@@ -548,6 +664,12 @@ public readonly struct LuaValue : IEquatable<LuaValue>
         if (luaValue.Type == LuaValueType.Number)
         {
             result = luaValue.value;
+            return true;
+        }
+
+        if (luaValue.Type == LuaValueType.Integer)
+        {
+            result = luaValue.integer;
             return true;
         }
 
@@ -571,6 +693,12 @@ public readonly struct LuaValue : IEquatable<LuaValue>
     internal double UnsafeReadDouble()
     {
         return value;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal long UnsafeReadLong()
+    {
+        return integer;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -912,6 +1040,25 @@ public readonly struct LuaValue : IEquatable<LuaValue>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public LuaValue(long value)
+    {
+        Type = LuaValueType.Integer;
+        integer = value;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static implicit operator LuaValue(int value)
+    {
+        return new((long)value);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static implicit operator LuaValue(long value)
+    {
+        return new(value);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static implicit operator LuaValue(bool value)
     {
         return new(value);
@@ -1014,6 +1161,7 @@ public readonly struct LuaValue : IEquatable<LuaValue>
         {
             LuaValueType.Nil => 0,
             LuaValueType.Boolean or LuaValueType.Number => value.GetHashCode(),
+            LuaValueType.Integer => ((double)integer).GetHashCode(),
             LuaValueType.Fixed64 => f64Value.GetHashCode(),
             LuaValueType.Fixed64Vector3 => f64Vec3Value.GetHashCode(),
             LuaValueType.Fixed64Angle => f64AngleValue.GetHashCode(),
@@ -1026,32 +1174,13 @@ public readonly struct LuaValue : IEquatable<LuaValue>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Equals(LuaValue other)
     {
-        if (other.Type != Type)
+        if (other.Type == Type)
         {
-            return false;
-        }
-
-        return Type switch
-        {
-            LuaValueType.Nil => true,
-            LuaValueType.Boolean or LuaValueType.Number => other.value == value,
-            LuaValueType.Fixed64 => other.f64Value == f64Value,
-            LuaValueType.Fixed64Vector3 => other.f64Vec3Value == f64Vec3Value,
-            LuaValueType.Fixed64Angle => other.f64AngleValue == f64AngleValue,
-            LuaValueType.Fixed64Euler => other.f64EulerValue == f64EulerValue,
-            LuaValueType.String => Unsafe.As<string>(other.referenceValue)
-                == Unsafe.As<string>(referenceValue),
-            _ => other.referenceValue == referenceValue,
-        };
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool EqualsForDict(LuaValue other)
-    {
-        return other.Type == Type
-            && Type switch
+            return Type switch
             {
+                LuaValueType.Nil => true,
                 LuaValueType.Boolean or LuaValueType.Number => other.value == value,
+                LuaValueType.Integer => other.integer == integer,
                 LuaValueType.Fixed64 => other.f64Value == f64Value,
                 LuaValueType.Fixed64Vector3 => other.f64Vec3Value == f64Vec3Value,
                 LuaValueType.Fixed64Angle => other.f64AngleValue == f64AngleValue,
@@ -1060,6 +1189,51 @@ public readonly struct LuaValue : IEquatable<LuaValue>
                     == Unsafe.As<string>(referenceValue),
                 _ => other.referenceValue == referenceValue,
             };
+        }
+
+        // Cross-type numeric equality: Integer(1) == Number(1.0).
+        if (
+            Type is LuaValueType.Integer or LuaValueType.Number
+            && other.Type is LuaValueType.Integer or LuaValueType.Number
+        )
+        {
+            return (Type == LuaValueType.Integer ? (double)integer : value)
+                == (other.Type == LuaValueType.Integer ? (double)other.integer : other.value);
+        }
+
+        return false;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool EqualsForDict(LuaValue other)
+    {
+        if (other.Type == Type)
+        {
+            return Type switch
+            {
+                LuaValueType.Boolean or LuaValueType.Number => other.value == value,
+                LuaValueType.Integer => other.integer == integer,
+                LuaValueType.Fixed64 => other.f64Value == f64Value,
+                LuaValueType.Fixed64Vector3 => other.f64Vec3Value == f64Vec3Value,
+                LuaValueType.Fixed64Angle => other.f64AngleValue == f64AngleValue,
+                LuaValueType.Fixed64Euler => other.f64EulerValue == f64EulerValue,
+                LuaValueType.String => Unsafe.As<string>(other.referenceValue)
+                    == Unsafe.As<string>(referenceValue),
+                _ => other.referenceValue == referenceValue,
+            };
+        }
+
+        // Cross-type numeric equality: Integer(1) == Number(1.0).
+        if (
+            Type is LuaValueType.Integer or LuaValueType.Number
+            && other.Type is LuaValueType.Integer or LuaValueType.Number
+        )
+        {
+            return (Type == LuaValueType.Integer ? (double)integer : value)
+                == (other.Type == LuaValueType.Integer ? (double)other.integer : other.value);
+        }
+
+        return false;
     }
 
     public override bool Equals(object? obj)
@@ -1087,6 +1261,7 @@ public readonly struct LuaValue : IEquatable<LuaValue>
             LuaValueType.Boolean => Read<bool>() ? "true" : "false",
             LuaValueType.String => Read<string>(),
             LuaValueType.Number => Read<double>().ToString(CultureInfo.InvariantCulture),
+            LuaValueType.Integer => integer.ToString(CultureInfo.InvariantCulture),
             LuaValueType.Fixed64 => f64Value.ToString(),
             LuaValueType.Fixed64Vector3 => f64Vec3Value.ToString(),
             LuaValueType.Fixed64Angle => f64AngleValue.ToString(),
@@ -1114,6 +1289,7 @@ public readonly struct LuaValue : IEquatable<LuaValue>
             LuaValueType.Boolean => "boolean",
             LuaValueType.String => "string",
             LuaValueType.Number => "number",
+            LuaValueType.Integer => "number",
             LuaValueType.Fixed64 => "fixed64",
             LuaValueType.Fixed64Vector3 => "fixed64vector3",
             LuaValueType.Fixed64Angle => "f64angle",

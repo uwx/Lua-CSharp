@@ -725,6 +725,7 @@ public sealed class BasicLibrary
                     LuaValueType.Boolean => "boolean",
                     LuaValueType.String => "string",
                     LuaValueType.Number => "number",
+                    LuaValueType.Integer => "number",
                     LuaValueType.Function => "function",
                     LuaValueType.Thread => "thread",
                     LuaValueType.LightUserData => "userdata",

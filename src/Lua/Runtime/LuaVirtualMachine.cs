@@ -1191,7 +1191,7 @@ public static partial class LuaVirtualMachine
                             return true;
                         }
 
-                        if (!LuaValue.TryReadOrSetDouble(ref Unsafe.Add(ref indexRef, 1), out _))
+                        if (!LuaValue.TryReadOrSetDouble(ref Unsafe.Add(ref indexRef, 1), out var limitValue))
                         {
                             ThrowLuaRuntimeException(context, "'for' limit must be a number");
                             return true;
@@ -1204,6 +1204,11 @@ public static partial class LuaVirtualMachine
                         }
 
                         indexRef = init - step;
+                        // Normalize the control slots to Number (double) so ForLoop's
+                        // UnsafeReadDouble fast path works even when the bounds were
+                        // Integer literals (e.g. `for i = 1, #t`).
+                        Unsafe.Add(ref indexRef, 1) = limitValue;
+                        Unsafe.Add(ref indexRef, 2) = step;
                         stack.NotifyTop(iA + frameBase + 1);
                         context.Pc += instruction.SBx;
                         continue;
@@ -1391,7 +1396,7 @@ public static partial class LuaVirtualMachine
                 return true;
             }
 
-            if (v.Type == LuaValueType.Number)
+            if (v.Type is LuaValueType.Number or LuaValueType.Integer)
             {
                 v = v.ToString();
                 return true;
@@ -1407,7 +1412,7 @@ public static partial class LuaVirtualMachine
             var n = 2;
             ref var lhs = ref stack.Get(top - 2);
             ref var rhs = ref stack.Get(top - 1);
-            if (!(lhs.Type is LuaValueType.String or LuaValueType.Number) || !ToString(ref rhs))
+            if (!(lhs.Type is LuaValueType.String or LuaValueType.Number or LuaValueType.Integer) || !ToString(ref rhs))
             {
                 await ExecuteBinaryOperationMetaMethod(top - 2, lhs, rhs, context, OpCode.Concat);
             }
@@ -1480,7 +1485,7 @@ public static partial class LuaVirtualMachine
                 return true;
             }
 
-            if (v.Type == LuaValueType.Number)
+            if (v.Type is LuaValueType.Number or LuaValueType.Integer)
             {
                 v = v.ToString();
                 return true;
@@ -1496,7 +1501,7 @@ public static partial class LuaVirtualMachine
             var n = 2;
             ref var lhs = ref stack.Get(top - 2);
             ref var rhs = ref stack.Get(top - 1);
-            if (!(lhs.Type is LuaValueType.String or LuaValueType.Number) || !ToString(ref rhs))
+            if (!(lhs.Type is LuaValueType.String or LuaValueType.Number or LuaValueType.Integer) || !ToString(ref rhs))
             {
                 var value = await ExecuteBinaryOperationMetaMethod(
                     state,

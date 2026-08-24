@@ -37,7 +37,27 @@ public sealed class MathematicsLibrary
             new(libraryName, "sqrt", Sqrt),
             new(libraryName, "tan", Tan),
             new(libraryName, "tanh", Tanh),
+            new(libraryName, "type", Type),
         ];
+    }
+
+    /// <summary>
+    /// Returns "integer" if x is an integer, "float" if x is a float, or nil if x is not a number.
+    /// </summary>
+    public ValueTask<int> Type(
+        LuaFunctionExecutionContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        var arg0 = context.GetArgument(0);
+        return new(
+            arg0.Type switch
+            {
+                LuaValueType.Integer => context.Return("integer"),
+                LuaValueType.Number => context.Return("float"),
+                _ => context.Return(),
+            }
+        );
     }
 
     public readonly LibraryFunction[] Functions;

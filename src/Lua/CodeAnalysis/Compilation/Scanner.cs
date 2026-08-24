@@ -169,7 +169,7 @@ struct Scanner
         return IsQuotedStringLiteral(token) && token.Contains('\\') ? token : QuoteNearToken(token);
     }
 
-    string? GetTokenRawText()
+    public string? GetTokenRawText()
     {
         return Token.RawLength > 0
             ? new string(R.Span[(Token.Pos - 1)..((Token.Pos - 1) + Token.RawLength)])
@@ -436,6 +436,10 @@ struct Scanner
     public Token ReadNumber(int pos)
     {
         var startPosition = pos - 1;
+        // Preserve the original token start. ReadHexNumber mutates pos by ref
+        // (digit counting / error positions), so the token position and raw length
+        // must be derived from this untouched value — exactly like the decimal path.
+        var tokenStart = pos;
         var c = Current;
         Assert(IsDecimal(c));
         SaveAndAdvance();
@@ -498,7 +502,11 @@ struct Scanner
                 Buffer.Clear();
             }
 
-            return new(pos, fraction * Math.Pow(2, exponent), RawTokenLength(pos));
+            return new(
+                tokenStart,
+                fraction * Math.Pow(2, exponent),
+                RawTokenLength(tokenStart)
+            );
         }
 
         c = ReadDigits();

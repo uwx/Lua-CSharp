@@ -307,6 +307,25 @@ class Parser : IPoolNode<Parser>, IDisposable
         }
     }
 
+    static bool IsIntegerLiteral(string? rawText)
+    {
+        // An integer literal has no '.', 'e'/'E' exponent, or 'p'/'P' hex exponent.
+        if (rawText == null)
+        {
+            return false;
+        }
+
+        foreach (var c in rawText)
+        {
+            if (c is '.' or 'e' or 'E' or 'p' or 'P')
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     public ExprDesc SimpleExpression()
     {
         ExprDesc e;
@@ -315,6 +334,7 @@ class Parser : IPoolNode<Parser>, IDisposable
             case TkNumber:
                 e = MakeExpression(Kind.Number, 0);
                 e.Value = Scanner.Token.N;
+                e.IsInteger = IsIntegerLiteral(Scanner.GetTokenRawText());
                 break;
             case TkString:
                 e = Function.EncodeString(Scanner.Token.S);

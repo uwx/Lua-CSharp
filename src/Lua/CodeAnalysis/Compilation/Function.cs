@@ -11,7 +11,7 @@ using static Instruction;
 
 class Function : IPoolNode<Function>
 {
-    public readonly Dictionary<LuaValue, int> ConstantLookup = new();
+    public readonly Dictionary<LuaValue, int> ConstantLookup = new(LuaValueConstantComparer.Instance);
     public PrototypeBuilder Proto = null!;
     public Function? Previous;
     public Parser P = null!;
@@ -727,6 +727,25 @@ class Function : IPoolNode<Function>
         return index;
     }
 
+    /// <summary>
+    /// Constant-table key comparer that treats Integer and Number as distinct, so the
+    /// literal <c>1</c> and <c>1.0</c> produce separate constants instead of being merged.
+    /// </summary>
+    sealed class LuaValueConstantComparer : IEqualityComparer<LuaValue>
+    {
+        public static readonly LuaValueConstantComparer Instance = new();
+
+        public bool Equals(LuaValue x, LuaValue y)
+        {
+            return x.Type == y.Type && x.EqualsForDict(y);
+        }
+
+        public int GetHashCode(LuaValue obj)
+        {
+            return ((int)obj.Type << 24) ^ obj.GetHashCode();
+        }
+    }
+
     public unsafe int NumberConstant(double n)
     {
         if (n == 0.0 || double.IsNaN(n))
@@ -735,6 +754,12 @@ class Function : IPoolNode<Function>
         }
 
         return AddConstant(n, n);
+    }
+
+    public int LongConstant(long n)
+    {
+        var v = new LuaValue(n);
+        return AddConstant(v, v);
     }
 
     public void CheckStack(int n)
@@ -873,7 +898,10 @@ class Function : IPoolNode<Function>
                 EncodeConstant(r, e.Info);
                 break;
             case Kind.Number:
-                EncodeConstant(r, NumberConstant(e.Value));
+                EncodeConstant(
+                    r,
+                    e.IsInteger ? LongConstant((long)e.Value) : NumberConstant(e.Value)
+                );
                 break;
             case Kind.Relocatable:
                 Instruction(e).A = r;
@@ -1020,7 +1048,7 @@ class Function : IPoolNode<Function>
 
                 break;
             case Kind.Number:
-                e.Info = NumberConstant(e.Value);
+                e.Info = e.IsInteger ? LongConstant((long)e.Value) : NumberConstant(e.Value);
                 e.Kind = Kind.Constant;
                 goto case Kind.Constant;
             case Kind.Constant:
@@ -1243,6 +1271,17 @@ class Function : IPoolNode<Function>
         }
 
         e1.Value = Arith(op, e1.Value, e2.Value);
+        if (op is OpCode.Div or OpCode.Pow)
+        {
+            // Division / exponentiation always produce a float (Lua 5.3).
+            e1.IsInteger = false;
+        }
+        else
+        {
+            // int op int stays int for + - * % (and unary minus).
+            e1.IsInteger = e1.IsInteger && e2.IsInteger;
+        }
+
         return (e1, true);
     }
 

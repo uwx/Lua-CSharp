@@ -84,7 +84,7 @@ sealed class LuaGlobalState
             LuaValueType.Nil => nilMetatable,
             LuaValueType.Boolean => booleanMetatable,
             LuaValueType.String => stringMetatable,
-            LuaValueType.Number => numberMetatable,
+            LuaValueType.Number or LuaValueType.Integer => numberMetatable,
             LuaValueType.Function => functionMetatable,
             LuaValueType.Thread => stateMetatable,
             LuaValueType.Fixed64 => fixed64Metatable,
@@ -151,6 +151,8 @@ sealed class LuaGlobalState
                 stringMetatable = metatable;
                 break;
             case LuaValueType.Number:
+            case LuaValueType.Integer:
+                // Lua 5.3: integers and floats share a single number metatable.
                 numberMetatable = metatable;
                 break;
             case LuaValueType.Function:

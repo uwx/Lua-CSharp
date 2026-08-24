@@ -48,13 +48,13 @@ public class LuaValueTests
     }
 
     [Test]
-    public void FromObject_ConvertsUIntToNumber()
+    public void FromObject_ConvertsUIntToInteger()
     {
         object value = (uint)42;
 
         var result = LuaValue.FromObject(value);
 
-        Assert.That(result.Type, Is.EqualTo(LuaValueType.Number));
+        Assert.That(result.Type, Is.EqualTo(LuaValueType.Integer));
         Assert.That(result.Read<uint>(), Is.EqualTo((uint)42));
     }
 
