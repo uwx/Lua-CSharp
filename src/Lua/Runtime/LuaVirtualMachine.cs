@@ -2979,7 +2979,7 @@ public static partial class LuaVirtualMachine
         out bool doRestart
     )
     {
-        var (name, description) = opCode.GetNameAndDescription();
+        var name = opCode.GetName();
         doRestart = false;
         var reverseLe = false;
         ReCheck:
@@ -3115,7 +3115,7 @@ public static partial class LuaVirtualMachine
     {
         state.ThrowIfCancellationRequested(cancellationToken);
 
-        var (name, description) = opCode.GetNameAndDescription();
+        var name = opCode.GetName();
         var reverseLe = false;
         ReCheck:
         if (
@@ -3198,6 +3198,7 @@ public static partial class LuaVirtualMachine
                 (vb, vc) = (vc, vb);
             }
 
+            var (_, description) = opCode.GetNameAndDescription();
             LuaRuntimeException.AttemptInvalidOperation(state, description, vb, vc);
         }
 

@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+
 namespace Lua.Runtime;
 
 public static class Metamethods
@@ -42,6 +44,30 @@ public static class Metamethods
             OpCode.Call => (Call, "call"),
             OpCode.Concat => (Concat, "concatenate"),
             _ => (opCode.ToString(), opCode.ToString()),
+        };
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static string GetName(this OpCode opCode)
+    {
+        return opCode switch
+        {
+            OpCode.GetTabUp or OpCode.GetTable or OpCode.Self => Index,
+            OpCode.SetTabUp or OpCode.SetTable => NewIndex,
+            OpCode.Add => Add,
+            OpCode.Sub => Sub,
+            OpCode.Mul => Mul,
+            OpCode.Div => Div,
+            OpCode.Mod => Mod,
+            OpCode.Pow => Pow,
+            OpCode.Unm => Unm,
+            OpCode.Len => Len,
+            OpCode.Eq => Eq,
+            OpCode.Lt => Lt,
+            OpCode.Le => Le,
+            OpCode.Call => Call,
+            OpCode.Concat => Concat,
+            _ => opCode.ToString(),
         };
     }
 }
