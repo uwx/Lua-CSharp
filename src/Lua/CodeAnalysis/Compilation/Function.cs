@@ -897,10 +897,10 @@ class Function : IPoolNode<Function>
             case Kind.Constant:
                 EncodeConstant(r, e.Info);
                 break;
-            case Kind.Number:
+                case Kind.Number:
                 EncodeConstant(
                     r,
-                    e.IsInteger ? LongConstant((long)e.Value) : NumberConstant(e.Value)
+                    e.IsInteger ? LongConstant(e.IntValue) : NumberConstant(e.Value)
                 );
                 break;
             case Kind.Relocatable:
@@ -1048,7 +1048,7 @@ class Function : IPoolNode<Function>
 
                 break;
             case Kind.Number:
-                e.Info = e.IsInteger ? LongConstant((long)e.Value) : NumberConstant(e.Value);
+                e.Info = e.IsInteger ? LongConstant(e.IntValue) : NumberConstant(e.Value);
                 e.Kind = Kind.Constant;
                 goto case Kind.Constant;
             case Kind.Constant:
@@ -1258,6 +1258,36 @@ class Function : IPoolNode<Function>
         throw new("not an arithmetic op code (" + op + ")");
     }
 
+    static long IntegerModValue(long a, long b)
+    {
+        var mod = a % b;
+        if ((b > 0 && mod < 0) || (b < 0 && mod > 0))
+        {
+            mod += b;
+        }
+
+        return mod;
+    }
+
+    static long IntArith(OpCode op, long v1, long v2)
+    {
+        switch (op)
+        {
+            case OpCode.Add:
+                return v1 + v2;
+            case OpCode.Sub:
+                return v1 - v2;
+            case OpCode.Mul:
+                return v1 * v2;
+            case OpCode.Mod:
+                return IntegerModValue(v1, v2);
+            case OpCode.Unm:
+                return -v1;
+        }
+
+        throw new("not an arithmetic op code (" + op + ")");
+    }
+
     public static (ExprDesc, bool) FoldConstants(OpCode op, ExprDesc e1, ExprDesc e2)
     {
         if (!e1.IsNumeral() || !e2.IsNumeral())
@@ -1270,16 +1300,25 @@ class Function : IPoolNode<Function>
             return (e1, false);
         }
 
-        e1.Value = Arith(op, e1.Value, e2.Value);
         if (op is OpCode.Div or OpCode.Pow)
         {
             // Division / exponentiation always produce a float (Lua 5.3).
+            e1.Value = Arith(op, e1.Value, e2.Value);
             e1.IsInteger = false;
+        }
+        else if (e1.IsInteger && e2.IsInteger)
+        {
+            // int op int stays int for + - * % (and unary minus); fold in long space
+            // to preserve exactness for values beyond 2^53.
+            e1.IntValue = IntArith(op, e1.IntValue, e2.IntValue);
+            e1.Value = e1.IntValue;
+            e1.IsInteger = true;
         }
         else
         {
-            // int op int stays int for + - * % (and unary minus).
-            e1.IsInteger = e1.IsInteger && e2.IsInteger;
+            // Mixed or float operand → float result.
+            e1.Value = Arith(op, e1.Value, e2.Value);
+            e1.IsInteger = false;
         }
 
         return (e1, true);
@@ -1325,6 +1364,11 @@ class Function : IPoolNode<Function>
                 if (e.IsNumeral())
                 {
                     e.Value = -e.Value;
+                    if (e.IsInteger)
+                    {
+                        e.IntValue = -e.IntValue;
+                    }
+
                     return e;
                 }
 

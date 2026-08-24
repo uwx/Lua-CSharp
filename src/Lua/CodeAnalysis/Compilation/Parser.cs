@@ -1,4 +1,5 @@
 ﻿using System.Buffers;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using Lua.Internal;
 using Lua.Runtime;
@@ -307,23 +308,57 @@ class Parser : IPoolNode<Parser>, IDisposable
         }
     }
 
-    static bool IsIntegerLiteral(string? rawText)
+    /// <summary>
+    /// Parses an integer literal directly from its raw text as a 64-bit signed
+    /// integer, avoiding the lossy double round-trip (the scanner parses every
+    /// number as a double). Returns false when the literal is a float form (has
+    /// '.', a decimal exponent, or a hex 'p' exponent) or the value overflows a
+    /// signed 64-bit integer (Lua 5.3: such literals denote floats).
+    /// </summary>
+    static bool TryParseIntegerLiteral(string? rawText, out long value)
     {
-        // An integer literal has no '.', 'e'/'E' exponent, or 'p'/'P' hex exponent.
+        value = 0;
         if (rawText == null)
         {
             return false;
         }
 
+        if (rawText.Length > 1 && rawText[0] == '0' && rawText[1] is 'x' or 'X')
+        {
+            // Hex integer: 'e'/'E' are hex digits; only '.', 'p'/'P' make it a float.
+            for (var i = 2; i < rawText.Length; i++)
+            {
+                if (rawText[i] is '.' or 'p' or 'P')
+                {
+                    return false;
+                }
+            }
+
+            // Fits a signed 64-bit integer only when the parsed value is non-negative
+            // (16-hex-digit values >= 0x8000000000000000 parse as negative longs).
+            return long.TryParse(
+                    rawText.AsSpan(2),
+                    NumberStyles.AllowHexSpecifier,
+                    CultureInfo.InvariantCulture,
+                    out value
+                ) && value >= 0;
+        }
+
+        // Decimal integer: '.', 'e'/'E' exponent make it a float.
         foreach (var c in rawText)
         {
-            if (c is '.' or 'e' or 'E' or 'p' or 'P')
+            if (c is '.' or 'e' or 'E')
             {
                 return false;
             }
         }
 
-        return true;
+        return long.TryParse(
+            rawText,
+            NumberStyles.Integer,
+            CultureInfo.InvariantCulture,
+            out value
+        );
     }
 
     public ExprDesc SimpleExpression()
@@ -334,7 +369,7 @@ class Parser : IPoolNode<Parser>, IDisposable
             case TkNumber:
                 e = MakeExpression(Kind.Number, 0);
                 e.Value = Scanner.Token.N;
-                e.IsInteger = IsIntegerLiteral(Scanner.GetTokenRawText());
+                e.IsInteger = TryParseIntegerLiteral(Scanner.GetTokenRawText(), out e.IntValue);
                 break;
             case TkString:
                 e = Function.EncodeString(Scanner.Token.S);
@@ -904,7 +939,8 @@ class Parser : IPoolNode<Parser>, IDisposable
         }
         else
         {
-            Function.EncodeConstant(Function.FreeRegisterCount, Function.NumberConstant(1));
+            // Default step is the integer 1 so integer loops stay on the integer fast path.
+            Function.EncodeConstant(Function.FreeRegisterCount, Function.LongConstant(1));
             Function.ReserveRegisters(1);
         }
 
