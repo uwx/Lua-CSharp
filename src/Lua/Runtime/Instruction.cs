@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+
 namespace Lua.Runtime;
 
 public partial struct Instruction(uint value)
@@ -153,8 +155,8 @@ public partial struct Instruction(uint value)
 
     public OpCode OpCode
     {
-        get => (OpCode)((Value >> PosOp) & ((1 << SizeOp) - 1));
-        set => SetArg(PosOp, SizeOp, (byte)value);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)] get => (OpCode)((Value >> PosOp) & ((1 << SizeOp) - 1));
+        [MethodImpl(MethodImplOptions.AggressiveInlining)] set => SetArg(PosOp, SizeOp, (byte)value);
     }
 
     public int Arg(uint pos)
@@ -162,6 +164,7 @@ public partial struct Instruction(uint value)
         return (int)((Value >> (int)pos) & Mask1(1, 0));
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void SetArg(uint pos, uint size, int arg)
     {
         Value = (uint)((Value & Mask0(size, pos)) | ((arg << (int)pos) & Mask1(size, pos)));
@@ -178,38 +181,38 @@ public partial struct Instruction(uint value)
 
     public int A
     {
-        get => (int)((Value >> PosA) & MaxArgA);
-        set => SetArg(PosA, SizeA, value);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)] get => (int)((Value >> PosA) & MaxArgA);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)] set => SetArg(PosA, SizeA, value);
     }
 
     public int B
     {
-        get => (int)((Value >> PosB) & MaxArgB);
-        set => SetArg(PosB, SizeB, value);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)] get => (int)((Value >> PosB) & MaxArgB);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)] set => SetArg(PosB, SizeB, value);
     }
 
     public int C
     {
-        get => ((int)Value >> PosC) & MaxArgC;
-        set => SetArg(PosC, SizeC, value);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)] get => ((int)Value >> PosC) & MaxArgC;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)] set => SetArg(PosC, SizeC, value);
     }
 
     public int Bx
     {
-        get => ((int)Value >> PosBx) & MaxArgBx;
-        set => SetArg(PosBx, SizeBx, value);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)] get => ((int)Value >> PosBx) & MaxArgBx;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)] set => SetArg(PosBx, SizeBx, value);
     }
 
     public int Ax
     {
-        get => ((int)Value >> PosAx) & MaxArgAx;
-        set => SetArg(PosAx, SizeAx, value);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)] get => ((int)Value >> PosAx) & MaxArgAx;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)] set => SetArg(PosAx, SizeAx, value);
     }
 
     public int SBx
     {
-        get => (int)((Value >> PosBx) & MaxArgBx) - MaxArgSBx;
-        set => SetArg(PosBx, SizeBx, value + MaxArgSBx);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)] get => (int)((Value >> PosBx) & MaxArgBx) - MaxArgSBx;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)] set => SetArg(PosBx, SizeBx, value + MaxArgSBx);
     }
 
     /*
@@ -229,16 +232,19 @@ func createABx(op opCode, a, bx int) instruction {
 func createAx(op opCode, a int) instruction { return instruction(op)<<posOp | instruction(a)<<posAx }
     */
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static uint CreateABC(OpCode op, int a, int b, int c)
     {
         return (uint)(((byte)op << PosOp) | (a << PosA) | (b << PosB) | (c << PosC));
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static uint CreateABx(OpCode op, int a, int bx)
     {
         return (uint)(((byte)op << PosOp) | (a << PosA) | (bx << PosBx));
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static uint CreateAx(OpCode op, int a)
     {
         return (uint)(((byte)op << PosOp) | (a << PosAx));
@@ -342,6 +348,7 @@ func createAx(op opCode, a int) instruction { return instruction(op)<<posOp | in
     func opmode(t, a, b, c, m int) byte { return byte(t<<7 | a<<6 | b<<4 | c<<2 | m) }
     */
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte OpMode(int t, int a, int b, int c, int m)
     {
         return (byte)((t << 7) | (a << 6) | (b << 4) | (c << 2) | m);
@@ -370,26 +377,31 @@ func createAx(op opCode, a int) instruction { return instruction(op)<<posOp | in
     func testTMode(m opCode) bool { return opModes[m]&(1<<7) != 0 }
     */
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int OpMode(OpCode m)
     {
         return (int)(opModes[(byte)m] & 3);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte BMode(OpCode m)
     {
         return (byte)((opModes[(byte)m] >> 4) & 3);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte CMode(OpCode m)
     {
         return (byte)((opModes[(byte)m] >> 2) & 3);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TestAMode(OpCode m)
     {
         return (opModes[(byte)m] & (1 << 6)) != 0;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TestTMode(OpCode m)
     {
         return (opModes[(byte)m] & (1 << 7)) != 0;
