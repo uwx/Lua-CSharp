@@ -94,15 +94,47 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
     {
         get
         {
-            for (var i = 0; i < array.Length; i++)
+            var a = array;
+            var len = a.Length;
+            if (len == 0)
             {
-                if (array[i].Type is LuaValueType.Nil)
+                return 0;
+            }
+
+            // Fast path: the array part is filled up to its size (last slot non-nil),
+            // so its size is a valid border. This is the common case for arrays built
+            // by append (`t[#t + 1] = ...`) or dense indexing (`t[i] = ...`), and makes
+            // `#` O(1) instead of the previous O(n) linear scan.
+            if (a[len - 1].Type is not LuaValueType.Nil)
+            {
+                return len;
+            }
+
+            // No element at key 1 (first slot nil) -> border is 0.
+            if (a[0].Type is LuaValueType.Nil)
+            {
+                return 0;
+            }
+
+            // Otherwise binary-search for the largest n in [1..len] with a[n-1] non-nil
+            // (the array border). O(log n); for a dense prefix this is exactly the old
+            // "first nil" boundary, and for holey arrays it yields a valid Lua border.
+            var lo = 1;
+            var hi = len;
+            while (lo < hi)
+            {
+                var mid = (lo + hi + 1) >> 1;
+                if (a[mid - 1].Type is not LuaValueType.Nil)
                 {
-                    return i;
+                    lo = mid;
+                }
+                else
+                {
+                    hi = mid - 1;
                 }
             }
 
-            return array.Length;
+            return lo;
         }
     }
 
