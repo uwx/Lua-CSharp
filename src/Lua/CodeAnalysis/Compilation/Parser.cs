@@ -16,6 +16,34 @@ class Parser : IPoolNode<Parser>, IDisposable
     /// inline
     internal Scanner Scanner;
 
+    internal Function Function = null!;
+    internal FastListCore<int> ActiveVariables;
+    internal FastListCore<Label> PendingGotos;
+    internal FastListCore<Label> ActiveLabels;
+
+    Parser? nextNode;
+
+    static LinkedPool<Parser> pool;
+
+    static readonly (int Left, int Right)[] priority =
+    [
+        (6, 6),
+        (6, 6),
+        (7, 7),
+        (7, 7),
+        (7, 7),
+        (10, 9),
+        (5, 4),
+        (3, 3),
+        (3, 3),
+        (3, 3),
+        (3, 3),
+        (3, 3),
+        (3, 3),
+        (2, 2),
+        (1, 1),
+    ];
+
     internal int T => Scanner.Token.T;
 
     internal bool TestNext(int token)
@@ -28,18 +56,9 @@ class Parser : IPoolNode<Parser>, IDisposable
         Scanner.Next();
     }
 
-    internal Function Function = null!;
-    internal FastListCore<int> ActiveVariables;
-    internal FastListCore<Label> PendingGotos;
-    internal FastListCore<Label> ActiveLabels;
-
     Parser() { }
 
-    Parser? nextNode;
-
     ref Parser? IPoolNode<Parser>.NextNode => ref nextNode;
-
-    static LinkedPool<Parser> pool;
 
     static Parser Get(Scanner scanner)
     {
@@ -440,25 +459,6 @@ class Parser : IPoolNode<Parser>, IDisposable
         };
     }
 
-    static readonly (int Left, int Right)[] priority =
-    [
-        (6, 6),
-        (6, 6),
-        (7, 7),
-        (7, 7),
-        (7, 7),
-        (10, 9),
-        (5, 4),
-        (3, 3),
-        (3, 3),
-        (3, 3),
-        (3, 3),
-        (3, 3),
-        (3, 3),
-        (2, 2),
-        (1, 1),
-    ];
-
     public static int UnaryPriority => 8;
 
     public (ExprDesc, int) SubExpression(int limit)
@@ -520,7 +520,7 @@ class Parser : IPoolNode<Parser>, IDisposable
         var square = 0;
         var angle = 0;
         var expectAtom = true;
-        var lastWasTypeof = false;
+        var expectParen = false; // a following '(' continues the type (typeof / <T>)
         while (true)
         {
             var t = T;
@@ -606,7 +606,7 @@ class Parser : IPoolNode<Parser>, IDisposable
                         var name = Scanner.Token.S;
                         Next();
                         expectAtom = false;
-                        lastWasTypeof = name == "typeof";
+                        expectParen = name == "typeof";
                         continue;
                     }
                     case TkString:
@@ -616,7 +616,7 @@ class Parser : IPoolNode<Parser>, IDisposable
                     case TkFalse:
                         Next();
                         expectAtom = false;
-                        lastWasTypeof = false;
+                        expectParen = false;
                         continue;
                     case '(':
                         paren = 1;
@@ -627,7 +627,9 @@ class Parser : IPoolNode<Parser>, IDisposable
                         Next();
                         continue;
                     case '<':
+                        // generic type parameters of a function type: '<T>(...) -> ...'
                         angle = 1;
+                        expectParen = true;
                         Next();
                         continue;
                     case TkDots:
@@ -647,19 +649,22 @@ class Parser : IPoolNode<Parser>, IDisposable
                 case '&':
                     Next();
                     expectAtom = true;
+                    expectParen = false;
                     continue;
                 case '?':
                 case TkDots:
                     Next();
+                    expectParen = false;
                     continue;
                 case '.':
                     Next();
                     expectAtom = true;
+                    expectParen = false;
                     continue;
-                case '(' when lastWasTypeof:
-                    // 'typeof' '(' exp ')'
+                case '(' when expectParen:
+                    // 'typeof' '(' exp ')' or '<T>' '(' params ')' '->' ...
                     paren = 1;
-                    lastWasTypeof = false;
+                    expectParen = false;
                     Next();
                     continue;
                 case '<':
@@ -668,6 +673,7 @@ class Parser : IPoolNode<Parser>, IDisposable
                     // argument may be any type, e.g. a table type 'Array<{...}>'.
                     Next();
                     angle = 1;
+                    expectParen = false;
                     continue;
                 default:
                     return;

@@ -82,6 +82,17 @@ return 42";
     }
 
     [Test]
+    public async Task TypeAlias_GenericFunctionType_Ignored()
+    {
+        var source =
+            "export type createRef = <T>() -> RefObject<T>\n"
+            + "export type createContext = <T>(defaultValue: T?, contextId: string?) -> Context<T>\n"
+            + "return 42";
+        var result = await RunAsync(source);
+        Assert.That(result[0], Is.EqualTo(new LuaValue(42)));
+    }
+
+    [Test]
     public async Task LocalAnnotation_Ignored()
     {
         var result = await RunAsync("local x: number = 5 return x");
