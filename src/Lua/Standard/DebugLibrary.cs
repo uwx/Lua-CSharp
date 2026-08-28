@@ -29,6 +29,7 @@ public sealed class DebugLibrary
             new(libraryName, "gethook", GetHook),
             new(libraryName, "sethook", SetHook),
             new(libraryName, "getinfo", GetInfo),
+            new(libraryName, "info", GetInfoName),
         ];
     }
 
@@ -641,5 +642,36 @@ public sealed class DebugLibrary
         }
 
         return new(context.Return(table));
+    }
+
+    /// <summary>
+    /// Luau-style `debug.info`. Minimal implementation supporting the form the Sx devtools
+    /// needs: `debug.info(fn, "n")` returns the function's stored declaration name (recorded
+    /// on the prototype at parse time for `local function Name()` / `function Name()` /
+    /// `local Name = function()`), or nil if the function is unnamed. Unlike
+    /// <see cref="GetInfo"/>, it does not resolve call-site names, so it stays distinct from
+    /// standard Lua `debug.getinfo` semantics.
+    /// </summary>
+    public ValueTask<int> GetInfoName(
+        LuaFunctionExecutionContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        GetLuaThread(context, out var argOffset);
+        var what = context.GetArgumentOrDefault(argOffset + 1, "n");
+        var arg = context.GetArgument(argOffset);
+
+        if (arg.TryReadFunction(out var fn))
+        {
+            if (what.Contains('n') && fn is LuaClosure closure && !string.IsNullOrEmpty(closure.Proto.Name))
+            {
+                return new(context.Return(closure.Proto.Name));
+            }
+
+            return new(context.Return(LuaValue.Nil));
+        }
+
+        context.ThrowBadArgument(argOffset, "function expected");
+        return new(0);
     }
 }

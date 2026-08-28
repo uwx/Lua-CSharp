@@ -432,6 +432,7 @@ unsafe ref struct UndumpState(
         }
 
         return new(
+            null, // name — the bytecode format does not carry function names (source-only)
             source,
             lineDefined,
             lastLineDefined,

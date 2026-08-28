@@ -21,6 +21,10 @@ class Parser : IPoolNode<Parser>, IDisposable
     internal FastListCore<Label> PendingGotos;
     internal FastListCore<Label> ActiveLabels;
 
+    // Set by `local X = function() ... end` (single-local direct assignment) so the
+    // anonymous function's prototype can be named after its variable.
+    internal string? PendingFunctionName;
+
     Parser? nextNode;
 
     static LinkedPool<Parser> pool;
@@ -83,6 +87,7 @@ class Parser : IPoolNode<Parser>, IDisposable
         ActiveVariables.Clear();
         PendingGotos.Clear();
         ActiveLabels.Clear();
+        PendingFunctionName = null;
         pool.TryPush(this);
     }
 
@@ -1203,9 +1208,19 @@ class Parser : IPoolNode<Parser>, IDisposable
         Function.ReserveRegisters(Function.ActiveVariableCount);
     }
 
-    public ExprDesc Body(bool isMethod, int line, bool discard = false)
+    public ExprDesc Body(bool isMethod, int line, bool discard = false, string? name = null)
     {
         Function.OpenFunction(line);
+        if (name != null)
+        {
+            Function.Proto.Name = name;
+        }
+        else if (PendingFunctionName != null)
+        {
+            Function.Proto.Name = PendingFunctionName;
+            PendingFunctionName = null;
+        }
+
         if (T == '<')
         {
             // generic type parameters, e.g. 'function f<T, U...>()'
@@ -1241,17 +1256,25 @@ class Parser : IPoolNode<Parser>, IDisposable
         return Function.CloseFunction();
     }
 
-    public (ExprDesc, bool IsMethod) FunctionName()
+    public (ExprDesc, bool IsMethod) FunctionName(out string name)
     {
-        var e = SingleVariable();
-        for (; T == '.'; e = FieldSelector(e))
+        var firstName = CheckName();
+        var e = Function.SingleVariable(firstName);
+        name = firstName;
+        for (; T == '.'; )
         {
-            ;
+            e = Function.ExpressionToAnyRegisterOrUpValue(e);
+            Next(); // skip '.'
+            name = CheckName();
+            e = Function.Indexed(e, Function.EncodeString(name));
         }
 
         if (T == ':')
         {
-            e = FieldSelector(e);
+            e = Function.ExpressionToAnyRegisterOrUpValue(e);
+            Next(); // skip ':'
+            name = CheckName();
+            e = Function.Indexed(e, Function.EncodeString(name));
             return (e, true);
         }
 
@@ -1261,16 +1284,17 @@ class Parser : IPoolNode<Parser>, IDisposable
     public void FunctionStatement(int line)
     {
         Next();
-        var (v, m) = FunctionName();
-        Function.StoreVariable(v, Body(m, line));
+        var (v, m) = FunctionName(out var name);
+        Function.StoreVariable(v, Body(m, line, name: name));
         Function.FixLine(line);
     }
 
     public void LocalFunction()
     {
-        Function.MakeLocalVariable(CheckName());
+        var name = CheckName();
+        Function.MakeLocalVariable(name);
         Function.AdjustLocalVariables(1);
-        Function.LocalVariable(Body(false, Scanner.LineNumber).Info).StartPc = Function
+        Function.LocalVariable(Body(false, Scanner.LineNumber, name: name).Info).StartPc = Function
             .Proto
             .CodeList
             .Length;
@@ -1279,9 +1303,12 @@ class Parser : IPoolNode<Parser>, IDisposable
     public void LocalStatement()
     {
         var v = 0;
+        string? firstName = null;
         for (var first = true; first || TestNext(','); first = false)
         {
-            Function.MakeLocalVariable(CheckName());
+            var name = CheckName();
+            firstName ??= name;
+            Function.MakeLocalVariable(name);
             if (T == ':')
             {
                 Next();
@@ -1293,6 +1320,13 @@ class Parser : IPoolNode<Parser>, IDisposable
 
         if (TestNext('='))
         {
+            // `local X = function() ... end`: remember X so the anonymous function's
+            // prototype gets the variable's name (e.g. mainmenu's `local MainMenu = function()`).
+            if (v == 1)
+            {
+                PendingFunctionName = firstName;
+            }
+
             var (e, n) = ExpressionList();
             Function.AdjustAssignment(v, n, e);
         }
@@ -1303,6 +1337,7 @@ class Parser : IPoolNode<Parser>, IDisposable
         }
 
         Function.AdjustLocalVariables(v);
+        PendingFunctionName = null;
     }
 
     public void ExpressionStatement()

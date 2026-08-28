@@ -5,6 +5,7 @@ using Lua.CodeAnalysis.Compilation;
 namespace Lua.Runtime;
 
 public sealed class Prototype(
+    string? name,
     string chunkName,
     int lineDefined,
     int lastLineDefined,
@@ -32,6 +33,7 @@ public sealed class Prototype(
     public ReadOnlySpan<UpValueDesc> UpValues => upValues;
 
     // public LuaClosure Cache;
+    public readonly string? Name = name;
     public readonly string ChunkName = chunkName;
     public readonly int LineDefined = lineDefined,
         LastLineDefined = lastLineDefined;

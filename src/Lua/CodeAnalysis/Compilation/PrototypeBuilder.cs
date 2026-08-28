@@ -30,6 +30,7 @@ class PrototypeBuilder : IPoolNode<PrototypeBuilder>
     public ReadOnlySpan<UpValueDesc> UpValues => UpValuesList.AsSpan();
 
     public string Source;
+    public string? Name;
     public int LineDefined,
         LastLineDefined;
     public int ParameterCount,
@@ -55,6 +56,7 @@ class PrototypeBuilder : IPoolNode<PrototypeBuilder>
         }
 
         f.Source = source;
+        f.Name = null;
         f.LineDefined = 0;
         f.LastLineDefined = 0;
         f.ParameterCount = 0;
@@ -76,6 +78,7 @@ class PrototypeBuilder : IPoolNode<PrototypeBuilder>
         ParameterCount = 0;
         MaxStackSize = 0;
         IsVarArg = false;
+        Name = null;
         pool.TryPush(this);
     }
 
@@ -89,6 +92,7 @@ class PrototypeBuilder : IPoolNode<PrototypeBuilder>
         }
 
         Prototype p = new(
+            Name,
             Source,
             LineDefined,
             LastLineDefined,
