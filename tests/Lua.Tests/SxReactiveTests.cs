@@ -699,6 +699,8 @@ public sealed class SxReactiveTests
             ["library/sx/dom.lua"] = File.ReadAllText(Path.Combine(lib, "sx", "dom.luau")),
             ["library/sx/styled.lua"] = File.ReadAllText(Path.Combine(lib, "sx", "styled.luau")),
             ["library/sx/index.lua"] = File.ReadAllText(Path.Combine(lib, "sx", "index.luau")),
+            ["library/ui/theme.lua"] = File.ReadAllText(Path.Combine(lib, "ui", "theme.luau")),
+            ["library/ui/button.lua"] = File.ReadAllText(Path.Combine(lib, "ui", "button.luau")),
         };
 
         var fs = new MemoryFileSystem(files);
