@@ -315,9 +315,11 @@ public sealed class SxReactiveTests
         TestContext.Progress.WriteLine($"tree = {flat}");
         Assert.That(flat, Does.Contain("view:host"), "root host element is captured");
         // Lua-CSharp records the function's declaration name on its prototype, so both the
-        // `local function X()` and `local X = function()` forms resolve to real names.
-        Assert.That(flat, Does.Contain("Card:component"), "`local function X()` component resolves to its name");
-        Assert.That(flat, Does.Contain("Card2:component"), "`local X = function()` component resolves to its variable name");
+        // `local function X()` and `local X = function()` forms resolve to real names, now
+        // with the definition-site call site appended (e.g. "Card (main.lua:65)").
+        Assert.That(flat, Does.Contain("Card (main.lua:"), "`local function X()` component resolves to its name + call site");
+        Assert.That(flat, Does.Contain("Card2 (main.lua:"), "`local X = function()` component resolves to its variable name + call site");
+        Assert.That(flat, Does.Contain(":component"), "component nodes are still tagged with their kind");
         Assert.That(flat, Does.Contain("text:host"), "leaf host element is captured");
     }
 
@@ -342,6 +344,61 @@ public sealed class SxReactiveTests
     }
 
     [Test]
+    public void Devtools_Snapshot_CarriesHostRef()
+    {
+        // The hover-highlight feature needs each host node in the devtools tree snapshot to
+        // carry a live `host` reference so the devtools can position an overlay over it.
+        var main = FakeUiLib + """
+            Sx.devtools.enable()
+            local function Card()
+              return x('view') { style = { backgroundColor = '#ff0000' }, x('text') { 'hi' } }
+            end
+            Sx.render(x('view') { x(Card) {} })
+            local tree = Sx.devtools.snapshot()
+            local foundHost = false
+            local function walk(n)
+              if n.host ~= nil then foundHost = true end
+              for _, c in ipairs(n.children or {}) do walk(c) end
+            end
+            walk(tree)
+            return foundHost and 1 or 0
+            """;
+
+        var result = Run(main);
+        Assert.That(result[0].Read<double>(), Is.EqualTo(1), "snapshot carries a live host ref for hover highlighting");
+    }
+
+    [Test]
+    public void Devtools_Snapshot_CarriesProps()
+    {
+        // The devtools props pane reads the hovered node's props off the snapshot. Both
+        // host nodes (their style/event props) and component nodes (their props incl.
+        // `children`) must carry a `props` field.
+        var main = FakeUiLib + """
+            Sx.devtools.enable()
+            local function Card()
+              return x('view') { style = { backgroundColor = '#ff0000' }, onmousedown = function() end }
+            end
+            Sx.render(x('view') { x(Card) {} })
+            local tree = Sx.devtools.snapshot()
+            local foundHostStyle, foundCompChildren = false, false
+            local function walk(n)
+              if n.props ~= nil then
+                if n.kind == 'host' and n.props.style ~= nil then foundHostStyle = true end
+                if n.kind == 'component' and n.props.children ~= nil then foundCompChildren = true end
+              end
+              for _, c in ipairs(n.children or {}) do walk(c) end
+            end
+            walk(tree)
+            return (foundHostStyle and 1 or 0), (foundCompChildren and 1 or 0)
+            """;
+
+        var result = Run(main);
+        Assert.That(result[0].Read<double>(), Is.EqualTo(1), "host node carries its props (style)");
+        Assert.That(result[1].Read<double>(), Is.EqualTo(1), "component node carries its props (children)");
+    }
+
+    [Test]
     public void Devtools_OwnerName_AttributesSignalToOwningComponent()
     {
         var main = FakeUiLib + """
@@ -353,7 +410,7 @@ public sealed class SxReactiveTests
             Sx.render(x('view') { x(Card) {} })
             local ownedByCard = false
             for _, e in ipairs(Sx.debug.list()) do
-              if e.kind == 'signal' and Sx.debug.ownerName(e.node) == 'Card' then
+              if e.kind == 'signal' and string.find(Sx.debug.ownerName(e.node) or '', 'Card', 1, true) ~= nil then
                 ownedByCard = true
               end
             end
@@ -362,6 +419,46 @@ public sealed class SxReactiveTests
 
         var result = Run(main);
         Assert.That(result[0].Read<double>(), Is.EqualTo(1), "a signal created inside a component is attributed to that component");
+    }
+
+    [Test]
+    public void Devtools_ComponentName_StyledComponentsShowTagName()
+    {
+        // Styled components are anonymous closures, so debug.info can't name them. They
+        // should still show a readable "Styled<tag>" name in the devtools tree via the
+        // weak-keyed registry (styled -> Sx.debug.setStyledName).
+        var main = FakeUiLib + """
+            Sx.devtools.enable()
+            local Card = Sx.styled('view') {
+              backgroundColor = '#ff0000',
+            }
+            local Label = Sx.styled('text') {
+              color = '#ffffff',
+            }
+            Sx.render(x('view') {
+              x(Card) { style = { padding = 4 } },
+              x(Label) { 'hello' },
+            })
+            local tree = Sx.devtools.snapshot()
+            local styledTotal, styledWithSite = 0, 0
+            local function walk(n)
+              if n.kind == 'component' then
+                -- Styled closures are anonymous; they must still resolve to a real name
+                -- (their inner closure name + definition-site call site), never "anonymous".
+                styledTotal = styledTotal + 1
+                if n.name ~= 'anonymous' and string.find(n.name, '(main.lua:', 1, true) ~= nil then
+                  styledWithSite = styledWithSite + 1
+                end
+              end
+              for _, c in ipairs(n.children or {}) do walk(c) end
+            end
+            walk(tree)
+            return (styledWithSite >= 2 and 1 or 0), (styledTotal >= 2 and 1 or 0)
+            """;
+
+        var result = Run(main);
+        Assert.That(result[0].Read<double>(), Is.EqualTo(1), "both styled components carry a call site, not 'anonymous'");
+        Assert.That(result[1].Read<double>(), Is.EqualTo(1), "both styled components resolve to a real name + call site");
     }
 
     [Test]
@@ -407,6 +504,52 @@ public sealed class SxReactiveTests
         var result = Run(main);
         Assert.That(result[0].Read<string>(), Is.EqualTo("A"));
         Assert.That(result[1].Read<string>(), Is.EqualTo("B"));
+    }
+
+    [Test]
+    public void Switch_WhenSignalChanges_ButChosenMatchSame_DoesNotRemount()
+    {
+        // Regression: a `Match.when` that reads a config signal (e.g. the settings
+        // loading-state `when`) re-runs on every config write. The Switch must NOT
+        // remount the chosen subtree in that case — only a change of WHICH match is
+        // selected may cause structural work. Mirrors the settings.luau structure.
+        var main = FakeUiLib + """
+            local config, setConfig = Sx.createSignal(nil)
+            local options, setOptions = Sx.createSignal(nil)
+            Sx.render(x(Sx.Switch) {
+              x(Sx.Match) {
+                when = function() return config() == nil or options() == nil end,
+                x('view') { 'loading' },
+              },
+              x(Sx.Match) {
+                when = function() return true end,
+                x('view') {
+                  function() return config() ~= nil and config().fps or 'n/a' end,
+                },
+              },
+            })
+            local root = _G.UiLib.activeRoot
+
+            -- load settings: transitions loading -> loaded (a real, expected remount)
+            setOptions({})
+            setConfig({ fps = 60 })
+            local loadedTexts = table.concat(collectTexts(root), ',')
+
+            -- change a setting: only the reactive text child should update, no remount
+            local appendsBefore = _G.UiLib.appends
+            local removalsBefore = _G.UiLib.removals
+            setConfig({ fps = 120 })
+            local appends = _G.UiLib.appends - appendsBefore
+            local removals = _G.UiLib.removals - removalsBefore
+            local afterTexts = table.concat(collectTexts(root), ',')
+            return loadedTexts, appends, removals, afterTexts
+            """;
+
+        var result = Run(main);
+        Assert.That(result[0].Read<string>(), Is.EqualTo("60"), "loaded branch shows the config value");
+        Assert.That(result[1].Read<double>(), Is.EqualTo(0), "no append/insert when the chosen match stays the same");
+        Assert.That(result[2].Read<double>(), Is.EqualTo(0), "no removal when the chosen match stays the same");
+        Assert.That(result[3].Read<string>(), Is.EqualTo("120"), "reactive child still updates in place");
     }
 
     [Test]
@@ -520,7 +663,6 @@ public sealed class SxReactiveTests
     }
 
     // ---------------------------------------------------------------- router/mainmenu port
-
     /// <summary>
     /// Loads the REAL data/uis/router.luau + data/uis/routes/mainmenu.luau (Sx ports)
     /// plus the sx module graph, drives account + navigation events, and asserts the
