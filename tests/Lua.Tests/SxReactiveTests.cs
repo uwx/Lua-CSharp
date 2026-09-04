@@ -898,7 +898,7 @@ public sealed class SxReactiveTests
             local garageEmpty = texts()
             emit('garage:collections', {
               collections = {
-                { id = 1, name = 'Tuner', cars = {
+                { id = 'Tuner', cars = {
                     { name = 'Skyline', fileName = 'sky.rad' },
                     { name = 'Silvia', fileName = 'sil.rad' },
                 } },
