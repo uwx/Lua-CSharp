@@ -273,7 +273,7 @@ public class Traceback(
                     goto Next;
                 }
 
-                foreach (var pair in globalState.Environment.Dictionary)
+                foreach (var pair in globalState.Environment)
                 {
                     if (
                         pair.Key.TryReadString(out var name)

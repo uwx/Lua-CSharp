@@ -12,14 +12,24 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
     public LuaTable(int arrayCapacity, int dictionaryCapacity)
     {
         array = arrayCapacity > 1 ? new LuaValue[arrayCapacity] : [];
-        dictionary = new(dictionaryCapacity);
+        // The compiler's hash-size hint counts a literal's named fields, which are
+        // almost always strings, so it sizes the string part. The generic part is
+        // only created if a non-string, non-array key ever shows up.
+        stringDictionary = new(dictionaryCapacity);
     }
 
     LuaValue[] array;
-    readonly LuaValueDictionary dictionary;
-    LuaTable? metatable;
 
-    internal LuaValueDictionary Dictionary => dictionary;
+    // Hash part is split by key kind. String keys (the overwhelmingly common,
+    // record-shaped case) live in an embedded struct whose entries hold a bare
+    // string reference instead of a full LuaValue -- 48 bytes/entry vs 80 -- and
+    // which costs no separate object per table. Everything else (booleans,
+    // non-array numbers, tables, functions, userdata as keys) goes to a lazily
+    // created generic dictionary that most tables never allocate.
+    // Both use a signature-bucket layout: see LuaStringDictionary for the invariants.
+    LuaStringDictionary stringDictionary;
+    LuaValueDictionary? dictionary;
+    LuaTable? metatable;
 
     const int MaxArraySize = 1 << 24;
     const int MaxDistance = 1 << 12;
@@ -29,6 +39,11 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
+            if (key.Type is LuaValueType.String)
+            {
+                return stringDictionary.TryGetValue(key.UnsafeReadString(), out var sv) ? sv : LuaValue.Nil;
+            }
+
             if (key.Type is LuaValueType.Nil)
             {
                 ThrowIndexIsNil();
@@ -43,7 +58,7 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
                 }
             }
 
-            if (dictionary.TryGetValue(key, out var value))
+            if (dictionary is not null && dictionary.TryGetValue(key, out var value))
             {
                 return value;
             }
@@ -53,6 +68,12 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set
         {
+            if (key.Type is LuaValueType.String)
+            {
+                stringDictionary.Insert(key.UnsafeReadString(), value);
+                return;
+            }
+
             if (key.TryReadNumber(out var d))
             {
                 if (double.IsNaN(d))
@@ -67,7 +88,7 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
                     var distance = index - array.Length;
                     if (distance > MaxDistance)
                     {
-                        dictionary[key] = value;
+                        GetOrCreateDictionary()[key] = value;
                         return;
                     }
 
@@ -84,11 +105,31 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
                 }
             }
 
-            dictionary[key] = value;
+            GetOrCreateDictionary()[key] = value;
         }
     }
 
-    public int HashMapCount => dictionary.Count - dictionary.NilCount;
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    LuaValueDictionary GetOrCreateDictionary()
+    {
+        return dictionary ??= new(0);
+    }
+
+    public int HashMapCount
+    {
+        get
+        {
+            // Both dictionaries keep nil-valued entries (so `next` can still find a key
+            // that was just set to nil), so liveness has to be counted, not derived.
+            var count = stringDictionary.LiveCount;
+            if (dictionary is not null)
+            {
+                count += dictionary.LiveCount;
+            }
+
+            return count;
+        }
+    }
 
     public int ArrayLength
     {
@@ -147,6 +188,12 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryGetValue(LuaValue key, out LuaValue value)
     {
+        if (key.Type is LuaValueType.String)
+        {
+            return stringDictionary.TryGetValue(key.UnsafeReadString(), out value)
+                && value.Type is not LuaValueType.Nil;
+        }
+
         if (key.Type is LuaValueType.Nil)
         {
             value = default;
@@ -162,12 +209,23 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
             }
         }
 
+        if (dictionary is null)
+        {
+            value = default;
+            return false;
+        }
+
         return dictionary.TryGetValue(key, out value) && value.Type is not LuaValueType.Nil;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal ref LuaValue FindValue(LuaValue key)
     {
+        if (key.Type is LuaValueType.String)
+        {
+            return ref stringDictionary.FindValue(key.UnsafeReadString(), out _);
+        }
+
         if (key.Type is LuaValueType.Nil)
         {
             ThrowIndexIsNil();
@@ -181,22 +239,17 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
             }
         }
 
+        if (dictionary is null)
+        {
+            return ref Unsafe.NullRef<LuaValue>();
+        }
+
         return ref dictionary.FindValue(key, out _);
     }
 
     public bool ContainsKey(LuaValue key)
     {
-        if (key.Type is LuaValueType.Nil)
-        {
-            return false;
-        }
-
-        if (TryGetInteger(key, out var index))
-        {
-            return index > 0 && index <= array.Length && array[index - 1].Type != LuaValueType.Nil;
-        }
-
-        return dictionary.TryGetValue(key, out var value) && value.Type is not LuaValueType.Nil;
+        return TryGetValue(key, out _);
     }
 
     public LuaValue RemoveAt(int index)
@@ -225,7 +278,7 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
         var distance = index - array.Length;
         if (distance > MaxDistance)
         {
-            dictionary[index] = value;
+            GetOrCreateDictionary()[index] = value;
             return;
         }
 
@@ -244,8 +297,23 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
         array[arrayIndex] = value;
     }
 
+    /// <summary>
+    /// Lua `next` semantics. Iteration order is array part, then string keys, then
+    /// everything else.
+    /// </summary>
     public bool TryGetNext(LuaValue key, out KeyValuePair<LuaValue, LuaValue> pair)
     {
+        if (key.Type is LuaValueType.String)
+        {
+            if (stringDictionary.TryGetNext(key.UnsafeReadString(), out pair, out var found))
+            {
+                return true;
+            }
+
+            // Key was the last string entry: continue into the generic part.
+            return found && TryGetFirstGeneric(out pair);
+        }
+
         var index = -1;
         if (key.Type is LuaValueType.Nil)
         {
@@ -268,21 +336,31 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
                 }
             }
 
-            foreach (var kv in dictionary)
-            {
-                if (kv.Value.Type is not LuaValueType.Nil)
-                {
-                    pair = kv;
-                    return true;
-                }
-            }
-        }
-        else
-        {
-            if (dictionary.TryGetNext(key, out pair))
+            if (stringDictionary.TryGetFirstFrom(0, out pair))
             {
                 return true;
             }
+
+            return TryGetFirstGeneric(out pair);
+        }
+
+        if (dictionary is not null && dictionary.TryGetNext(key, out pair))
+        {
+            return true;
+        }
+
+        pair = default;
+        return false;
+    }
+
+    bool TryGetFirstGeneric(out KeyValuePair<LuaValue, LuaValue> pair)
+    {
+        var dict = dictionary;
+        if (dict is not null)
+        {
+            // MoveNext already skips nil-valued entries.
+            var i = 0;
+            return LuaValueDictionary.MoveNext(dict, dict.Version, ref i, out pair);
         }
 
         pair = default;
@@ -292,7 +370,8 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
     public void Clear()
     {
         array.AsSpan().Clear();
-        dictionary.Clear();
+        stringDictionary.Clear();
+        dictionary?.Clear();
     }
 
     public Memory<LuaValue> GetArrayMemory()
@@ -317,10 +396,18 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
 
         Array.Resize(ref array, newLength);
 
-        using PooledList<(int, LuaValue)> indexList = new(dictionary.Count);
+        // Only the generic part can hold integer keys, so string-only tables skip
+        // the migration scan entirely.
+        var dict = dictionary;
+        if (dict is null || dict.Count == 0)
+        {
+            return;
+        }
+
+        using PooledList<(int, LuaValue)> indexList = new(dict.Count);
 
         // Move some of the elements of the hash part to a newly allocated array
-        foreach (var kv in dictionary)
+        foreach (var kv in dict)
         {
             if (TryGetInteger(kv.Key, out var index))
             {
@@ -333,7 +420,7 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
 
         foreach (var (index, value) in indexList.AsSpan())
         {
-            dictionary.Remove(index);
+            dict.Remove(index);
             array[index - 1] = value;
         }
     }
@@ -382,31 +469,54 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
     {
         public KeyValuePair<LuaValue, LuaValue> Current => current;
 
-        int index = -1;
-        readonly int version = table.dictionary.Version;
+        // phase 0: array part (index = next array slot to inspect)
+        // phase 1: string part (index = string dictionary entry index)
+        // phase 2: generic part (index = generic dictionary entry index)
+        int phase = 0;
+        int index = 0;
+        readonly int stringVersion = table.stringDictionary.Version;
+        readonly int genericVersion = table.dictionary?.Version ?? 0;
         KeyValuePair<LuaValue, LuaValue> current = default;
 
         public bool MoveNext()
         {
-            if (index < 0)
+            if (phase == 0)
             {
-                var arrayIndex = -index - 1;
-                var span = table.array.AsSpan(arrayIndex);
+                var span = table.array.AsSpan(index);
                 for (var i = 0; i < span.Length; i++)
                 {
                     if (span[i].Type is not LuaValueType.Nil)
                     {
-                        current = new(arrayIndex + i + 1, span[i]);
-                        index = -arrayIndex - i - 2;
+                        current = new(index + i + 1, span[i]);
+                        index += i + 1;
                         return true;
                     }
                 }
 
+                phase = 1;
                 index = 0;
             }
 
+            if (phase == 1)
+            {
+                if (LuaStringDictionary.MoveNext(ref table.stringDictionary, stringVersion, ref index, out current))
+                {
+                    return true;
+                }
+
+                phase = 2;
+                index = 0;
+            }
+
+            var dict = table.dictionary;
+            if (dict is null)
+            {
+                current = default;
+                return false;
+            }
+
             while (
-                LuaValueDictionary.MoveNext(table.Dictionary, version, ref index, out current)
+                LuaValueDictionary.MoveNext(dict, genericVersion, ref index, out current)
                 && current.Value.Type is LuaValueType.Nil
             ) { }
 

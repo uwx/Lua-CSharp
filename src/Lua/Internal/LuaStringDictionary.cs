@@ -1,21 +1,26 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
-
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace Lua.Internal;
 
 /// <summary>
-/// The generic (non-string, non-array) hash part of a <see cref="LuaTable"/>, laid out
-/// with the signature-bucket scheme popularized by Faster.Map's BlitzMap: a bucket array
-/// kept separate from the entries it indexes, where each bucket packs an entry's
+/// The string-keyed hash part of a <see cref="LuaTable"/>, laid out with the
+/// signature-bucket scheme popularized by Faster.Map's BlitzMap: a bucket array kept
+/// separate from the entries it indexes, where each bucket packs an entry's
 /// <em>signature</em> (the bits of the hash above the home mask) together with that
-/// entry's slot into one 32-bit word, and links to the next bucket of the same home index
-/// in the other 32 bits.
+/// entry's slot into one 32-bit word, and links to the next bucket of the same home
+/// index in the other 32 bits.
 ///
-/// It is created lazily, so a record-shaped table never allocates one, and it stores
-/// integer keys only until the array part grows enough to absorb them.
+/// Specialized for <c>string</c> keys: an entry stores a bare string reference instead
+/// of a full <see cref="LuaValue"/>, which keeps per-entry size at 48 bytes. Since
+/// nearly every table in real Lua code is string-keyed (object/record-shaped), this is
+/// the representation the overwhelming majority of hash entries live in; non-string,
+/// non-array keys fall back to a lazily-created <see cref="LuaValueDictionary"/>.
+///
+/// This is a mutable struct embedded directly in LuaTable so a string-only table
+/// costs no separate dictionary object. It must only ever be accessed through
+/// that field (never copied); an uninitialized instance has <c>_buckets == null</c>
+/// and allocates its arrays on first insert.
 /// </summary>
 /// <remarks>
 /// Invariants, all of which the XOR signature filter in <see cref="FindValue"/> needs:
@@ -26,13 +31,13 @@ namespace Lua.Internal;
 /// <c>hash &amp; ~mask</c>, i.e. a multiple of the power-of-two length, so its low bits
 /// are zero and a slot fits in them.</item>
 /// <item>The length is at least 2, so a signature is always even and can never be
-/// <see cref="Inactive"/>. A live bucket therefore never looks empty, which is what makes
-/// the all-ones word a safe marker for an empty bucket.</item>
+/// <see cref="Inactive"/>. A live bucket therefore never looks empty, which is what
+/// makes the all-ones word a safe marker for an empty bucket.</item>
 /// <item>At most 4/5 of the bucket array can hold entries, so
 /// <see cref="FindEmptyBucket"/> is guaranteed to find a free bucket.</item>
 /// </list>
 /// </remarks>
-sealed class LuaValueDictionary
+struct LuaStringDictionary
 {
     /// <summary>Bits 0..31 hold <c>signature | slot</c>; bits 32..63 hold the next bucket.</summary>
     ulong[]? _buckets;
@@ -51,8 +56,8 @@ sealed class LuaValueDictionary
     int _length;
 
     /// <summary>
-    /// How many entries fit before the table grows (<c>_length * 4 / 5</c>). Always equal
-    /// to <c>_entries.Length</c>.
+    /// How many entries fit before the table grows (<c>_length * 4 / 5</c>). Always
+    /// equal to <c>_entries.Length</c>.
     /// </summary>
     int _maxCount;
 
@@ -71,13 +76,8 @@ sealed class LuaValueDictionary
     const int LoadFactorNumerator = 4;
     const int LoadFactorDenominator = 5;
 
-    public LuaValueDictionary(int capacity)
+    public LuaStringDictionary(int capacity)
     {
-        if (capacity < 0)
-        {
-            ThrowHelper.ThrowArgumentOutOfRangeException(nameof(capacity));
-        }
-
         _buckets = null;
         _entries = null;
         _count = 0;
@@ -92,14 +92,18 @@ sealed class LuaValueDictionary
         }
     }
 
-    public int Count => _count;
+    public readonly int Count => _count;
+
+    public readonly int Version => _version;
+
+    public readonly bool IsAllocated => _buckets != null;
 
     /// <summary>
     /// Number of entries whose value is not nil. Assigning nil keeps the entry (so a
     /// <c>next</c> call handed that key can still find it) and only marks it dead, so
     /// liveness cannot be read off <see cref="Count"/>.
     /// </summary>
-    public int LiveCount
+    public readonly int LiveCount
     {
         get
         {
@@ -122,23 +126,6 @@ sealed class LuaValueDictionary
         }
     }
 
-    public LuaValue this[LuaValue key]
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get
-        {
-            ref var value = ref FindValue(key, out _);
-            if (!Unsafe.IsNullRef(ref value))
-            {
-                return value;
-            }
-
-            return default;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        set => Insert(key, value);
-    }
-
     public void Clear()
     {
         var count = _count;
@@ -147,21 +134,13 @@ sealed class LuaValueDictionary
             return;
         }
 
-        Debug.Assert(_buckets != null, "_buckets should be non-null");
-        Debug.Assert(_entries != null, "_entries should be non-null");
-
         _count = 0;
         _last = 0;
-        Array.Clear(_entries, 0, count);
-        _buckets.AsSpan().Fill(EmptyBucket);
+        Array.Clear(_entries!, 0, count);
+        _buckets!.AsSpan().Fill(EmptyBucket);
     }
 
-    public bool ContainsKey(LuaValue key)
-    {
-        return !Unsafe.IsNullRef(ref FindValue(key, out _));
-    }
-
-    public bool ContainsValue(LuaValue value)
+    public readonly bool ContainsValue(LuaValue value)
     {
         var entries = _entries;
         if (entries is null)
@@ -180,60 +159,17 @@ sealed class LuaValueDictionary
         return false;
     }
 
-    public Enumerator GetEnumerator()
-    {
-        return new(this);
-    }
-
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    static uint ComputeHash(in LuaValue key)
+    static uint ComputeHash(string key)
     {
         return (uint)key.GetHashCode();
     }
 
-    /// <summary>
-    /// True when <paramref name="stored"/> is the same key as <paramref name="key"/>.
-    /// Integer and Number keys are numerically equal (<c>t[1]</c> and <c>t[1.0]</c> are the
-    /// same key); the hashes already agree on that because
-    /// <see cref="LuaValue.GetHashCode"/> hashes an Integer as its double value.
-    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    static bool KeyEquals(in LuaValue stored, in LuaValue key)
+    static bool KeyEquals(string stored, string key)
     {
-        var storedType = stored.Type;
-        var keyType = key.Type;
-
-        if (storedType == keyType)
-        {
-            return storedType switch
-            {
-                LuaValueType.String => stored.UnsafeReadString() == key.UnsafeReadString(),
-                LuaValueType.Number or LuaValueType.Boolean => stored.UnsafeReadDouble()
-                    == key.UnsafeReadDouble(),
-                LuaValueType.Integer => stored.UnsafeReadLong() == key.UnsafeReadLong(),
-                _ => stored.UnsafeReadObject() == key.UnsafeReadObject(),
-            };
-        }
-
-        // Integer <-> Number keys are numerically equal.
-        if (
-            storedType is LuaValueType.Integer or LuaValueType.Number
-            && keyType is LuaValueType.Integer or LuaValueType.Number
-        )
-        {
-            return (
-                    storedType == LuaValueType.Integer
-                        ? (double)stored.UnsafeReadLong()
-                        : stored.UnsafeReadDouble()
-                )
-                == (
-                    keyType == LuaValueType.Integer
-                        ? (double)key.UnsafeReadLong()
-                        : key.UnsafeReadDouble()
-                );
-        }
-
-        return false;
+        // string == does a reference check first, so interned keys short-circuit.
+        return stored == key;
     }
 
     /// <summary>
@@ -242,7 +178,7 @@ sealed class LuaValueDictionary
     /// <see cref="Unsafe.NullRef{T}"/> and sets <paramref name="index"/> to -1.
     /// </summary>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    internal ref LuaValue FindValue(LuaValue key, out int index)
+    internal ref LuaValue FindValue(string key, out int index)
     {
         index = -1;
 
@@ -314,18 +250,17 @@ sealed class LuaValueDictionary
         _length = length;
         _maxCount = Math.Max(capacity, 1);
         _last = 0;
-
-        // Assign member variables after both arrays are allocated to guard against
-        // corruption from an OOM on the second one.
-        var buckets = new ulong[length];
-        buckets.AsSpan().Fill(EmptyBucket);
-        var entries = new Entry[_maxCount];
-
-        _buckets = buckets;
-        _entries = entries;
+        _buckets = new ulong[length];
+        _buckets.AsSpan().Fill(EmptyBucket);
+        _entries = new Entry[_maxCount];
     }
 
-    void Insert(LuaValue key, LuaValue value)
+    /// <summary>
+    /// Inserts <paramref name="key"/> or overwrites the value already stored for it. Lua
+    /// tables keep nil-valued keys rather than removing them, so nil is stored like any
+    /// other value and merely makes the entry invisible to lookups and iteration.
+    /// </summary>
+    public void Insert(string key, LuaValue value)
     {
         if (MetamethodCache.IsMetamethodKey(key))
         {
@@ -450,7 +385,7 @@ sealed class LuaValueDictionary
         }
     }
 
-    public bool Remove(LuaValue key)
+    public bool Remove(string key)
     {
         var buckets = _buckets;
         if (buckets is null)
@@ -458,7 +393,7 @@ sealed class LuaValueDictionary
             return false;
         }
 
-        Debug.Assert(_entries != null, "entries should be non-null");
+        Debug.Assert(_entries != null, "expected entries to be non-null");
 
         var mask = (uint)(_length - 1);
         var hash = ComputeHash(key);
@@ -499,7 +434,7 @@ sealed class LuaValueDictionary
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryGetValue(LuaValue key, out LuaValue value)
+    public bool TryGetValue(string key, out LuaValue value)
     {
         ref var valRef = ref FindValue(key, out _);
         if (!Unsafe.IsNullRef(ref valRef))
@@ -512,9 +447,15 @@ sealed class LuaValueDictionary
         return false;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryGetNext(LuaValue key, out KeyValuePair<LuaValue, LuaValue> pair)
+    /// <summary>
+    /// Finds the first non-nil entry after <paramref name="key"/>. <paramref name="found"/>
+    /// reports whether <paramref name="key"/> itself was present, so a caller can tell
+    /// "key was the last entry" (found, no result) apart from "key isn't in this table".
+    /// </summary>
+    public bool TryGetNext(string key, out KeyValuePair<LuaValue, LuaValue> pair, out bool found)
     {
+        found = false;
+
         ref var valRef = ref FindValue(key, out var index);
         if (Unsafe.IsNullRef(ref valRef))
         {
@@ -522,11 +463,12 @@ sealed class LuaValueDictionary
             return false;
         }
 
+        found = true;
         return TryGetFirstFrom(index + 1, out pair);
     }
 
     /// <summary>First non-nil entry at or after <paramref name="index"/>.</summary>
-    bool TryGetFirstFrom(int index, out KeyValuePair<LuaValue, LuaValue> pair)
+    public bool TryGetFirstFrom(int index, out KeyValuePair<LuaValue, LuaValue> pair)
     {
         var entries = _entries;
         while ((uint)index < (uint)_count)
@@ -593,7 +535,7 @@ sealed class LuaValueDictionary
     /// Finds the bucket whose packed slot is <paramref name="targetSlot"/>, so
     /// <see cref="EraseSlot"/> can repoint it after a swap-erase.
     /// </summary>
-    uint FindBucketForSlot(ulong[] buckets, uint mask, in LuaValue key, uint targetSlot)
+    uint FindBucketForSlot(ulong[] buckets, uint mask, string key, uint targetSlot)
     {
         var main = ComputeHash(key) & mask;
 
@@ -789,14 +731,12 @@ sealed class LuaValueDictionary
 
     struct Entry
     {
-        public LuaValue key;
+        public string key;
         public LuaValue value;
     }
 
-    internal int Version => _version;
-
     internal static bool MoveNext(
-        LuaValueDictionary dictionary,
+        ref LuaStringDictionary dictionary,
         int version,
         ref int index,
         out KeyValuePair<LuaValue, LuaValue> current
@@ -823,39 +763,11 @@ sealed class LuaValueDictionary
         return false;
     }
 
-    public struct Enumerator
-    {
-        readonly LuaValueDictionary dictionary;
-        readonly int _version;
-        int _index;
-        KeyValuePair<LuaValue, LuaValue> _current;
-
-        internal Enumerator(LuaValueDictionary dictionary)
-        {
-            this.dictionary = dictionary;
-            _version = dictionary._version;
-            _index = 0;
-            _current = default;
-        }
-
-        public bool MoveNext()
-        {
-            return LuaValueDictionary.MoveNext(dictionary, _version, ref _index, out _current);
-        }
-
-        public KeyValuePair<LuaValue, LuaValue> Current => _current;
-    }
-
     static class ThrowHelper
     {
         public static void ThrowInvalidOperationException_ConcurrentOperationsNotSupported()
         {
             throw new InvalidOperationException("Concurrent operations are not supported");
-        }
-
-        public static void ThrowArgumentOutOfRangeException(string paramName)
-        {
-            throw new ArgumentOutOfRangeException(paramName);
         }
 
         public static void ThrowInvalidOperationException_InvalidOperation_EnumFailedVersion()
