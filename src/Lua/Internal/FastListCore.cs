@@ -19,6 +19,17 @@ public struct FastListCore<T>
     T[]? array;
     int tailIndex;
 
+    /// <summary>
+    /// Starts the list with exactly <paramref name="capacity"/> slots instead of the
+    /// default <see cref="InitialCapacity"/>. Callers that already know the final size
+    /// (a closure knows how many upvalues it captures) avoid an oversized first array.
+    /// </summary>
+    public FastListCore(int capacity)
+    {
+        array = capacity > 0 ? new T[capacity] : null;
+        tailIndex = 0;
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Add(T element)
     {
@@ -32,6 +43,35 @@ public struct FastListCore<T>
         }
 
         array[tailIndex] = element;
+        tailIndex++;
+    }
+
+    /// <summary>
+    /// Inserts <paramref name="element"/> at <paramref name="index"/>, shifting the elements
+    /// after it up by one. Used to keep the open-upvalue list ordered by register index.
+    /// </summary>
+    public void InsertAt(int index, T element)
+    {
+        if ((uint)index > (uint)tailIndex)
+        {
+            ThrowIndexOutOfRange();
+        }
+
+        if (array == null)
+        {
+            array = new T[InitialCapacity];
+        }
+        else if (array.Length == tailIndex)
+        {
+            Array.Resize(ref array, tailIndex == 0 ? InitialCapacity : tailIndex * 2);
+        }
+
+        if (index < tailIndex)
+        {
+            Array.Copy(array, index, array, index + 1, tailIndex - index);
+        }
+
+        array[index] = element;
         tailIndex++;
     }
 

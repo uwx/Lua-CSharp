@@ -17,20 +17,27 @@ public sealed class LuaClosure : LuaFunction
         Proto = proto;
         if (environment != null)
         {
+            upValues = new FastListCore<UpValue>(1);
             upValues.Add(UpValue.Closed(environment));
             return;
         }
 
         if (state.CallStackFrameCount == 0)
         {
+            upValues = new FastListCore<UpValue>(1);
             upValues.Add(state.GlobalState.EnvUpValue);
             return;
         }
 
         var baseIndex = state.GetCallStackFrames()[^1].Base;
+        var upValueCount = proto.UpValues.Length;
+
+        // Size the list exactly: the default Add path would allocate an 8-slot array even
+        // for a closure that captures a single local.
+        upValues = new FastListCore<UpValue>(upValueCount);
 
         // add upvalues
-        for (var i = 0; i < proto.UpValues.Length; i++)
+        for (var i = 0; i < upValueCount; i++)
         {
             var description = proto.UpValues[i];
             var upValue = GetUpValueFromDescription(

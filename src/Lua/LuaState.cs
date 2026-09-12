@@ -624,31 +624,39 @@ public class LuaState : IDisposable
 
     internal UpValue GetOrAddUpValue(int registerIndex)
     {
-        foreach (var upValue in openUpValues.AsSpan())
+        // `openUpValues` is kept ordered by register index, so the tail holds the most
+        // recently opened upvalues and the common case (capturing a local of the frame
+        // that is currently executing) is found without scanning the whole list.
+        var index = openUpValues.Length;
+        while (index > 0 && openUpValues[index - 1].RegisterIndex > registerIndex)
         {
-            if (upValue.RegisterIndex == registerIndex)
-            {
-                return upValue;
-            }
+            index--;
+        }
+
+        if (index > 0 && openUpValues[index - 1].RegisterIndex == registerIndex)
+        {
+            return openUpValues[index - 1];
         }
 
         var newUpValue = UpValue.Open(this, registerIndex);
-        openUpValues.Add(newUpValue);
+        openUpValues.InsertAt(index, newUpValue);
         return newUpValue;
     }
 
     internal void CloseUpValues(int frameBase)
     {
-        for (var i = 0; i < openUpValues.Length; i++)
+        // Ordered by register, so everything at or above `frameBase` is a suffix: pop it
+        // instead of scanning (and swap-erasing) the whole list.
+        var index = openUpValues.Length;
+        while (index > 0 && openUpValues[index - 1].RegisterIndex >= frameBase)
         {
-            var upValue = openUpValues[i];
+            openUpValues[index - 1].Close();
+            index--;
+        }
 
-            if (upValue.RegisterIndex >= frameBase)
-            {
-                upValue.Close();
-                openUpValues.RemoveAtSwapBack(i);
-                i--;
-            }
+        if (index != openUpValues.Length)
+        {
+            openUpValues.Shrink(index);
         }
     }
 
