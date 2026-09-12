@@ -272,11 +272,12 @@ struct LuaStringDictionary
             Initialize(0);
         }
 
-        if (_count == _maxCount)
-        {
-            Resize();
-        }
-
+        // Growth is deferred until the key is known to be NEW (see the two Resize calls
+        // below): resizing is only legal once the probe has established that this is not an
+        // overwrite, otherwise a table sitting exactly at its capacity would double -- and
+        // re-hash every entry -- merely because an existing key was assigned again.
+        // The retry is guaranteed to terminate: Resize always leaves `_count < _maxCount`.
+        Retry:
         var mask = (uint)(_length - 1);
         var hash = ComputeHash(key);
         var main = hash & mask;
@@ -316,6 +317,14 @@ struct LuaStringDictionary
 
         if (packed == Inactive)
         {
+            // The home bucket is free and the key was not found in it, so this is a new
+            // key: only now can the table need to grow.
+            if (_count == _maxCount)
+            {
+                Resize();
+                goto Retry;
+            }
+
             var slot = (uint)_count++;
             ref var entry = ref entries[slot];
             entry.key = key;
@@ -341,6 +350,12 @@ struct LuaStringDictionary
 
             tail = next;
             next = (uint)(node >> 32);
+        }
+
+        if (_count == _maxCount)
+        {
+            Resize();
+            goto Retry;
         }
 
         var newBucket = FindEmptyBucket(buckets, main, 1);
@@ -470,6 +485,20 @@ struct LuaStringDictionary
     /// <summary>First non-nil entry at or after <paramref name="index"/>.</summary>
     public bool TryGetFirstFrom(int index, out KeyValuePair<LuaValue, LuaValue> pair)
     {
+        return TryGetFirstFrom(index, out pair, out _);
+    }
+
+    /// <summary>
+    /// First non-nil entry at or after <paramref name="index"/>, also reporting the slot it
+    /// lives in so a caller can resume iteration from it later without re-hashing the key.
+    /// <paramref name="slot"/> is -1 when there is no such entry.
+    /// </summary>
+    public bool TryGetFirstFrom(
+        int index,
+        out KeyValuePair<LuaValue, LuaValue> pair,
+        out int slot
+    )
+    {
         var entries = _entries;
         while ((uint)index < (uint)_count)
         {
@@ -477,6 +506,7 @@ struct LuaStringDictionary
             if (entry.value.Type is not LuaValueType.Nil)
             {
                 pair = new(entry.key, entry.value);
+                slot = index;
                 return true;
             }
 
@@ -484,7 +514,23 @@ struct LuaStringDictionary
         }
 
         pair = default;
+        slot = -1;
         return false;
+    }
+
+    /// <summary>
+    /// True while <paramref name="slot"/> still holds exactly <paramref name="key"/> (by
+    /// reference). Slots are stable under insert/overwrite/resize -- only a swap-erase
+    /// removal or a clear can move or drop one -- so this lets a caller validate a cached
+    /// cursor cheaply instead of re-hashing the key.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly bool SlotHasKey(int slot, string key)
+    {
+        var entries = _entries;
+        return entries != null
+            && (uint)slot < (uint)_count
+            && ReferenceEquals(entries[slot].key, key);
     }
 
     /// <summary>
