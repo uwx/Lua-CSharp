@@ -406,6 +406,32 @@ public static class LuaStateExtensions
         );
     }
 
+    /// <summary>
+    /// Luau floor division (`//`). Like <see cref="DivAsync"/> this converts numbers to double
+    /// first, so an integer result surfaces as a float; the interpreter's `//` opcode keeps
+    /// integers integral.
+    /// </summary>
+    public static ValueTask<LuaValue> IDivAsync(
+        this LuaState state,
+        LuaValue x,
+        LuaValue y,
+        CancellationToken cancellationToken = default
+    )
+    {
+        if (x.TryReadDouble(out var numX) && y.TryReadDouble(out var numY))
+        {
+            return new(Math.Floor(numX / numY));
+        }
+
+        return LuaVirtualMachine.ExecuteBinaryOperationMetaMethod(
+            state,
+            x,
+            y,
+            OpCode.IDiv,
+            cancellationToken
+        );
+    }
+
     public static ValueTask<LuaValue> UnmAsync(
         this LuaState state,
         LuaValue value,

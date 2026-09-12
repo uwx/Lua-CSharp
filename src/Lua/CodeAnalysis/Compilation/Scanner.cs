@@ -19,6 +19,12 @@ struct Scanner
     int lastNewLinePos;
     public StringInternPool StringPool;
 
+    // Luau interpolated strings: how many braces are currently open inside interpolation
+    // holes, and the depth each open hole has to close back to. The stack is what lets a
+    // nested backtick literal resume at its own closing brace.
+    int interpBraces;
+    FastListCore<int> interpBases;
+
     string Intern(ReadOnlySpan<char> s) => StringPool.Intern(s);
 
     // inline
@@ -66,6 +72,22 @@ struct Scanner
     public const int TkName = TkNumber + 1;
     public const int TkString = TkName + 1;
 
+    // Luau-only tokens. Appended after TkString so every existing token keeps its
+    // numeric value (tokens[] below is indexed by t - FirstReserved).
+    public const int TkIDiv = TkString + 1;
+    public const int TkAddAssign = TkIDiv + 1;
+    public const int TkSubAssign = TkAddAssign + 1;
+    public const int TkMulAssign = TkSubAssign + 1;
+    public const int TkDivAssign = TkMulAssign + 1;
+    public const int TkIDivAssign = TkDivAssign + 1;
+    public const int TkModAssign = TkIDivAssign + 1;
+    public const int TkPowAssign = TkModAssign + 1;
+    public const int TkConcatAssign = TkPowAssign + 1;
+    public const int TkInterpString = TkConcatAssign + 1;
+    public const int TkInterpBegin = TkInterpString + 1;
+    public const int TkInterpMid = TkInterpBegin + 1;
+    public const int TkInterpEnd = TkInterpMid + 1;
+
     public const int ReservedCount = TkWhile - FirstReserved + 1;
 
     static readonly string[] tokens =
@@ -103,6 +125,19 @@ struct Scanner
         "<number>",
         "<name>",
         "<string>",
+        "//",
+        "+=",
+        "-=",
+        "*=",
+        "/=",
+        "//=",
+        "%=",
+        "^=",
+        "..=",
+        "<interp-string>",
+        "<interp-begin>",
+        "<interp-mid>",
+        "<interp-end>",
     ];
 
     public static ReadOnlySpan<string> Tokens => tokens;
@@ -184,6 +219,7 @@ struct Scanner
             TkNumber => $"{t.N}",
             < FirstReserved => $"{(char)t.T}", // TODO check for printable rune
             < TkEos => $"'{tokens[t.T - FirstReserved]}'",
+            >= TkIDiv and < TkInterpString => $"'{tokens[t.T - FirstReserved]}'",
             _ => tokens[t.T - FirstReserved],
         };
     }
@@ -196,6 +232,7 @@ struct Scanner
             TkNumber => $"{Token.N}",
             < FirstReserved => $"{(char)t}", // TODO check for printable rune
             < TkEos => $"'{tokens[t - FirstReserved]}'",
+            >= TkIDiv and < TkInterpString => $"'{tokens[t - FirstReserved]}'",
             _ => tokens[t - FirstReserved],
         };
     }
@@ -211,6 +248,7 @@ struct Scanner
             TkNumber => $"'{raw ?? Token.N.ToString(CultureInfo.InvariantCulture)}'",
             < FirstReserved => QuoteNearToken(CharTokenToLiteral(t)),
             < TkEos => QuoteNearToken(tokens[t - FirstReserved]),
+            >= TkIDiv and < TkInterpString => QuoteNearToken(tokens[t - FirstReserved]),
             _ => tokens[t - FirstReserved],
         };
     }
@@ -379,8 +417,16 @@ struct Scanner
     public int ReadDigits()
     {
         var c = Current;
-        for (; IsDecimal(c); c = Current)
+        for (; IsDecimal(c) || c == '_'; c = Current)
         {
+            // Luau digit separator: skipped anywhere inside a number, never stored in
+            // the buffer (the buffer is handed to double.TryParse).
+            if (c == '_')
+            {
+                Advance();
+                continue;
+            }
+
             SaveAndAdvance();
         }
 
@@ -396,7 +442,7 @@ struct Scanner
     {
         var c = Current;
         var n = x;
-        if (!IsHexadecimal(c))
+        if (!IsHexadecimal(c) && c != '_')
         {
             return (n, c, 0);
         }
@@ -405,6 +451,14 @@ struct Scanner
         var i = 0;
         for (; ; )
         {
+            if (c == '_') // Luau digit separator
+            {
+                Advance();
+                position++;
+                c = Current;
+                continue;
+            }
+
             switch (c)
             {
                 case >= '0' and <= '9':
@@ -507,6 +561,40 @@ struct Scanner
                 fraction * Math.Pow(2, exponent),
                 RawTokenLength(tokenStart)
             );
+        }
+
+        if (c == '0' && CheckNext("Bb")) // binary integer literal (Luau)
+        {
+            Buffer.Clear();
+            var value = 0d;
+            var digits = 0;
+            while (true)
+            {
+                var d = Current;
+                if (d is '0' or '1')
+                {
+                    value = (value * 2) + (d - '0');
+                    digits++;
+                    Advance();
+                }
+                else if (d == '_')
+                {
+                    Advance();
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            // `0b` with no digits, or a decimal digit directly after the binary digits
+            // (e.g. `0b12`), is malformed — matching Luau.
+            if (digits == 0 || IsDecimal(Current))
+            {
+                NumberError(startPosition, R.Position);
+            }
+
+            return new(tokenStart, value, RawTokenLength(tokenStart));
         }
 
         c = ReadDigits();
@@ -641,6 +729,202 @@ struct Scanner
         return r;
     }
 
+    /// <summary>
+    /// Reads a Luau '\u{XXXX}' escape (current token is 'u') and appends the encoded
+    /// character to the buffer. Lua-CSharp strings are UTF-16, so a code point above
+    /// 0xFFFF is stored as a surrogate pair, whereas Luau (whose strings are byte
+    /// strings) stores the UTF-8 byte sequence.
+    /// </summary>
+    public void ReadUnicodeEscape()
+    {
+        Advance(); // skip 'u'
+        var start = R.Position - 1;
+        if (Current != '{')
+        {
+            EscapeError(start, ['u', Current], "missing '{' in \\u{xxxx}");
+        }
+
+        Advance(); // skip '{'
+        var code = 0;
+        var digits = 0;
+        while (true)
+        {
+            var c = Current;
+            int value;
+            if (c is >= '0' and <= '9')
+            {
+                value = c - '0';
+            }
+            else if (c is >= 'a' and <= 'f')
+            {
+                value = c - 'a' + 10;
+            }
+            else if (c is >= 'A' and <= 'F')
+            {
+                value = c - 'A' + 10;
+            }
+            else if (c == '}')
+            {
+                break;
+            }
+            else
+            {
+                EscapeError(start, ['u', '{', c], "malformed escape sequence");
+                return;
+            }
+
+            if (code > 0x10FFFF)
+            {
+                EscapeError(start, ['u', '{', c], "malformed escape sequence");
+                return;
+            }
+
+            code = (code * 16) + value;
+            digits++;
+            Advance();
+        }
+
+        Advance(); // skip '}'
+        if (digits == 0 || code > 0x10FFFF)
+        {
+            EscapeError(start, ['u', '{', '}'], "malformed escape sequence");
+        }
+
+        if (code <= 0xFFFF)
+        {
+            Save(code); // includes lone surrogates, matching Luau
+        }
+        else
+        {
+            foreach (var ch in char.ConvertFromUtf32(code))
+            {
+                Save(ch);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Reads the escape sequence starting at the current character (the one after the
+    /// backslash) and appends the resulting character(s) to the buffer. Shared by quoted
+    /// strings and the literal sections of Luau interpolated strings.
+    /// </summary>
+    void ReadEscapeSequence(bool interpolated)
+    {
+        var c = Current;
+        if (escapes.TryGetValue(c, out var esc))
+        {
+            AdvanceAndSave(esc);
+        }
+        else if (interpolated && c is '`' or '{' or '}')
+        {
+            // Backtick strings escape the delimiters that would otherwise end a section/hole.
+            AdvanceAndSave(c);
+        }
+        else if (IsNewLine(c))
+        {
+            IncrementLineNumber();
+            Save('\n');
+        }
+        else if (c == EndOfStream) // do nothing
+        { }
+        else if (c == 'x')
+        {
+            Save(ReadHexEscape());
+        }
+        else if (c == 'u')
+        {
+            // Luau: '\u{XXXX}' (braces are mandatory).
+            ReadUnicodeEscape();
+        }
+        else if (c == 'z')
+        {
+            for (Advance(); IsWhiteSpace(Current); )
+            {
+                if (IsNewLine(Current))
+                {
+                    IncrementLineNumber();
+                }
+                else
+                {
+                    Advance();
+                }
+            }
+        }
+        else if (IsDecimal(c))
+        {
+            Save(ReadDecimalEscape());
+        }
+        else
+        {
+            EscapeError(R.Position - 1, [c], "invalid escape sequence");
+        }
+    }
+
+    /// <summary>
+    /// Reads one literal section of a Luau interpolated string: the text up to the next hole
+    /// ('{') or the closing backtick. Called with the current character positioned right after
+    /// the opening backtick (<paramref name="isBegin"/>) or after the '}' closing a hole.
+    /// Returns INTERP_STRING / INTERP_BEGIN for the first section and INTERP_MID / INTERP_END
+    /// for the later ones.
+    /// </summary>
+    Token ReadInterpSection(int pos, bool isBegin)
+    {
+        Buffer.Clear();
+        var tokenType = isBegin ? TkInterpString : TkInterpEnd;
+        while (true)
+        {
+            var c = Current;
+            if (c == '`')
+            {
+                Advance();
+            }
+            else if (c == '{')
+            {
+                Advance();
+                // Luau rejects '{{' outright rather than treating it as an escaped '{',
+                // so authors coming from other languages get a clear error.
+                if (Current == '{')
+                {
+                    ScanError(
+                        R.Position,
+                        "Double braces are not permitted within interpolated strings; did you mean '\\{'?",
+                        TkEos
+                    );
+                }
+
+                // Remember the depth this hole has to close back to, so a nested
+                // interpolated string resumes at the right brace.
+                interpBases.Add(interpBraces);
+                interpBraces++;
+                tokenType = isBegin ? TkInterpBegin : TkInterpMid;
+            }
+            else if (c == EndOfStream || c is '\n' or '\r')
+            {
+                // Luau interpolated strings are single-line: a raw newline (or EOF) is an
+                // unfinished string. Note that a literal '}' needs no escape (only '{'
+                // opens a hole), so '}' falls through to the SaveAndAdvance case below.
+                ScanError(R.Position, "unfinished interpolated string", TkEos);
+                continue;
+            }
+            else if (c == '\\')
+            {
+                Advance();
+                ReadEscapeSequence(true);
+                continue;
+            }
+            else
+            {
+                SaveAndAdvance();
+                continue;
+            }
+
+            var text = Intern(Buffer.AsSpan());
+            Buffer.Clear();
+            Token = new(pos, tokenType, text, RawTokenLength(pos));
+            return Token;
+        }
+    }
+
     public Token ReadString()
     {
         var pos = R.Position;
@@ -659,45 +943,7 @@ struct Scanner
                     break;
                 case '\\':
                     Advance();
-                    var c = Current;
-                    if (escapes.TryGetValue(c, out var esc))
-                    {
-                        AdvanceAndSave(esc);
-                    }
-                    else if (IsNewLine(c))
-                    {
-                        IncrementLineNumber();
-                        Save('\n');
-                    }
-                    else if (c == EndOfStream) // do nothing
-                    { }
-                    else if (c == 'x')
-                    {
-                        Save(ReadHexEscape());
-                    }
-                    else if (c == 'z')
-                    {
-                        for (Advance(); IsWhiteSpace(Current); )
-                        {
-                            if (IsNewLine(Current))
-                            {
-                                IncrementLineNumber();
-                            }
-                            else
-                            {
-                                Advance();
-                            }
-                        }
-                    }
-                    else if (IsDecimal(c))
-                    {
-                        Save(ReadDecimalEscape());
-                    }
-                    else
-                    {
-                        EscapeError(R.Position - 1, [c], "invalid escape sequence");
-                    }
-
+                    ReadEscapeSequence(false);
                     break;
                 default:
                     SaveAndAdvance();
@@ -766,8 +1012,71 @@ struct Scanner
                     Advance();
                     pos = R.Position;
                     break;
+                case '+':
+                    Advance();
+                    if (Current != '=')
+                    {
+                        return new(pos, '+');
+                    }
+
+                    Advance();
+                    return new(pos, TkAddAssign, RawTokenLength(pos));
+                case '*':
+                    Advance();
+                    if (Current != '=')
+                    {
+                        return new(pos, '*');
+                    }
+
+                    Advance();
+                    return new(pos, TkMulAssign, RawTokenLength(pos));
+                case '/':
+                    Advance();
+                    if (Current != '/')
+                    {
+                        if (Current == '=')
+                        {
+                            Advance();
+                            return new(pos, TkDivAssign, RawTokenLength(pos));
+                        }
+
+                        return new(pos, '/');
+                    }
+
+                    Advance();
+                    if (Current == '=')
+                    {
+                        Advance();
+                        return new(pos, TkIDivAssign, RawTokenLength(pos));
+                    }
+
+                    return new(pos, TkIDiv, RawTokenLength(pos));
+                case '%':
+                    Advance();
+                    if (Current != '=')
+                    {
+                        return new(pos, '%');
+                    }
+
+                    Advance();
+                    return new(pos, TkModAssign, RawTokenLength(pos));
+                case '^':
+                    Advance();
+                    if (Current != '=')
+                    {
+                        return new(pos, '^');
+                    }
+
+                    Advance();
+                    return new(pos, TkPowAssign, RawTokenLength(pos));
                 case '-':
                     Advance();
+                    if (Current == '=')
+                    {
+                        Advance();
+                        return new(pos, TkSubAssign, RawTokenLength(pos));
+                    }
+
                     if (Current != '-')
                     {
                         return new(pos, '-');
@@ -854,6 +1163,34 @@ struct Scanner
 
                     Advance();
                     return new(pos, TkDoubleColon);
+                case '`':
+                    // Luau interpolated string literal.
+                    Advance();
+                    return ReadInterpSection(pos, isBegin: true);
+                case '{':
+                    if (interpBraces > 0)
+                    {
+                        // A nested table constructor inside an interpolation hole.
+                        interpBraces++;
+                    }
+
+                    Advance();
+                    return new(pos, '{');
+                case '}':
+                    if (interpBraces > 0)
+                    {
+                        interpBraces--;
+                        if (interpBraces == interpBases[interpBases.Length - 1])
+                        {
+                            // The hole closed: continue the innermost interpolated string.
+                            interpBases.Shrink(interpBases.Length - 1);
+                            Advance();
+                            return ReadInterpSection(pos, isBegin: false);
+                        }
+                    }
+
+                    Advance();
+                    return new(pos, '}');
                 case '"':
                 case '\'':
                     return ReadString();
@@ -867,6 +1204,13 @@ struct Scanner
                         {
                             Buffer.Clear();
                             return new(pos, TkDots);
+                        }
+
+                        if (Current == '=')
+                        {
+                            Advance();
+                            Buffer.Clear();
+                            return new(pos, TkConcatAssign, RawTokenLength(pos));
                         }
 
                         Buffer.Clear();

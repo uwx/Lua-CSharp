@@ -45,6 +45,44 @@ struct Label
     public int ActiveVariableCount;
 }
 
+/// <summary>
+/// A `const` local binding (Luau). Recorded on the <see cref="Function"/> rather than in
+/// <see cref="LocalVariable"/> so the public, dumped local-variable record is untouched.
+/// <see cref="Kind"/> is <see cref="Kind.Void"/> when the initializer was not a literal and
+/// therefore cannot be inlined at the use sites.
+/// </summary>
+struct ConstBinding
+{
+    /// <summary>Local-variable index (== register level) inside the declaring function.</summary>
+    public int Index;
+
+    public Kind Kind;
+    public double Value;
+    public long IntValue;
+    public bool IsInteger;
+    public string? StringValue;
+}
+
+/// <summary>
+/// Bookkeeping for a lexically enclosing loop while parsing Luau `continue` statements.
+/// The stack lives on <see cref="Parser"/> and is truncated when a nested function body
+/// starts, so `continue` can never target a loop in an enclosing function.
+/// </summary>
+struct LoopContext
+{
+    public bool IsRepeat;
+
+    /// <summary>
+    /// Lowest active-variable level a `continue` in this loop jumped over, or -1 when the
+    /// loop contains no `continue`. A repeat loop's `until` condition may not read a local
+    /// declared at or above this level (the `continue` would skip its declaration).
+    /// </summary>
+    public int MinContinueLevel;
+
+    /// <summary>Line of the `continue` that produced <see cref="MinContinueLevel"/>.</summary>
+    public int MinContinueLine;
+}
+
 class Block : IPoolNode<Block>
 {
     public Block? Previous;

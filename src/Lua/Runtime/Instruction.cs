@@ -60,6 +60,8 @@ public partial struct Instruction(uint value)
         "CLOSURE",
         "VARARG",
         "EXTRAARG",
+        "IDIV",
+        "LOADBUILTIN",
     ];
 
     /*
@@ -498,6 +500,8 @@ func createAx(op opCode, a int) instruction { return instruction(op)<<posOp | in
         OpMode(0, 1, OpArgU, OpArgN, IABx), // opClosure
         OpMode(0, 1, OpArgU, OpArgN, IABC), // opVarArg
         OpMode(0, 0, OpArgU, OpArgU, IAx), // opExtraArg
+        OpMode(0, 1, OpArgK, OpArgK, IABC), // opIDiv
+        OpMode(0, 1, OpArgU, OpArgN, IABx), // opLoadBuiltin
     ];
 
     /// <summary>

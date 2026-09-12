@@ -1,4 +1,11 @@
-# Lua-CSharp
+# Lua-CSharp (uwx fork)
+
+This is a Lua interpreter written in C#, compliant with Lua 5.2, including additional features from Luau and Lua 5.3:
+
+- Luau-compatible syntax: compound assignments (`+=`, `..=`), `continue`, floor division (`//`), generalized iteration (`for k, v in t`), `const`, if-then-else expressions, string interpolation, attributes, `\u{...}` escapes, `0x`/`0b` literals with `_` separators, and type annotations/aliases (parsed and ignored)
+- Lua 5.3 integer type
+
+# Original readme
 
 High performance Lua interpreter implemented in C# for .NET and Unity
 

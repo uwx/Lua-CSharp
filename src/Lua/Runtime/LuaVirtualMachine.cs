@@ -482,6 +482,12 @@ public static partial class LuaVirtualMachine
                         }
 
                         continue;
+                    case OpCode.LoadBuiltin:
+                        Markers.LoadBuiltin();
+                        stack.GetWithNotifyTop(iA + frameBase) = context.GlobalState.GetBuiltin(
+                            instruction.Bx
+                        );
+                        continue;
                     case OpCode.LoadNil:
                         Markers.LoadNil();
                         var ra1 = iA + frameBase + 1;
@@ -639,12 +645,14 @@ public static partial class LuaVirtualMachine
                     case OpCode.Div:
                     case OpCode.Mod:
                     case OpCode.Pow:
+                    case OpCode.IDiv:
                         Markers.Add();
                         Markers.Sub();
                         Markers.Mul();
                         Markers.Div();
                         Markers.Mod();
                         Markers.Pow();
+                        Markers.IDiv();
 
                         stackHead = ref stack.FastGet(frameBase);
                         vb = ref RKB(ref stackHead, ref constHead, instruction);
@@ -674,6 +682,19 @@ public static partial class LuaVirtualMachine
                             return mod;
                         }
 
+                        // Floor division for integers (rounds toward -inf, unlike '/').
+                        [MethodImpl(MethodImplOptions.NoInlining)]
+                        static long IntegerFloorDiv(long a, long b)
+                        {
+                            var quotient = a / b;
+                            if ((a % b != 0) && ((a < 0) != (b < 0)))
+                            {
+                                quotient--;
+                            }
+
+                            return quotient;
+                        }
+
                         [MethodImpl(MethodImplOptions.AggressiveInlining)]
                         static double ArithmeticOperation(OpCode code, double a, double b)
                         {
@@ -685,6 +706,7 @@ public static partial class LuaVirtualMachine
                                 OpCode.Div => a / b,
                                 OpCode.Mod => Mod(a, b),
                                 OpCode.Pow => Math.Pow(a, b),
+                                OpCode.IDiv => Math.Floor(a / b),
                                 _ => 0,
                             };
                         }
@@ -718,32 +740,44 @@ public static partial class LuaVirtualMachine
 
                         // Integer + Integer fast path (Lua 5.3 semantics: + - * % stay
                         // integer; / and ^ always produce float). Mod by zero falls through
-                        // to the double path (NaN), matching existing behavior.
-                        if (
-                            vb.Type == LuaValueType.Integer
-                            && vc.Type == LuaValueType.Integer
-                            && (
-                                opCode is OpCode.Add or OpCode.Sub or OpCode.Mul
-                                || (opCode == OpCode.Mod && vc.UnsafeReadLong() != 0)
-                            )
-                        )
+                        // to the double path (NaN), matching existing behavior. For '//'
+                        // (Luau) a zero divisor yields ±inf/NaN through the float path, and
+                        // long.MinValue // -1 would overflow, so both fall through too.
+                        if (vb.Type == LuaValueType.Integer && vc.Type == LuaValueType.Integer)
                         {
                             var a = vb.UnsafeReadLong();
                             var b = vc.UnsafeReadLong();
-                            var result = opCode switch
+                            var isIntegerPath =
+                                opCode is OpCode.Add or OpCode.Sub or OpCode.Mul
+                                || (
+                                    (opCode is OpCode.Mod or OpCode.IDiv)
+                                    && b != 0
+                                    && (opCode != OpCode.IDiv || !(a == long.MinValue && b == -1))
+                                );
+
+                            if (isIntegerPath)
                             {
-                                OpCode.Add => a + b,
-                                OpCode.Sub => a - b,
-                                OpCode.Mul => a * b,
-                                _ => IntegerMod(a, b),
-                            };
-                            Unsafe.Add(ref stackHead, iA) = result;
-                            stack.NotifyTop(iA + frameBase + 1);
-                            continue;
+                                var result = opCode switch
+                                {
+                                    OpCode.Add => a + b,
+                                    OpCode.Sub => a - b,
+                                    OpCode.Mul => a * b,
+                                    OpCode.IDiv => IntegerFloorDiv(a, b),
+                                    _ => IntegerMod(a, b),
+                                };
+                                Unsafe.Add(ref stackHead, iA) = result;
+                                stack.NotifyTop(iA + frameBase + 1);
+                                continue;
+                            }
                         }
 
-                        // Fixed64 + Fixed64 fast path (same-type only, no cross-type coercion)
-                        if (vb.Type == LuaValueType.Fixed64 && vc.Type == LuaValueType.Fixed64)
+                        // Fixed64 + Fixed64 fast path (same-type only, no cross-type coercion).
+                        // '//' has no Fixed64 form, so it falls through to the double path.
+                        if (
+                            opCode != OpCode.IDiv
+                            && vb.Type == LuaValueType.Fixed64
+                            && vc.Type == LuaValueType.Fixed64
+                        )
                         {
                             Unsafe.Add(ref stackHead, iA) = Fixed64ArithmeticOperation(
                                 opCode,
@@ -839,7 +873,11 @@ public static partial class LuaVirtualMachine
                         }
 
                         // f64AngleSingle + f64AngleSingle (radians-based)
-                        if (vb.Type == LuaValueType.Fixed64Angle && vc.Type == LuaValueType.Fixed64Angle)
+                        if (
+                            opCode is OpCode.Add or OpCode.Sub or OpCode.Mul or OpCode.Div
+                            && vb.Type == LuaValueType.Fixed64Angle
+                            && vc.Type == LuaValueType.Fixed64Angle
+                        )
                         {
                             var a = vb.UnsafeReadFixed64Angle();
                             var b = vc.UnsafeReadFixed64Angle();

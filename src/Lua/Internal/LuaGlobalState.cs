@@ -60,6 +60,20 @@ sealed class LuaGlobalState
         public bool Found;
     }
 
+    // Luau helper functions referenced by OpCode.LoadBuiltin (see LuaBuiltins).
+    LuaValue[]? builtins;
+
+    /// <summary>
+    /// Returns an internal helper function (Luau string interpolation, generalized
+    /// iteration). Created on first use, so states that never run Luau-only syntax
+    /// pay nothing.
+    /// </summary>
+    internal LuaValue GetBuiltin(int index)
+    {
+        builtins ??= LuaBuiltins.CreateAll();
+        return builtins[index];
+    }
+
     public static LuaGlobalState Create(LuaPlatform? platform = null)
     {
         LuaGlobalState globalState = new(platform ?? LuaPlatform.Default);

@@ -75,11 +75,21 @@ public sealed class BasicLibrary
         );
 
         PairsIterator = new("iterator", Next) { IsBuiltinNext = true };
+        ToStringFunction = new("tostring", ToString);
     }
 
     public readonly LuaFunction[] Functions;
     readonly LuaFunction IPairsIterator;
     readonly LuaFunction PairsIterator;
+
+    /// <summary>
+    /// `next`-backed iterator shared by `pairs` and Luau generalized iteration. It is marked
+    /// <see cref="LuaFunction.IsBuiltinNext"/> so the VM keeps its in-place fast path.
+    /// </summary>
+    internal LuaFunction NextFunction => PairsIterator;
+
+    /// <summary>`tostring`, reused by Luau string interpolation.</summary>
+    internal LuaFunction ToStringFunction { get; }
 
     public ValueTask<int> Assert(
         LuaFunctionExecutionContext context,

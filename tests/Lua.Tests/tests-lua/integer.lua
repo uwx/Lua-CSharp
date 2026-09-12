@@ -1,3 +1,5 @@
+-- not based on PUC-Lua tests
+
 print("=== integer fast-path diagnostics ===")
 local function chk(name, cond)
   if not cond then error("FAIL: " .. name, 2) end

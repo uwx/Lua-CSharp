@@ -22,6 +22,11 @@ class Function : IPoolNode<Function>
     public int ActiveVariableCount;
     public int FirstLocal;
 
+    /// <summary>
+    /// `const` bindings declared in this function (Luau), in local-index order.
+    /// </summary>
+    public FastListCore<ConstBinding> ConstBindings;
+
     static LinkedPool<Function> pool;
 
     ref Function? IPoolNode<Function>.NextNode => ref Previous;
@@ -42,6 +47,7 @@ class Function : IPoolNode<Function>
     {
         Previous = null;
         ConstantLookup.Clear();
+        ConstBindings.Clear();
         JumpPc = NoJump;
         Proto = null!;
         LastTarget = 0;
@@ -94,7 +100,10 @@ class Function : IPoolNode<Function>
 
     public const int OprOr = 14;
 
-    public const int OprNoBinary = 15;
+    /// <summary>Luau floor division ('//'), appended so existing operator ids keep their value.</summary>
+    public const int OprIDiv = 15;
+
+    public const int OprNoBinary = 16;
 
     public void OpenFunction(int line)
     {
@@ -162,7 +171,13 @@ class Function : IPoolNode<Function>
 
     public void UndefinedGotoError(Label g)
     {
-        if (Scanner.IsReserved(g.Name))
+        if (g.Name == "continue")
+        {
+            // Defensive: ContinueStatement reports this itself, but a `continue` that never
+            // met its label would otherwise be reported as an ordinary missing goto.
+            SemanticError("continue statement must be inside a loop");
+        }
+        else if (Scanner.IsReserved(g.Name))
         {
             SemanticError($"<{g.Name}> at line {g.Line} not inside a loop");
         }
@@ -193,8 +208,92 @@ class Function : IPoolNode<Function>
             LocalVariable(i).EndPc = Proto.CodeList.Length;
         }
 
+        // Drop `const` markers for the locals that just went out of scope (bindings are
+        // recorded in increasing index order, so a tail prune is enough). Without this a
+        // later local reusing the index would look constant.
+        var keep = ConstBindings.Length;
+        while (keep > 0 && ConstBindings[keep - 1].Index >= level)
+        {
+            keep--;
+        }
+
+        ConstBindings.Shrink(keep);
+
         P.ActiveVariables.Shrink(P.ActiveVariables.Length - (ActiveVariableCount - level));
         ActiveVariableCount = level;
+    }
+
+    /// <summary>Records a Luau `const` binding declared at <paramref name="index"/>.</summary>
+    public void MarkConst(int index, ConstBinding inlineValue)
+    {
+        inlineValue.Index = index;
+        ConstBindings.Add(inlineValue);
+    }
+
+    /// <summary>True when the local at <paramref name="index"/> of this function is a `const`.</summary>
+    public bool IsConstLocal(int index)
+    {
+        for (var i = ConstBindings.Length - 1; i >= 0; i--)
+        {
+            if (ConstBindings[i].Index == index)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// True when the upvalue at <paramref name="index"/> of this function resolves (possibly
+    /// through enclosing functions) to a `const` binding.
+    /// </summary>
+    public bool IsConstUpValue(int index)
+    {
+        var f = this;
+        while (true)
+        {
+            var upValue = f.Proto.UpValuesList[index];
+            if (upValue.IsLocal)
+            {
+                return f.Previous?.IsConstLocal(upValue.Index) ?? false;
+            }
+
+            if (f.Previous == null)
+            {
+                return false;
+            }
+
+            index = upValue.Index;
+            f = f.Previous;
+        }
+    }
+
+    /// <summary>
+    /// When the local at <paramref name="index"/> is a `const` with a literal initializer,
+    /// returns a fresh literal expression for it: Luau inlines those, so no upvalue is
+    /// created and the use site is just a constant. The returned expression is always new
+    /// (constant folding mutates it).
+    /// </summary>
+    public bool TryGetConstLiteral(int index, out ExprDesc literal)
+    {
+        for (var i = ConstBindings.Length - 1; i >= 0; i--)
+        {
+            var binding = ConstBindings[i];
+            if (binding.Index != index || binding.Kind == Kind.Void)
+            {
+                continue;
+            }
+
+            literal = MakeExpression(binding.Kind, 0);
+            literal.Value = binding.Value;
+            literal.IntValue = binding.IntValue;
+            literal.IsInteger = binding.IsInteger;
+            return true;
+        }
+
+        literal = default;
+        return false;
     }
 
     public void MakeLocalVariable(string name)
@@ -378,6 +477,36 @@ class Function : IPoolNode<Function>
         FindGotos(MakeLabel("break", 0));
     }
 
+    /// <summary>
+    /// Registers the implicit `continue` label for the current loop at the current position
+    /// (the loop's end) and resolves the pending `continue` jumps to it.
+    /// Unlike `break`, the label's variable level is the level *outside* the loop body: that
+    /// makes jumping forward over locals declared after the `continue` legal (Luau allows it
+    /// for for/while) and makes the jump itself close the upvalues those locals opened.
+    /// </summary>
+    public void ContinueLabel(int level)
+    {
+        var label = MakeLabel("continue", 0);
+        P.ActiveLabels[label].ActiveVariableCount = level;
+
+        for (var i = Block.FirstGoto; i < P.PendingGotos.Length; )
+        {
+            var g = P.PendingGotos[i];
+            if (g.Name != "continue")
+            {
+                i++;
+                continue;
+            }
+
+            if (g.ActiveVariableCount > level)
+            {
+                PatchClose(g.Pc, level);
+            }
+
+            CloseGoto(i, P.ActiveLabels[label]);
+        }
+    }
+
     [Conditional("DEBUG")]
     public void Unreachable()
     {
@@ -446,6 +575,16 @@ class Function : IPoolNode<Function>
     public ExprDesc EncodeString(string s)
     {
         return MakeExpression(Kind.Constant, StringConstant(s));
+    }
+
+    /// <summary>
+    /// Loads an internal helper function into <paramref name="register"/> (Luau string
+    /// interpolation and generalized iteration; see <see cref="LuaBuiltin"/>). Helpers are not
+    /// globals, so user code cannot shadow them, and not constants, so `Dump` stays valid.
+    /// </summary>
+    public void LoadBuiltin(int register, LuaBuiltin builtin)
+    {
+        EncodeABx(OpCode.LoadBuiltin, register, (int)builtin);
     }
 
     public void LoadNil(int from, int n)
@@ -1064,8 +1203,66 @@ class Function : IPoolNode<Function>
         return (e, e.Info);
     }
 
+    /// <summary>
+    /// Starts a compound assignment (`target op= value`): loads the current value of the
+    /// target and prepares the left operand of the operator. An indexed target keeps its
+    /// table/key registers allocated so the right-hand side cannot clobber them.
+    /// </summary>
+    public ExprDesc BeginCompoundAssignment(ExprDesc target, int op)
+    {
+        ExprDesc current;
+        if (target.Kind == Kind.Indexed)
+        {
+            // Read target[key] into a fresh register *above* the table/key registers instead
+            // of discharging the target, which would release the registers holding them.
+            ReserveRegisters(1);
+            var register = FreeRegisterCount - 1;
+            var fetch =
+                target.TableType == Kind.Local
+                    ? EncodeABC(OpCode.GetTable, 0, target.Table, target.Index)
+                    : EncodeABC(OpCode.GetTabUp, 0, target.Table, target.Index);
+            current = ExpressionToRegister(MakeExpression(Kind.Relocatable, fetch), register);
+        }
+        else if (target.Kind == Kind.UpValue)
+        {
+            current = ExpressionToAnyRegister(target);
+        }
+        else
+        {
+            current = MakeExpression(Kind.NonRelocatable, target.Info);
+        }
+
+        return Infix(op, current);
+    }
+
+    /// <summary>Applies the operator to the right-hand side and stores the result back.</summary>
+    public void EndCompoundAssignment(
+        ExprDesc target,
+        int op,
+        ExprDesc current,
+        ExprDesc value,
+        int line
+    )
+    {
+        StoreVariable(target, Postfix(op, current, value, line));
+    }
+
     public void StoreVariable(ExprDesc v, ExprDesc e)
     {
+        // Luau `const`: the binding is immutable (the value is not).
+        if (v.Kind == Kind.Local && IsConstLocal(v.Info))
+        {
+            SemanticError(
+                $"Variable '{LocalVariable(v.Info).Name}' is constant and may not be reassigned"
+            );
+        }
+        else if (v.Kind == Kind.UpValue && IsConstUpValue(v.Info))
+        {
+            SemanticError(
+                $"Variable '{Proto.UpValuesList[v.Info].Name}' is constant and may not be reassigned"
+            );
+        }
+
         switch (v.Kind)
         {
             case Kind.Local:
@@ -1249,6 +1446,8 @@ class Function : IPoolNode<Function>
                 return v1 / v2;
             case OpCode.Mod:
                 return v1 - (Math.Floor(v1 / v2) * v2);
+            case OpCode.IDiv:
+                return Math.Floor(v1 / v2);
             case OpCode.Pow:
                 return Math.Pow(v1, v2);
             case OpCode.Unm:
@@ -1269,6 +1468,18 @@ class Function : IPoolNode<Function>
         return mod;
     }
 
+    /// <summary>Integer floor division (rounds toward negative infinity).</summary>
+    static long IntegerFloorDivValue(long a, long b)
+    {
+        var quotient = a / b;
+        if ((a % b != 0) && ((a < 0) != (b < 0)))
+        {
+            quotient--;
+        }
+
+        return quotient;
+    }
+
     static long IntArith(OpCode op, long v1, long v2)
     {
         switch (op)
@@ -1279,6 +1490,8 @@ class Function : IPoolNode<Function>
                 return v1 - v2;
             case OpCode.Mul:
                 return v1 * v2;
+            case OpCode.IDiv:
+                return IntegerFloorDivValue(v1, v2);
             case OpCode.Mod:
                 return IntegerModValue(v1, v2);
             case OpCode.Unm:
@@ -1295,7 +1508,20 @@ class Function : IPoolNode<Function>
             return (e1, false);
         }
 
-        if ((op == OpCode.Div || op == OpCode.Mod) && e2.Value == 0.0)
+        if ((op is OpCode.Div or OpCode.Mod or OpCode.IDiv) && e2.Value == 0.0)
+        {
+            return (e1, false);
+        }
+
+        // long.MinValue // -1 overflows a signed 64-bit integer; let the VM's float path
+        // handle it (Luau yields a double).
+        if (
+            op == OpCode.IDiv
+            && e1.IsInteger
+            && e2.IsInteger
+            && e1.IntValue == long.MinValue
+            && e2.IntValue == -1
+        )
         {
             return (e1, false);
         }
@@ -1409,6 +1635,7 @@ class Function : IPoolNode<Function>
             case OprSub:
             case OprMul:
             case OprDiv:
+            case OprIDiv:
             case OprMod:
             case OprPow:
                 if (!e.IsNumeral())
@@ -1471,6 +1698,10 @@ class Function : IPoolNode<Function>
             case OprMod:
             case OprPow:
                 return EncodeArithmetic((OpCode)(op - OprAdd + (byte)OpCode.Add), e1, e2, line);
+            case OprIDiv:
+                // '//' is appended at the end of the OpCode enum, so it is not part of the
+                // contiguous Add..Pow block the arithmetic conversion above relies on.
+                return EncodeArithmetic(OpCode.IDiv, e1, e2, line);
             case OprEq:
             case OprLT:
             case OprLE:
@@ -1653,6 +1884,27 @@ class Function : IPoolNode<Function>
         var (v, found) = find(f, name);
         if (found)
         {
+            // Luau: a repeat-until condition may not read a local that a `continue` in the
+            // loop jumped over — the declaration never ran, so the value is undefined.
+            if (
+                f.P.RepeatConditionFunction == f
+                && f.P.RepeatConditionMinLevel >= 0
+                && v >= f.P.RepeatConditionMinLevel
+            )
+            {
+                f.SemanticError(
+                    $"Local {name} used in the repeat..until condition is undefined because "
+                        + $"continue statement on line {f.P.RepeatConditionLine} jumps over it"
+                );
+            }
+
+            if (b && f.TryGetConstLiteral(v, out var constLiteral))
+            {
+                // Luau inlines literal `const` initializers: the use site is the literal,
+                // so no register read and no upvalue.
+                return (constLiteral, true);
+            }
+
             var e = MakeExpression(Kind.Local, v);
             if (!b)
             {
@@ -1767,7 +2019,12 @@ class Function : IPoolNode<Function>
 
     public void CloseForBody(int prep, int @base, int line, int n, bool isNumeric)
     {
+        // `continue` targets the loop instruction emitted below (ForLoop / TForCall), which is
+        // exactly where the body falls through. The label level is the body block's own level
+        // so the jump closes upvalues opened by the body's locals.
+        var bodyLevel = Block.ActiveVariableCount;
         LeaveBlock();
+        ContinueLabel(bodyLevel);
         PatchToHere(prep);
         int end;
         if (isNumeric)

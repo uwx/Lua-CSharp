@@ -21,6 +21,23 @@ class Parser : IPoolNode<Parser>, IDisposable
     internal FastListCore<Label> PendingGotos;
     internal FastListCore<Label> ActiveLabels;
 
+    /// <summary>
+    /// Luau `continue` bookkeeping: one entry per lexically enclosing loop of the function
+    /// being parsed. Truncated when a nested function body starts, so a `continue` inside a
+    /// nested function cannot target a loop of an enclosing one.
+    /// </summary>
+    internal FastListCore<LoopContext> Loops;
+
+    /// <summary>
+    /// Function whose repeat-loop `until` condition is currently being parsed, with the
+    /// lowest level a `continue` jumped over (see <see cref="LoopContext.MinContinueLevel"/>).
+    /// Locals at or above that level are undefined in the condition.
+    /// </summary>
+    internal Function? RepeatConditionFunction;
+
+    internal int RepeatConditionMinLevel = -1;
+    internal int RepeatConditionLine;
+
     // Set by `local X = function() ... end` (single-local direct assignment) so the
     // anonymous function's prototype can be named after its variable.
     internal string? PendingFunctionName;
@@ -46,6 +63,7 @@ class Parser : IPoolNode<Parser>, IDisposable
         (3, 3),
         (2, 2),
         (1, 1),
+        (7, 7), // '//' (Luau), same precedence as '*' '/' '%'
     ];
 
     internal int T => Scanner.Token.T;
@@ -87,6 +105,10 @@ class Parser : IPoolNode<Parser>, IDisposable
         ActiveVariables.Clear();
         PendingGotos.Clear();
         ActiveLabels.Clear();
+        Loops.Clear();
+        RepeatConditionFunction = null;
+        RepeatConditionMinLevel = -1;
+        RepeatConditionLine = 0;
         PendingFunctionName = null;
         pool.TryPush(this);
     }
@@ -347,12 +369,40 @@ class Parser : IPoolNode<Parser>, IDisposable
             return false;
         }
 
-        if (rawText.Length > 1 && rawText[0] == '0' && rawText[1] is 'x' or 'X')
+        // Luau digit separators carry no value ('1_000' == 1000, '1_' == 1).
+        var text = rawText.Contains('_') ? rawText.Replace("_", "") : rawText;
+
+        if (text.Length > 1 && text[0] == '0' && text[1] is 'b' or 'B')
+        {
+            // Binary integer literal (Luau). 63 bits is the most that stays a
+            // non-negative signed 64-bit value; wider literals denote floats.
+            var digits = text.AsSpan(2);
+            if (digits.Length is 0 or > 63)
+            {
+                return false;
+            }
+
+            var result = 0L;
+            foreach (var c in digits)
+            {
+                if (c is not ('0' or '1'))
+                {
+                    return false;
+                }
+
+                result = (result << 1) | (uint)(c - '0');
+            }
+
+            value = result;
+            return true;
+        }
+
+        if (text.Length > 1 && text[0] == '0' && text[1] is 'x' or 'X')
         {
             // Hex integer: 'e'/'E' are hex digits; only '.', 'p'/'P' make it a float.
-            for (var i = 2; i < rawText.Length; i++)
+            for (var i = 2; i < text.Length; i++)
             {
-                if (rawText[i] is '.' or 'p' or 'P')
+                if (text[i] is '.' or 'p' or 'P')
                 {
                     return false;
                 }
@@ -361,7 +411,7 @@ class Parser : IPoolNode<Parser>, IDisposable
             // Fits a signed 64-bit integer only when the parsed value is non-negative
             // (16-hex-digit values >= 0x8000000000000000 parse as negative longs).
             return long.TryParse(
-                    rawText.AsSpan(2),
+                    text.AsSpan(2),
                     NumberStyles.AllowHexSpecifier,
                     CultureInfo.InvariantCulture,
                     out value
@@ -369,7 +419,7 @@ class Parser : IPoolNode<Parser>, IDisposable
         }
 
         // Decimal integer: '.', 'e'/'E' exponent make it a float.
-        foreach (var c in rawText)
+        foreach (var c in text)
         {
             if (c is '.' or 'e' or 'E')
             {
@@ -377,12 +427,7 @@ class Parser : IPoolNode<Parser>, IDisposable
             }
         }
 
-        return long.TryParse(
-            rawText,
-            NumberStyles.Integer,
-            CultureInfo.InvariantCulture,
-            out value
-        );
+        return long.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out value);
     }
 
     public ExprDesc SimpleExpression()
@@ -396,6 +441,7 @@ class Parser : IPoolNode<Parser>, IDisposable
                 e.IsInteger = TryParseIntegerLiteral(Scanner.GetTokenRawText(), out e.IntValue);
                 break;
             case TkString:
+            case TkInterpString:
                 e = Function.EncodeString(Scanner.Token.S);
                 break;
             case TkNil:
@@ -421,6 +467,24 @@ class Parser : IPoolNode<Parser>, IDisposable
                 Next();
                 e = Body(false, Scanner.LineNumber);
                 return e;
+            case TkIf:
+                // Luau if-then-else expression. A statement `if` never reaches here:
+                // Statement() handles TkIf before any expression is parsed.
+                return IfElseExpression();
+            case TkInterpBegin:
+                // Luau interpolated string (backtick literal with `{expr}` holes).
+                return InterpolatedString();
+            case '@':
+                // Luau attributes on an anonymous function: `@native function() end`.
+                // They are parsed and ignored.
+                SkipAttributes();
+                if (T != TkFunction)
+                {
+                    Scanner.SyntaxError("Expected 'function' after attribute");
+                }
+
+                Next();
+                return Body(false, Scanner.LineNumber);
             default:
                 e = SuffixedExpression();
                 return e;
@@ -428,6 +492,98 @@ class Parser : IPoolNode<Parser>, IDisposable
 
         Next();
         return e;
+    }
+
+    /// <summary>
+    /// Luau interpolated string: a backtick literal with `{expr}` holes. The literal parts and
+    /// the hole expressions are pushed as the arguments of one call to an internal helper that
+    /// concatenates them with the same conversion `tostring` uses, so `__tostring` and number
+    /// formatting match. Like Luau, the result cannot be suffixed directly (it is not a
+    /// prefixexp), so `` `{x}`:upper() `` needs parentheses.
+    /// </summary>
+    public ExprDesc InterpolatedString()
+    {
+        var line = Scanner.LineNumber;
+        var @base = Function.FreeRegisterCount;
+        Function.ReserveRegisters(1);
+        Function.LoadBuiltin(@base, LuaBuiltin.InterpolationBuilder);
+        var argumentCount = 0;
+
+        while (true)
+        {
+            if (T is not (TkInterpString or TkInterpBegin or TkInterpMid or TkInterpEnd))
+            {
+                Scanner.SyntaxError("malformed interpolated string");
+            }
+
+            var text = Scanner.Token.S;
+            if (text.Length > 0)
+            {
+                Function.ExpressionToNextRegister(Function.EncodeString(text));
+                argumentCount++;
+            }
+
+            if (T is TkInterpString or TkInterpEnd)
+            {
+                Next();
+                break;
+            }
+
+            // INTERP_BEGIN / INTERP_MID: the hole's expression follows. An empty hole means the
+            // scanner already produced the section after it.
+            Next();
+            if (T is TkInterpMid or TkInterpEnd)
+            {
+                Scanner.SyntaxError(
+                    "malformed interpolated string, expected expression inside '{}'"
+                );
+            }
+
+            Function.ExpressionToNextRegister(Expression());
+            argumentCount++;
+        }
+
+        var call = Function.EncodeABC(OpCode.Call, @base, argumentCount + 1, 2);
+        Function.FixLine(line);
+        Function.FreeRegisterCount = @base + 1;
+        return Function.MakeExpression(Kind.Call, call);
+    }
+
+    /// <summary>
+    /// Luau if-then-else expression:
+    /// `if cond then value {elseif cond then value} else value`. The result is a single
+    /// value, so a branch that produces multiple results keeps only its first.
+    /// </summary>
+    public ExprDesc IfElseExpression()
+    {
+        using var b = EnterLevel();
+        var target = Function.FreeRegisterCount;
+        Function.ReserveRegisters(1);
+        var endJumps = NoJump;
+
+        Next(); // consume 'if'
+        while (true)
+        {
+            var condition = Function.GoIfTrue(Expression());
+            CheckNext(TkThen);
+            Function.ExpressionToRegister(Expression(), target);
+            endJumps = Function.Concatenate(endJumps, Function.Jump());
+
+            // Condition was false: continue with the next elseif / the else branch.
+            Function.PatchToHere(condition.F);
+            Function.FreeRegisterCount = target + 1;
+
+            if (!TestNext(TkElseif)) // also consumes 'elseif'
+            {
+                break;
+            }
+        }
+
+        CheckNext(TkElse); // mandatory, unlike the if *statement*
+        Function.ExpressionToRegister(Expression(), target);
+        Function.PatchToHere(endJumps);
+        Function.FreeRegisterCount = target + 1;
+        return Function.MakeExpression(Kind.NonRelocatable, target);
     }
 
     public static int UnaryOp(int op)
@@ -449,6 +605,7 @@ class Parser : IPoolNode<Parser>, IDisposable
             '-' => OprSub,
             '*' => OprMul,
             '/' => OprDiv,
+            TkIDiv => OprIDiv,
             '%' => OprMod,
             '^' => OprPow,
             TkConcat => OprConcat,
@@ -988,7 +1145,30 @@ class Parser : IPoolNode<Parser>, IDisposable
         CheckNext(TkIn);
         var line = Scanner.LineNumber;
         var (e, c) = ExpressionList();
-        Function.AdjustAssignment(3, c, e);
+
+        if (c == 1 && !e.HasMultipleReturns())
+        {
+            // Luau generalized iteration: a single expression that is not a call/vararg is
+            // resolved by an internal helper, which produces the usual (iterator, state,
+            // control) triple. A table iterates with `next`, an `__iter` metamethod is
+            // honored, and a function stays its own iterator, so `pairs`/`ipairs`/multi-value
+            // forms (handled below) keep behaving exactly as before. The value is evaluated
+            // into the base register first and moved up so the helper can occupy the base
+            // register the call result starts at.
+            Function.ExpressionToNextRegister(e);
+            Function.ReserveRegisters(1);
+            Function.EncodeABC(OpCode.Move, @base + 1, @base, 0);
+            Function.LoadBuiltin(@base, LuaBuiltin.IterResolver);
+            var call = Function.EncodeABC(OpCode.Call, @base, 2, 4);
+            Function.FixLine(line);
+            Function.FreeRegisterCount = @base + 1;
+            Function.AdjustAssignment(3, 1, Function.MakeExpression(Kind.Call, call));
+        }
+        else
+        {
+            Function.AdjustAssignment(3, c, e);
+        }
+
         Function.CheckStack(3);
         ForBody(@base, line, n - 3, false);
     }
@@ -996,6 +1176,7 @@ class Parser : IPoolNode<Parser>, IDisposable
     public void ForStatement(int line)
     {
         Function.EnterBlock(true);
+        Loops.Add(default);
         Next();
         var name = CheckName();
         if (T == ':')
@@ -1020,6 +1201,7 @@ class Parser : IPoolNode<Parser>, IDisposable
 
         Scanner.CheckMatch(TkEnd, TkFor, line);
         Function.LeaveBlock();
+        Loops.Shrink(Loops.Length - 1);
     }
 
     public int TestThenBlock(int escapes)
@@ -1090,11 +1272,15 @@ class Parser : IPoolNode<Parser>, IDisposable
         var top = Function.Label();
         var conditionExit = Condition();
         Function.EnterBlock(true);
+        Loops.Add(default);
         CheckNext(TkDo);
         Block();
+        // `continue` targets the back-jump: the point the loop body falls through to.
+        Function.ContinueLabel(Function.Block.ActiveVariableCount);
         Function.JumpTo(top);
         Scanner.CheckMatch(TkEnd, TkWhile, line);
         Function.LeaveBlock();
+        Loops.Shrink(Loops.Length - 1);
         Function.PatchToHere(conditionExit);
     }
 
@@ -1103,10 +1289,33 @@ class Parser : IPoolNode<Parser>, IDisposable
         var top = Function.Label();
         Function.EnterBlock(true); // loop block
         Function.EnterBlock(false); // scope block
+        Loops.Add(new() { IsRepeat = true, MinContinueLevel = -1 });
         Next();
         StatementList();
         Scanner.CheckMatch(TkUntil, TkRepeat, line);
+
+        // `continue` targets the condition, which shares the body's scope: a local the
+        // continue jumped over is undefined there (Luau rejects reading one), so its level is
+        // armed for the duration of the condition.
+        var loop = Loops[Loops.Length - 1];
+        Loops.Shrink(Loops.Length - 1);
+        Function.ContinueLabel(Function.Block.ActiveVariableCount);
+
+        var savedFunction = RepeatConditionFunction;
+        var savedLevel = RepeatConditionMinLevel;
+        var savedLine = RepeatConditionLine;
+        if (loop.MinContinueLevel >= 0)
+        {
+            RepeatConditionFunction = Function;
+            RepeatConditionMinLevel = loop.MinContinueLevel;
+            RepeatConditionLine = loop.MinContinueLine;
+        }
+
         var conditionExit = Condition();
+        RepeatConditionFunction = savedFunction;
+        RepeatConditionMinLevel = savedLevel;
+        RepeatConditionLine = savedLine;
+
         if (Function.Block.HasUpValue)
         {
             Function.PatchClose(conditionExit, Function.Block.ActiveVariableCount);
@@ -1140,6 +1349,46 @@ class Parser : IPoolNode<Parser>, IDisposable
             Next();
             Function.MakeGoto("break", line, pc);
         }
+    }
+
+    /// <summary>
+    /// Luau `continue`: jumps to the end of the innermost loop (its `until` condition for a
+    /// repeat loop). It reuses the pending-goto machinery of `break`; the difference is the
+    /// label created by the loop, whose variable level is the loop body's *outer* level. That
+    /// is what lets a `continue` jump over locals declared after it (Luau allows that for
+    /// for/while) while still closing the upvalues those locals opened.
+    /// </summary>
+    public void ContinueStatement(int line)
+    {
+        if (Loops.Length == 0)
+        {
+            // Also the case of a `continue` inside a function nested in a loop: the loop
+            // stack is truncated when the nested body starts.
+            Scanner.SyntaxError("continue statement must be inside a loop");
+            return;
+        }
+
+        var index = Loops.Length - 1;
+        var context = Loops[index];
+        if (context.MinContinueLevel < 0 || Function.ActiveVariableCount < context.MinContinueLevel)
+        {
+            context.MinContinueLevel = Function.ActiveVariableCount;
+            context.MinContinueLine = line;
+            Loops[index] = context;
+        }
+
+        Function.MakeGoto("continue", line, Function.Jump());
+    }
+
+    /// <summary>
+    /// True when a statement that starts with the identifier `continue` is the Luau continue
+    /// statement rather than an expression using a variable of that name (`continue()`,
+    /// `continue.x = 1`, `continue = 1`, `continue[1] = 2`, ...).
+    /// </summary>
+    bool IsContinueStatement()
+    {
+        return Scanner.LookAhead()
+            is not ('=' or ',' or '.' or '[' or ':' or '(' or '{' or TkString);
     }
 
     public void SkipEmptyStatements()
@@ -1243,7 +1492,10 @@ class Parser : IPoolNode<Parser>, IDisposable
             SkipTypeAnnotation();
         }
 
+        // A `continue` in the body may not target a loop of the enclosing function.
+        var savedLoopCount = Loops.Length;
         StatementList();
+        Loops.Shrink(savedLoopCount);
         Function.Proto.LastLineDefined = Scanner.LineNumber;
         Scanner.CheckMatch(TkEnd, TkFunction, line);
         if (discard)
@@ -1340,9 +1592,235 @@ class Parser : IPoolNode<Parser>, IDisposable
         PendingFunctionName = null;
     }
 
+    /// <summary>Maps a Luau compound-assignment token to its binary operator.</summary>
+    static int CompoundAssignmentOperator(int token)
+    {
+        return token switch
+        {
+            TkAddAssign => OprAdd,
+            TkSubAssign => OprSub,
+            TkMulAssign => OprMul,
+            TkDivAssign => OprDiv,
+            TkIDivAssign => OprIDiv,
+            TkModAssign => OprMod,
+            TkPowAssign => OprPow,
+            TkConcatAssign => OprConcat,
+            _ => OprNoBinary,
+        };
+    }
+
+    /// <summary>
+    /// Luau `const` binding: `const name {, name} = explist` or `const function name() ...`.
+    /// The binding is immutable — assigning to it, including through a compound assignment or
+    /// a captured upvalue, is a compile error — but the value it refers to is not.
+    /// `const` is a contextual keyword: code using it as a name keeps working, because only a
+    /// `const` followed by a name or `function` is treated as a declaration.
+    /// </summary>
+    public void ConstStatement()
+    {
+        Next(); // consume 'const'
+
+        if (TestNext(TkFunction))
+        {
+            LocalFunction();
+            Function.MarkConst(Function.ActiveVariableCount - 1, default);
+            return;
+        }
+
+        var v = 0;
+        string? firstName = null;
+        var firstIndex = Function.ActiveVariableCount;
+        for (var first = true; first || TestNext(','); first = false)
+        {
+            var name = CheckName();
+            firstName ??= name;
+            Function.MakeLocalVariable(name);
+            if (T == ':')
+            {
+                Next();
+                SkipTypeAnnotation();
+            }
+
+            v++;
+        }
+
+        // Luau requires an initializer in a const declaration.
+        if (!TestNext('='))
+        {
+            Scanner.SyntaxError("Missing initializer in const declaration");
+        }
+
+        if (v == 1)
+        {
+            PendingFunctionName = firstName;
+        }
+
+        var (e, n) = ExpressionList();
+
+        // Only a genuine single literal initializer is inlined. The *parsed* expression is
+        // inspected rather than the first token, because the compiler folds expressions such
+        // as `1 + 2` into a single literal.
+        var literal = v == 1 && n == 1 ? CaptureConstLiteral(e) : default;
+
+        Function.AdjustAssignment(v, n, e);
+        Function.AdjustLocalVariables(v);
+
+        for (var i = 0; i < v; i++)
+        {
+            Function.MarkConst(firstIndex + i, v == 1 ? literal : default);
+        }
+
+        PendingFunctionName = null;
+    }
+
+    /// <summary>
+    /// Builds the inlinable literal of a single-variable `const` declaration. Only numbers,
+    /// booleans and nil are captured: tables/functions keep their identity through the local,
+    /// and strings are left alone because a constant index is only valid inside the prototype
+    /// that created it.
+    /// </summary>
+    static ConstBinding CaptureConstLiteral(ExprDesc e)
+    {
+        var binding = default(ConstBinding);
+        switch (e.Kind)
+        {
+            case Kind.Nil:
+                binding.Kind = Kind.Nil;
+                break;
+            case Kind.True:
+            case Kind.False:
+                binding.Kind = e.Kind;
+                break;
+            case Kind.Number:
+                binding.Kind = Kind.Number;
+                binding.Value = e.Value;
+                binding.IntValue = e.IntValue;
+                binding.IsInteger = e.IsInteger;
+                break;
+        }
+
+        return binding;
+    }
+
+    /// <summary>
+    /// Skips a run of Luau attributes (`@native`, `@[deprecated { use = "x" }]`). Attribute
+    /// names and parameter literals are not validated because this implementation ignores
+    /// them, but every delimiter is balanced so the token stream stays aligned.
+    /// </summary>
+    public void SkipAttributes()
+    {
+        while (T == '@')
+        {
+            Next(); // consume '@'
+            if (T != '[')
+            {
+                CheckName(); // '@name' takes no parameters
+                continue;
+            }
+
+            Next(); // consume '['
+            while (true)
+            {
+                if (TestNext(','))
+                {
+                    continue;
+                }
+
+                if (TestNext(']'))
+                {
+                    break;
+                }
+
+                CheckName();
+                SkipAttributeParameters();
+            }
+        }
+    }
+
+    /// <summary>Skips the optional literal parameters of one attribute: `(...)`, a table or a string.</summary>
+    void SkipAttributeParameters()
+    {
+        switch (T)
+        {
+            case TkString:
+                Next();
+                return;
+            case '{':
+                SkipBalanced('{', '}');
+                return;
+            case '(':
+                SkipBalanced('(', ')');
+                return;
+        }
+    }
+
+    void SkipBalanced(int open, int close)
+    {
+        var depth = 0;
+        while (true)
+        {
+            if (T == TkEos)
+            {
+                Scanner.SyntaxError("unfinished attribute");
+                return;
+            }
+
+            if (T == open)
+            {
+                depth++;
+            }
+            else if (T == close)
+            {
+                depth--;
+                if (depth == 0)
+                {
+                    Next();
+                    return;
+                }
+            }
+
+            Next();
+        }
+    }
+
+    /// <summary>Parses a function declaration that carries Luau attributes.</summary>
+    public void AttributeStatement(int line)
+    {
+        SkipAttributes();
+
+        switch (T)
+        {
+            case TkFunction:
+                FunctionStatement(line);
+                return;
+            case TkLocal:
+                Next();
+                CheckNext(TkFunction);
+                LocalFunction();
+                return;
+        }
+
+        if (T == TkName && Scanner.Token.S == "const" && Scanner.LookAhead() == TkFunction)
+        {
+            ConstStatement();
+            return;
+        }
+
+        Scanner.SyntaxError(
+            "Expected 'function', 'local function' or 'const function' after attribute"
+        );
+    }
+
     public void ExpressionStatement()
     {
         var e = SuffixedExpression();
+        var compoundOperator = CompoundAssignmentOperator(T);
+        if (compoundOperator != OprNoBinary)
+        {
+            CompoundAssignment(e, compoundOperator);
+            return;
+        }
+
         if (T == '=' || T == ',')
         {
             Assignment(new(ref Unsafe.NullRef<AssignmentTarget>(), e), 1);
@@ -1352,6 +1830,22 @@ class Parser : IPoolNode<Parser>, IDisposable
             CheckCondition(e.Kind == Kind.Call, "syntax error");
             Function.Instruction(e).C = 1; // call statement uses no results
         }
+    }
+
+    /// <summary>
+    /// `target op= value` (Luau): a single variable target that is evaluated once, with the
+    /// right-hand side parsed as a full expression (`a += b + c` is `a = a + (b + c)`).
+    /// </summary>
+    public void CompoundAssignment(ExprDesc target, int op)
+    {
+        CheckCondition(target.Kind is Kind.Local or Kind.UpValue or Kind.Indexed, "syntax error");
+
+        var line = Scanner.LineNumber;
+        Next(); // consume the compound operator
+
+        var current = Function.BeginCompoundAssignment(target, op);
+        var value = Expression();
+        Function.EndCompoundAssignment(target, op, current, value, line);
     }
 
     public void ReturnStatement()
@@ -1438,6 +1932,10 @@ class Parser : IPoolNode<Parser>, IDisposable
                 Next();
                 LabelStatement(CheckName(), line);
                 break;
+            case '@':
+                // Luau attributes: parsed and ignored.
+                AttributeStatement(line);
+                break;
             case TkReturn:
                 Next();
                 ReturnStatement();
@@ -1450,6 +1948,22 @@ class Parser : IPoolNode<Parser>, IDisposable
                 if (T == TkName)
                 {
                     var name = Scanner.Token.S;
+                    if (name == "continue" && IsContinueStatement())
+                    {
+                        Next(); // consume 'continue'
+                        ContinueStatement(line);
+                        break;
+                    }
+
+                    if (
+                        name == "const"
+                        && Scanner.LookAhead() is TkName or TkFunction
+                    )
+                    {
+                        ConstStatement();
+                        break;
+                    }
+
                     if (name == "type" && Scanner.LookAhead() is TkName or TkFunction)
                     {
                         TypeStatement(line);

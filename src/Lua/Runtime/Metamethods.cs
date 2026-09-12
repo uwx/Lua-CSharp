@@ -11,6 +11,7 @@ public static class Metamethods
     public const string Sub = "__sub";
     public const string Mul = "__mul";
     public const string Div = "__div";
+    public const string IDiv = "__idiv";
     public const string Mod = "__mod";
     public const string Pow = "__pow";
     public const string Unm = "__unm";
@@ -22,6 +23,9 @@ public static class Metamethods
     public const string Concat = "__concat";
     public const string Pairs = "__pairs";
     public const string IPairs = "__ipairs";
+
+    /// <summary>Luau generalized iteration hook (`for k, v in value do`).</summary>
+    public const string Iter = "__iter";
     public new const string ToString = "__tostring";
 
     internal static (string Name, string Description) GetNameAndDescription(this OpCode opCode)
@@ -34,6 +38,7 @@ public static class Metamethods
             OpCode.Sub => (Sub, "sub"),
             OpCode.Mul => (Mul, "mul"),
             OpCode.Div => (Div, "div"),
+            OpCode.IDiv => (IDiv, "idiv"),
             OpCode.Mod => (Mod, "mod"),
             OpCode.Pow => (Pow, "pow"),
             OpCode.Unm => (Unm, "unm"),
@@ -58,6 +63,7 @@ public static class Metamethods
             OpCode.Sub => Sub,
             OpCode.Mul => Mul,
             OpCode.Div => Div,
+            OpCode.IDiv => IDiv,
             OpCode.Mod => Mod,
             OpCode.Pow => Pow,
             OpCode.Unm => Unm,

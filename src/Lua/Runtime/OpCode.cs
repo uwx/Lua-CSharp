@@ -59,4 +59,10 @@ public enum OpCode : byte
     VarArg, // A B     R(A), R(A+1), ..., R(A+B-2) = vararg
 
     ExtraArg, // Ax      extra (larger) argument for previous opcode
+
+    // --- Luau additions (NFM-World fork). Appended after ExtraArg so every existing
+    // opcode keeps its numeric value (dumped chunks stay loadable). ---
+
+    IDiv, // A B C   R(A) := RK(B) // RK(C)
+    LoadBuiltin, // A Bx    R(A) := state builtin[Bx]
 }
