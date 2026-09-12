@@ -39,7 +39,7 @@ public sealed class BasicLibrary
             new("ipairs", IPairs),
             new("loadfile", LoadFile),
             new("load", Load),
-            new("next", Next),
+            new("next", Next) { IsBuiltinNext = true },
             new("pairs", Pairs),
             new("pcall", PCall),
             new("print", Print),
@@ -74,7 +74,7 @@ public sealed class BasicLibrary
             }
         );
 
-        PairsIterator = new("iterator", Next);
+        PairsIterator = new("iterator", Next) { IsBuiltinNext = true };
     }
 
     public readonly LuaFunction[] Functions;
@@ -295,10 +295,19 @@ public sealed class BasicLibrary
         CancellationToken cancellationToken
     )
     {
-        var arg0 = context.GetArgument<LuaTable>(0);
+        // Read the argument as a plain LuaValue: GetArgument<LuaTable> routes through the
+        // generic marshaller (a typeof(T) dispatch chain) and this is the single hottest
+        // builtin in table-heavy Lua.
+        var arg0 = context.GetArgument(0);
+        if (!arg0.TryReadTable(out var table))
+        {
+            // Same error GetArgument<LuaTable>(0) raised.
+            LuaRuntimeException.BadArgument(context.State, 1, LuaValueType.Table, arg0.Type);
+        }
+
         var arg1 = context.HasArgument(1) ? context.Arguments[1] : LuaValue.Nil;
 
-        if (arg0.TryGetNext(arg1, out var kv))
+        if (table.TryGetNext(arg1, out var kv))
         {
             return new(context.Return(kv.Key, kv.Value));
         }

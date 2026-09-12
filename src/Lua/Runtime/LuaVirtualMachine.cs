@@ -47,6 +47,8 @@ public static partial class LuaVirtualMachine
             BaseCallStackCount = state.CallStackFrameCount;
             LastHookPc = -1;
             Task = default;
+            NextIteratorTable = null;
+            NextIteratorSlot = -1;
         }
 
         public LuaGlobalState GlobalState => State.GlobalState;
@@ -65,6 +67,16 @@ public static partial class LuaVirtualMachine
         public int CurrentReturnFrameBase;
         public ValueTask<int> Task;
         public int LastHookPc;
+
+        /// <summary>
+        /// One-entry traversal cursor for the builtin <c>next</c> fast path in
+        /// <see cref="TForCall"/>: the table of the loop being stepped and the string-dictionary
+        /// slot its control key occupies. Lets the next step resume the walk without
+        /// re-hashing the key. Only ever set from a lookup on that table, and validated
+        /// against the slot's current contents before use.
+        /// </summary>
+        public LuaTable? NextIteratorTable;
+        public int NextIteratorSlot;
 
         public bool IsTopLevel => BaseCallStackCount == State.CallStackFrameCount;
 
@@ -2093,6 +2105,26 @@ public static partial class LuaVirtualMachine
             }
         }
 
+        // Fast path: a loop over the builtin `next`, i.e. `for k, v in pairs(t)`.
+        // `next` is a C# function, so the generic path below pays a full Lua->C# call per
+        // KEY (frame push, argument marshalling through the generic `TryRead` dispatch
+        // chain, delegate invoke, frame pop). Traversing the table in place removes that
+        // call entirely; the observable result (the two values written at RA+3/RA+4 and the
+        // final stack top) is identical. Skipped whenever a hook or a pending exception
+        // needs the frame to exist, and for `__call`-dispatched iterators, where the
+        // arguments differ.
+        if (
+            iterator.IsBuiltinNext
+            && !isMetamethod
+            && context.State.CurrentException is null
+            && (context.State.CallOrReturnHookMask.Value == 0 || context.State.IsInHook)
+            && stack.Get(RA + 1).TryReadTable(out var nextTable)
+        )
+        {
+            TForCallNext(context, nextTable, RA);
+            return true;
+        }
+
         var newBase = RA + 3 + instruction.C;
 
         if (isMetamethod)
@@ -2158,6 +2190,55 @@ public static partial class LuaVirtualMachine
         context.State.PopCallStackFrame();
         TForCallPostOperation(context);
         return true;
+    }
+
+    /// <summary>
+    /// Runs one step of a loop over the builtin <c>next</c>: exactly what
+    /// <c>BasicLibrary.Next</c> plus <see cref="TForCallPostOperation"/> do, but without
+    /// entering the C# function.
+    /// </summary>
+    static void TForCallNext(VirtualMachineExecutionContext context, LuaTable table, int RA)
+    {
+        var stack = context.Stack;
+        var control = stack.Get(RA + 2);
+
+        KeyValuePair<LuaValue, LuaValue> pair = default;
+        var slot = -1;
+        bool hasPair;
+
+        // `next` is handed the key the previous step returned, so the slot that key occupies
+        // is already known. Validate it instead of re-hashing the key: slots only move on a
+        // swap-erase removal (which string tables have no production caller for) and vanish
+        // on clear, so a stale cursor reads as a miss and falls back to the hash path.
+        if (
+            control.Type == LuaValueType.String
+            && ReferenceEquals(table, context.NextIteratorTable)
+            && table.SlotStillHolds(context.NextIteratorSlot, control.UnsafeReadString())
+        )
+        {
+            hasPair = table.TryNextFromSlot(context.NextIteratorSlot, out pair, out slot);
+        }
+        else if (control.Type == LuaValueType.String)
+        {
+            hasPair = table.TryGetNextFromString(control.UnsafeReadString(), out pair, out slot);
+        }
+        else
+        {
+            // Control is nil (first step) or a non-string key: no slot to hand back.
+            hasPair = table.TryGetNext(control, out pair);
+        }
+
+        // Same write sequence as `Return(result0, result1)` followed by
+        // TForCallPostOperation: results over the return base, then the top at A + 3 + C so
+        // that extra loop variables read as nil.
+        var returnBase = RA + 3;
+        stack.SetTop(returnBase + 2);
+        stack.FastGet(returnBase) = hasPair ? pair.Key : LuaValue.Nil;
+        stack.FastGet(returnBase + 1) = hasPair ? pair.Value : LuaValue.Nil;
+        stack.SetTop(RA + context.Instruction.C + 3);
+
+        context.NextIteratorTable = hasPair ? table : null;
+        context.NextIteratorSlot = slot;
     }
 
     // ReSharper disable once InconsistentNaming

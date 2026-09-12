@@ -353,6 +353,66 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
         return false;
     }
 
+    /// <summary>
+    /// <c>next(t, k)</c> for a string control key, also reporting the slot the result lives
+    /// in (see <see cref="TryNextFromSlot"/>). Mirrors the string branch of
+    /// <see cref="TryGetNext"/> exactly, including falling through to the generic part once
+    /// the string part is exhausted.
+    /// </summary>
+    internal bool TryGetNextFromString(
+        string key,
+        out KeyValuePair<LuaValue, LuaValue> pair,
+        out int slot
+    )
+    {
+        slot = -1;
+
+        // A null ref means the key itself is not in the string part -- the same condition
+        // TryGetNext reports through `found == false`.
+        ref var valueRef = ref stringDictionary.FindValue(key, out var keySlot);
+        if (Unsafe.IsNullRef(ref valueRef))
+        {
+            pair = default;
+            return false;
+        }
+
+        if (stringDictionary.TryGetFirstFrom(keySlot + 1, out pair, out slot))
+        {
+            return true;
+        }
+
+        return TryGetFirstGeneric(out pair);
+    }
+
+    /// <summary>
+    /// Resumes a string-keyed traversal at <paramref name="slot"/>: the first non-nil entry
+    /// after it, then the generic part. Lets a caller that already knows which slot a key
+    /// occupies skip hashing it again. <paramref name="nextSlot"/> is -1 when the result
+    /// came from (or there is nothing left in) the generic part.
+    /// </summary>
+    internal bool TryNextFromSlot(
+        int slot,
+        out KeyValuePair<LuaValue, LuaValue> pair,
+        out int nextSlot
+    )
+    {
+        if (stringDictionary.TryGetFirstFrom(slot + 1, out pair, out nextSlot))
+        {
+            return true;
+        }
+
+        return TryGetFirstGeneric(out pair);
+    }
+
+    /// <summary>
+    /// True while <paramref name="slot"/> still holds exactly <paramref name="key"/>.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal bool SlotStillHolds(int slot, string key)
+    {
+        return stringDictionary.SlotHasKey(slot, key);
+    }
+
     bool TryGetFirstGeneric(out KeyValuePair<LuaValue, LuaValue> pair)
     {
         var dict = dictionary;
