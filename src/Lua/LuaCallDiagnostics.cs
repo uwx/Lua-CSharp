@@ -35,6 +35,7 @@ public static class LuaCallDiagnostics
         Interlocked.Exchange(ref totalCrossingCount, 0);
     }
 
+    [System.Diagnostics.Conditional("LUA_VM_DIAGNOSTICS")]
     internal static void Record(long ticks, bool isOutermost)
     {
         Interlocked.Increment(ref totalCrossingCount);

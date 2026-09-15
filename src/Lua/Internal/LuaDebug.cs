@@ -738,6 +738,10 @@ readonly struct LuaDebug : IDisposable
         GetOpMode(0, 1, OpArgU, OpArgN, iABx), /* OP_CLOSURE */
         GetOpMode(0, 1, OpArgU, OpArgN, iABC), /* OP_VARARG */
         GetOpMode(0, 0, OpArgU, OpArgU, iAx), /* OP_EXTRAARG */
+        GetOpMode(0, 1, OpArgK, OpArgK, iABC), /* OP_IDIV */
+        GetOpMode(0, 1, OpArgK, OpArgN, iABx), /* OP_LOADBUILTIN */
+        GetOpMode(0, 0, OpArgR, OpArgN, iAsBx), /* OP_JMPIFEQK */
+        GetOpMode(0, 0, OpArgR, OpArgN, iAsBx), /* OP_JMPIFNEK */
     ];
 
     internal static OpMode GetOpMode(OpCode m)

@@ -62,6 +62,8 @@ public partial struct Instruction(uint value)
         "EXTRAARG",
         "IDIV",
         "LOADBUILTIN",
+        "JMPIFEQK",
+        "JMPIFNEK",
     ];
 
     /*
@@ -502,6 +504,11 @@ func createAx(op opCode, a int) instruction { return instruction(op)<<posOp | in
         OpMode(0, 0, OpArgU, OpArgU, IAx), // opExtraArg
         OpMode(0, 1, OpArgK, OpArgK, IABC), // opIDiv
         OpMode(0, 1, OpArgU, OpArgN, IABx), // opLoadBuiltin
+        // Same T/A/mode as opJump (0, 0, IAsBx): a standalone branch, not a flag-setter for a
+        // following bare Jmp the way opEqual/opLessThan/opLessOrEqual are, so JumpControl's
+        // "was the previous instruction a controlling test" lookback must not treat this as one.
+        OpMode(0, 0, OpArgR, OpArgN, IAsBx), // opJmpIfEqK
+        OpMode(0, 0, OpArgR, OpArgN, IAsBx), // opJmpIfNeK
     ];
 
     /// <summary>

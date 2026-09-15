@@ -1,3 +1,6 @@
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
+
 namespace Lua;
 
 /// <summary>
@@ -17,5 +20,11 @@ public static class LuaVmDiagnostics
     public static void Reset()
     {
         instructionCount = 0;
+    }
+
+    [Conditional("LUA_VM_DIAGNOSTICS")]
+    internal static void CountInstruction()
+    {
+        instructionCount++;
     }
 }

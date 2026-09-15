@@ -262,6 +262,7 @@ struct LuaStringDictionary
     /// </summary>
     public void Insert(string key, LuaValue value)
     {
+#if LUA_VM_DIAGNOSTICS
         var __diagStart = Stopwatch.GetTimestamp();
         try
         {
@@ -271,6 +272,9 @@ struct LuaStringDictionary
         {
             LuaTableDiagnostics.RecordStringInsert(Stopwatch.GetTimestamp() - __diagStart);
         }
+#else
+        InsertCore(key, value);
+#endif
     }
 
     void InsertCore(string key, LuaValue value)
@@ -384,6 +388,7 @@ struct LuaStringDictionary
 
     void Resize()
     {
+#if LUA_VM_DIAGNOSTICS
         var __diagStart = Stopwatch.GetTimestamp();
         try
         {
@@ -393,6 +398,9 @@ struct LuaStringDictionary
         {
             LuaTableDiagnostics.RecordStringResize(Stopwatch.GetTimestamp() - __diagStart);
         }
+#else
+        ResizeCore();
+#endif
     }
 
     void ResizeCore()

@@ -150,6 +150,7 @@ class Function : IPoolNode<Function>
         P.Function.LeaveBlock();
         Assert(P.Function.Block == null);
         var f = P.Function;
+        f.FoldJumps();
         f.FinalizeCaptures();
         P.Function = f.Previous;
         f.Release();
@@ -741,6 +742,31 @@ class Function : IPoolNode<Function>
         }
     }
 
+    /// <summary>
+    /// Like <see cref="Jump"/>, but for the fused <see cref="OpCode.JmpIfEqK"/>/
+    /// <see cref="OpCode.JmpIfNeK"/> compare-and-branch: emits the main `A sBx` instruction,
+    /// then the <see cref="OpCode.ExtraArg"/> instruction carrying the constant-pool index that
+    /// the VM consumes inline right after.
+    ///
+    /// Deliberately does NOT capture-and-merge the pending <see cref="JumpPc"/> "patch to here"
+    /// list the way <see cref="Jump"/> does for a plain unconditional jump: <see cref="Jump"/>
+    /// is safe to do that because <see cref="ConditionalJump"/> already emitted the compare
+    /// opcode as a SEPARATE, PRIOR instruction, whose own `Encode` call discharged any pending
+    /// `JumpPc` to "here" (the compare's own position) before `Jump` ever ran. This fused
+    /// opcode has no such separate prior instruction, so `EncodeAsBx` below is the FIRST Encode
+    /// call for this comparison -- its own internal `DischargeJumpPc` correctly resolves
+    /// whatever was pending to point at THIS instruction's position, exactly like it would for
+    /// any other ordinary instruction. Manually merging `JumpPc` here (as an earlier version of
+    /// this method did) instead wired an unrelated caller's still-pending jump into this
+    /// comparison's own outcome, sending both to the same wrong target.
+    /// </summary>
+    public int ConditionalJumpK(OpCode op, int register, int constantIndex)
+    {
+        var pc = EncodeAsBx(op, register, NoJump);
+        EncodeExtraArg(constantIndex);
+        return pc;
+    }
+
     public int ConditionalJump(OpCode op, int a, int b, int c)
     {
         EncodeABC(op, a, b, c);
@@ -894,6 +920,22 @@ class Function : IPoolNode<Function>
         for (int next; list != NoJump; list = next)
         {
             next = Jump(list);
+
+            // JmpIfEqK/JmpIfNeK's own A is the compare register, not a closing level like
+            // plain Jmp's -- the closing level goes in the high bits of the ExtraArg word
+            // that immediately follows (its low 8 bits are the constant-pool index, always
+            // <= MaxIndexRK so there's room), which the VM checks after deciding whether the
+            // branch is actually taken. See the JmpIfEqK/JmpIfNeK case in LuaVirtualMachine.cs.
+            if (Proto.CodeList[list].OpCode is OpCode.JmpIfEqK or OpCode.JmpIfNeK)
+            {
+                ref var extraArg = ref Proto.CodeList[list + 1];
+                Assert(extraArg.OpCode == OpCode.ExtraArg);
+                var constantIndex = extraArg.Ax & 0xFF;
+                Assert((extraArg.Ax >> 8) is 0 || (extraArg.Ax >> 8) >= level);
+                extraArg.Ax = constantIndex | (level << 8);
+                continue;
+            }
+
             Assert(
                 (Proto.CodeList[list].OpCode == OpCode.Jmp && Proto.CodeList[list].A == 0)
                     || Proto.CodeList[list].A >= level
@@ -933,6 +975,84 @@ class Function : IPoolNode<Function>
 
         FixJump(list, l2);
         return l1;
+    }
+
+    /// <summary>
+    /// Post-emission peephole pass: run once, after the function body is fully compiled (every
+    /// jump in <see cref="PrototypeBuilder.CodeList"/> has already been resolved to a real
+    /// target offset by <see cref="FixJump"/> -- there are no more open jump lists to patch).
+    /// Collapses chains of unconditional jumps down to their final target, and rewrites a jump
+    /// that lands on a <see cref="OpCode.Return"/> into a copy of that Return, eliminating the
+    /// jump entirely -- this directly optimizes `if cond then return end`-shaped early returns.
+    /// Every rewrite is in place (no instruction added or removed), so every other jump's offset
+    /// stays correct with no renumbering.
+    ///
+    /// Only ever folds through hops that share the exact same source line as the jump being
+    /// folded: `debug.sethook(f, "l")` fires once per distinct line reached, and a real Lua
+    /// implementation (this is what tests-lua/db.lua's line-trace test checks against) would
+    /// visit each of those lines separately. Requiring every collapsed hop -- and the final
+    /// landing instruction -- to share one line guarantees this pass can never change what the
+    /// line hook observes, since a same-line forward hop was never going to fire the hook again
+    /// on its own regardless of whether it's physically executed or skipped over.
+    /// </summary>
+    public void FoldJumps()
+    {
+        const int MaxChainLength = 100;
+
+        for (var i = 0; i < Proto.CodeList.Length; i++)
+        {
+            ref var source = ref Proto.CodeList[i];
+            if (source.OpCode != OpCode.Jmp || source.A != 0)
+            {
+                // Never touch a jump that closes upvalues (PatchClose gives it a nonzero A) --
+                // its own closing behavior must not be altered by redirecting its target.
+                continue;
+            }
+
+            var sourceLine = Proto.LineInfoList[i];
+            var target = i + 1 + source.SBx;
+            var startedAt = i;
+            for (var hops = 0; hops < MaxChainLength; hops++)
+            {
+                if (target < 0 || target >= Proto.CodeList.Length || target == startedAt)
+                {
+                    // Out of range (shouldn't happen for a resolved jump, but be defensive) or
+                    // a cycle back to the jump being folded -- stop and use the last valid target.
+                    break;
+                }
+
+                ref var next = ref Proto.CodeList[target];
+                if (next.OpCode != OpCode.Jmp || next.A != 0 || Proto.LineInfoList[target] != sourceLine)
+                {
+                    break;
+                }
+
+                target = target + 1 + next.SBx;
+            }
+
+            if (
+                target >= 0
+                && target < Proto.CodeList.Length
+                && Proto.CodeList[target].OpCode == OpCode.Return
+                && Proto.LineInfoList[target] == sourceLine
+            )
+            {
+                ref readonly var ret = ref Proto.CodeList[target];
+                var a = ret.A;
+                var b = ret.B;
+                var c = ret.C;
+                source.OpCode = OpCode.Return;
+                source.A = a;
+                source.B = b;
+                source.C = c;
+            }
+            else if (target != i + 1 + source.SBx)
+            {
+                // Redirect straight to the chain's final target instead of hopping through
+                // intermediate unconditional jumps at runtime.
+                source.SBx = target - (i + 1);
+            }
+        }
     }
 
     public int AddConstant(LuaValue k, LuaValue v)
@@ -1392,6 +1512,24 @@ class Function : IPoolNode<Function>
     public void InvertJump(int pc)
     {
         ref var i = ref JumpControl(pc);
+
+        // JmpIfEqK/JmpIfNeK are standalone fused compare-and-branch instructions, not a
+        // flag-setter paired with a separate bare Jmp the way Eq/Lt/Le are -- their `A` is the
+        // register being compared, not a condition-polarity bit, so inverting them means
+        // swapping the opcode itself rather than toggling A (which would silently corrupt the
+        // register operand to 0 or 1).
+        if (i.OpCode == OpCode.JmpIfEqK)
+        {
+            i.OpCode = OpCode.JmpIfNeK;
+            return;
+        }
+
+        if (i.OpCode == OpCode.JmpIfNeK)
+        {
+            i.OpCode = OpCode.JmpIfEqK;
+            return;
+        }
+
         Assert(TestTMode(i.OpCode) && i.OpCode is not (OpCode.TestSet or OpCode.Test));
         i.A = Not(i.A);
     }
@@ -1742,6 +1880,24 @@ class Function : IPoolNode<Function>
         (e2, var o2) = ExpressionToRegisterOrConstant(e2);
         FreeExpression(e2);
         FreeExpression(e1);
+
+        // Fast path: `x == <const>` / `x ~= <const>` fuses compare+branch into one instruction
+        // instead of Eq+Jmp, whenever exactly one side ended up constant-pool-encoded above.
+        // ExpressionToRegisterOrConstant only RK-encodes Nil/True/False/Number/Constant --
+        // never a table or userdata -- and __eq is only ever invoked when BOTH operands are
+        // tables (or both userdata) of the same type, so comparing a register against one of
+        // these constant kinds can never reach a metamethod regardless of the register's
+        // runtime type. Skip the fast path when both sides are already constants (rare source
+        // like `1 == 2`; the plain Eq path below RK-encodes both sides just fine) since there's
+        // no register operand left to compare.
+        if (op == OpCode.Eq && IsConstant(o1) != IsConstant(o2))
+        {
+            var constantIndex = IsConstant(o1) ? ConstantIndex(o1) : ConstantIndex(o2);
+            var register = IsConstant(o1) ? o2 : o1;
+            var fastOp = cond != 0 ? OpCode.JmpIfEqK : OpCode.JmpIfNeK;
+            return MakeExpression(Kind.Jump, ConditionalJumpK(fastOp, register, constantIndex));
+        }
+
         if (cond == 0 && op != OpCode.Eq)
         {
             (o1, o2, cond) = (o2, o1, 1);
@@ -2153,6 +2309,7 @@ class Function : IPoolNode<Function>
         ReturnNone();
         LeaveBlock();
         Assert(Block == null);
+        FoldJumps();
         FinalizeCaptures();
         return Previous!;
     }

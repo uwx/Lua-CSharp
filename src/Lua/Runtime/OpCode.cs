@@ -65,4 +65,12 @@ public enum OpCode : byte
 
     IDiv, // A B C   R(A) := RK(B) // RK(C)
     LoadBuiltin, // A Bx    R(A) := state builtin[Bx]
+
+    // A sBx, followed by an ExtraArg whose Ax is a constant-pool index (consumed inline, the
+    // same way LoadKX consumes a following ExtraArg -- see LuaVirtualMachine.cs's LoadKX case).
+    // Fuses `x == <const>` / `x ~= <const>` compare-and-branch into one dispatch instead of
+    // Eq+Jmp. Only ever emitted when the constant side's type makes __eq categorically
+    // unreachable (nil/bool/number/string), so this never bypasses a metamethod.
+    JmpIfEqK, // A sBx   if R(A) == Kst(extra arg) then pc += sBx
+    JmpIfNeK, // A sBx   if R(A) ~= Kst(extra arg) then pc += sBx
 }

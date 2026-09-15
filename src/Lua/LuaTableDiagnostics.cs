@@ -35,28 +35,33 @@ public static class LuaTableDiagnostics
         Interlocked.Exchange(ref setTableSlowTicks, 0);
     }
 
+    [Conditional("LUA_VM_DIAGNOSTICS")]
     internal static void RecordSetTableFast()
     {
         Interlocked.Increment(ref setTableFastCount);
     }
 
+    [Conditional("LUA_VM_DIAGNOSTICS")]
     internal static void RecordSetTableSlow(long ticks)
     {
         Interlocked.Increment(ref setTableSlowCount);
         Interlocked.Add(ref setTableSlowTicks, ticks);
     }
 
+    [Conditional("LUA_VM_DIAGNOSTICS")]
     internal static void RecordTableCreated()
     {
         Interlocked.Increment(ref tableCount);
     }
 
+    [Conditional("LUA_VM_DIAGNOSTICS")]
     internal static void RecordStringInsert(long ticks)
     {
         Interlocked.Increment(ref stringInsertCount);
         Interlocked.Add(ref stringInsertTicks, ticks);
     }
 
+    [Conditional("LUA_VM_DIAGNOSTICS")]
     internal static void RecordStringResize(long ticks)
     {
         Interlocked.Increment(ref stringResizeCount);
