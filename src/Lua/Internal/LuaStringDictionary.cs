@@ -107,21 +107,14 @@ struct LuaStringDictionary
     {
         get
         {
-            var entries = _entries;
-            if (entries is null)
-            {
-                return 0;
-            }
-
             var live = 0;
-            for (var i = 0; i < _count; i++)
+            foreach (ref var entry in _entries.AsSpan(0, _count))
             {
-                if (entries[i].value.Type is not LuaValueType.Nil)
+                if (entry.value.Type is not LuaValueType.Nil)
                 {
                     live++;
                 }
             }
-
             return live;
         }
     }
@@ -136,29 +129,22 @@ struct LuaStringDictionary
 
         _count = 0;
         _last = 0;
-        Array.Clear(_entries!, 0, count);
-        _buckets!.AsSpan().Fill(EmptyBucket);
+        _entries.AsSpan(0, count).Clear();
+        _buckets.AsSpan().Fill(EmptyBucket);
     }
 
-    public readonly bool ContainsValue(LuaValue value)
+    public readonly bool ContainsValue(in LuaValue value)
     {
-        var entries = _entries;
-        if (entries is null)
+        foreach(ref var entry in  _entries.AsSpan(0, _count))
         {
-            return false;
-        }
-
-        for (var i = 0; i < _count; i++)
-        {
-            if (entries[i].value.Equals(value))
+            if (entry.value.Equals(value))
             {
                 return true;
             }
         }
-
         return false;
     }
-
+    
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static uint ComputeHash(string key)
     {
@@ -384,7 +370,7 @@ struct LuaStringDictionary
 
         var oldEntries = _entries!;
         var newEntries = new Entry[newMaxCount];
-        Array.Copy(oldEntries, newEntries, _count);
+        oldEntries.AsSpan(0, _count).CopyTo(newEntries);
 
         _length = newLength;
         _maxCount = newMaxCount;
@@ -499,18 +485,16 @@ struct LuaStringDictionary
         out int slot
     )
     {
-        var entries = _entries;
-        while ((uint)index < (uint)_count)
+        var entries = _entries.AsSpan(index, _count);
+        for (int i = 0; i < entries.Length; i++)
         {
-            ref var entry = ref entries![index];
+            ref var entry = ref entries[i];
             if (entry.value.Type is not LuaValueType.Nil)
             {
                 pair = new(entry.key, entry.value);
-                slot = index;
+                slot = index + i;
                 return true;
             }
-
-            index++;
         }
 
         pair = default;
@@ -793,12 +777,13 @@ struct LuaStringDictionary
             ThrowHelper.ThrowInvalidOperationException_InvalidOperation_EnumFailedVersion();
         }
 
-        var entries = dictionary._entries;
-        while ((uint)index < (uint)dictionary._count)
+        var entries = dictionary._entries.AsSpan(index, dictionary._count);
+        for (int i = 0; i < entries.Length; i++)
         {
-            ref var entry = ref entries![index++];
+            ref var entry = ref entries[i];
             if (entry.value.Type is not LuaValueType.Nil)
             {
+                index += i;
                 current = new(entry.key, entry.value);
                 return true;
             }
