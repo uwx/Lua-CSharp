@@ -440,6 +440,7 @@ public static partial class LuaVirtualMachine
             {
                 var instruction = Unsafe.Add(ref instructionsHead, ++context.Pc);
                 context.Instruction = instruction;
+                LuaVmDiagnostics.instructionCount++;
                 if (hooksActive)
                 {
                     if (--hookCount == 0 || (lineHookFlag && context.Pc != context.LastHookPc))
@@ -578,12 +579,16 @@ public static partial class LuaVirtualMachine
                                 }
 
                                 valueRef = RKC(ref stackHead, ref constHead, instruction);
+                                LuaTableDiagnostics.RecordSetTableFast();
                                 continue;
                             }
                         }
 
                         vc = ref RKC(ref stackHead, ref constHead, instruction);
-                        if (SetTableValueSlowPath(table, vb, vc, context, out doRestart))
+                        var __diagStart = System.Diagnostics.Stopwatch.GetTimestamp();
+                        var __slowResult = SetTableValueSlowPath(table, vb, vc, context, out doRestart);
+                        LuaTableDiagnostics.RecordSetTableSlow(System.Diagnostics.Stopwatch.GetTimestamp() - __diagStart);
+                        if (__slowResult)
                         {
                             if (doRestart)
                             {

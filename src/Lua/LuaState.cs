@@ -524,7 +524,7 @@ public class LuaState : IDisposable
         finally
         {
             IsSyncExecution = previous;
-            LuaCallDiagnostics.Record(System.Diagnostics.Stopwatch.GetTimestamp() - startTimestamp);
+            LuaCallDiagnostics.Record(System.Diagnostics.Stopwatch.GetTimestamp() - startTimestamp, !previous);
         }
 
         static void ThrowDidNotCompleteSynchronously()

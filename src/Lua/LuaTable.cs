@@ -16,6 +16,7 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
         // almost always strings, so it sizes the string part. The generic part is
         // only created if a non-string, non-array key ever shows up.
         stringDictionary = new(dictionaryCapacity);
+        LuaTableDiagnostics.RecordTableCreated();
     }
 
     LuaValue[] array;

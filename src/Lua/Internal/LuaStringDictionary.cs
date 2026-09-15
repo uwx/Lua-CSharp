@@ -262,6 +262,19 @@ struct LuaStringDictionary
     /// </summary>
     public void Insert(string key, LuaValue value)
     {
+        var __diagStart = Stopwatch.GetTimestamp();
+        try
+        {
+            InsertCore(key, value);
+        }
+        finally
+        {
+            LuaTableDiagnostics.RecordStringInsert(Stopwatch.GetTimestamp() - __diagStart);
+        }
+    }
+
+    void InsertCore(string key, LuaValue value)
+    {
         if (MetamethodCache.IsMetamethodKey(key))
         {
             MetamethodCache.Invalidate();
@@ -370,6 +383,19 @@ struct LuaStringDictionary
     }
 
     void Resize()
+    {
+        var __diagStart = Stopwatch.GetTimestamp();
+        try
+        {
+            ResizeCore();
+        }
+        finally
+        {
+            LuaTableDiagnostics.RecordStringResize(Stopwatch.GetTimestamp() - __diagStart);
+        }
+    }
+
+    void ResizeCore()
     {
         var newLength = _length * 2;
         // The bucket array has to double anyway (its slots are what the probe sequence walks),
