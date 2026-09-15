@@ -440,7 +440,7 @@ public static partial class LuaVirtualMachine
             {
                 var instruction = Unsafe.Add(ref instructionsHead, ++context.Pc);
                 context.Instruction = instruction;
-                LuaVmDiagnostics.instructionCount++;
+                LuaVmDiagnostics.CountInstruction();
                 if (hooksActive)
                 {
                     if (--hookCount == 0 || (lineHookFlag && context.Pc != context.LastHookPc))
@@ -455,140 +455,43 @@ public static partial class LuaVirtualMachine
                 switch (opCode)
                 {
                     case OpCode.Move:
-                        Markers.Move();
-                        ref var stackHead = ref stack.FastGet(frameBase);
-                        Unsafe.Add(ref stackHead, iA) = Unsafe.Add(ref stackHead, instruction.B);
-                        stack.NotifyTop(iA + frameBase + 1);
+                        OpMove(stack, frameBase, iA, instruction);
                         continue;
                     case OpCode.LoadK:
-                        Markers.LoadK();
-                        stack.GetWithNotifyTop(iA + frameBase) = Unsafe.Add(
-                            ref constHead,
-                            instruction.Bx
-                        );
+                        OpLoadK(stack, iA, frameBase, ref constHead, instruction);
                         continue;
                     case OpCode.LoadKX:
-                        Markers.LoadKX();
-                        stack.GetWithNotifyTop(iA + frameBase) = Unsafe.Add(
-                            ref constHead,
-                            Unsafe.Add(ref instructionsHead, ++context.Pc).Ax
-                        );
+                        OpLoadKX(context, stack, iA, frameBase, ref constHead, ref instructionsHead);
                         continue;
                     case OpCode.LoadBool:
-                        Markers.LoadBool();
-                        stack.GetWithNotifyTop(iA + frameBase) = instruction.B != 0;
-                        if (instruction.C != 0)
-                        {
-                            context.Pc++;
-                        }
-
+                        OpLoadBool(context, stack, iA, frameBase, instruction);
                         continue;
                     case OpCode.LoadBuiltin:
-                        Markers.LoadBuiltin();
-                        stack.GetWithNotifyTop(iA + frameBase) = context.GlobalState.GetBuiltin(
-                            instruction.Bx
-                        );
+                        OpLoadBuiltin(context, stack, iA, frameBase, instruction);
                         continue;
                     case OpCode.LoadNil:
-                        Markers.LoadNil();
-                        var ra1 = iA + frameBase + 1;
-                        var iB = instruction.B;
-                        stackHead = ref stack.FastGet(ra1 - 1);
-                        for (var i = 0; i <= iB; i++)
-                        {
-                            Unsafe.Add(ref stackHead, i) = default;
-                        }
-
-                        stack.NotifyTop(ra1 + iB);
+                        int ra1;
+                        OpLoadNil(iA, frameBase, instruction, stack);
                         continue;
                     case OpCode.GetUpVal:
-                        Markers.GetUpVal();
-                        stack.GetWithNotifyTop(iA + frameBase) = context.LuaClosure.GetUpValue(
-                            instruction.B
-                        );
+                        OpGetUpVal(context, stack, iA, frameBase, instruction);
                         continue;
                     case OpCode.GetTabUp:
                     case OpCode.GetTable:
-                        Markers.GetTabUp();
-                        Markers.GetTable();
-
-                        stackHead = ref stack.FastGet(frameBase);
-                        ref readonly var vc = ref RKC(ref stackHead, ref constHead, instruction);
-                        ref readonly var vb = ref instruction.OpCode == OpCode.GetTable
-                            ? ref Unsafe.Add(ref stackHead, instruction.B)
-                            : ref context.LuaClosure.GetUpValueRef(instruction.B);
-                        var doRestart = false;
-                        if (
-                            (
-                                vb.TryReadTable(out var luaTable)
-                                && luaTable.TryGetValue(vc, out var resultValue)
-                            )
-                            || GetTableValueSlowPath(
-                                vb,
-                                vc,
-                                context,
-                                out resultValue,
-                                out doRestart
-                            )
-                        )
+                        if (OpGetTable(context, stack, frameBase, ref constHead, instruction, out var doRestart))
                         {
                             if (doRestart)
                             {
                                 goto Restart;
                             }
 
-                            stack.GetWithNotifyTop(instruction.A + frameBase) = resultValue;
                             continue;
                         }
 
                         return true;
                     case OpCode.SetTabUp:
                     case OpCode.SetTable:
-                        Markers.SetTabUp();
-                        Markers.SetTable();
-
-                        stackHead = ref stack.FastGet(frameBase);
-                        vb = ref RKB(ref stackHead, ref constHead, instruction);
-                        if (vb.TryReadNumber(out var numB))
-                        {
-                            if (double.IsNaN(numB))
-                            {
-                                ThrowLuaRuntimeException(context, "table index is NaN");
-                                return true;
-                            }
-                        }
-
-                        var table =
-                            opCode == OpCode.SetTabUp
-                                ? context.LuaClosure.GetUpValue(iA)
-                                : Unsafe.Add(ref stackHead, iA);
-
-                        if (table.TryReadTable(out luaTable))
-                        {
-                            ref var valueRef = ref luaTable.FindValue(vb);
-                            if (
-                                !Unsafe.IsNullRef(ref valueRef)
-                                && valueRef.Type != LuaValueType.Nil
-                            )
-                            {
-                                // Overwriting a live entry: if it's a metamethod key, the
-                                // inline metamethod cache must be invalidated.
-                                if (MetamethodCache.IsMetamethodKey(vb))
-                                {
-                                    MetamethodCache.Invalidate();
-                                }
-
-                                valueRef = RKC(ref stackHead, ref constHead, instruction);
-                                LuaTableDiagnostics.RecordSetTableFast();
-                                continue;
-                            }
-                        }
-
-                        vc = ref RKC(ref stackHead, ref constHead, instruction);
-                        var __diagStart = System.Diagnostics.Stopwatch.GetTimestamp();
-                        var __slowResult = SetTableValueSlowPath(table, vb, vc, context, out doRestart);
-                        LuaTableDiagnostics.RecordSetTableSlow(System.Diagnostics.Stopwatch.GetTimestamp() - __diagStart);
-                        if (__slowResult)
+                        if (OpSetTable(context, stack, frameBase, ref constHead, instruction, opCode, iA, out doRestart))
                         {
                             if (doRestart)
                             {
@@ -600,46 +503,19 @@ public static partial class LuaVirtualMachine
 
                         return true;
                     case OpCode.SetUpVal:
-                        Markers.SetUpVal();
-                        context.LuaClosure.SetUpValue(instruction.B, stack.FastGet(iA + frameBase));
+                        OpSetUpVal(context, instruction, stack, iA, frameBase);
                         continue;
                     case OpCode.NewTable:
-                        Markers.NewTable();
-                        stack.GetWithNotifyTop(iA + frameBase) = new LuaTable(
-                            instruction.B,
-                            instruction.C
-                        );
+                        OpNewTable(stack, iA, frameBase, instruction);
                         continue;
                     case OpCode.Self:
-                        Markers.Self();
-
-                        stackHead = ref stack.FastGet(frameBase);
-                        vc = ref RKC(ref stackHead, ref constHead, instruction);
-                        table = Unsafe.Add(ref stackHead, instruction.B);
-
-                        doRestart = false;
-                        if (
-                            (
-                                table.TryReadTable(out luaTable)
-                                && luaTable.TryGetValue(vc, out resultValue)
-                            )
-                            || GetTableValueSlowPath(
-                                table,
-                                vc,
-                                context,
-                                out resultValue,
-                                out doRestart
-                            )
-                        )
+                        if (OpSelf(context, stack, frameBase, ref constHead, instruction, iA, out doRestart))
                         {
                             if (doRestart)
                             {
                                 goto Restart;
                             }
 
-                            Unsafe.Add(ref stackHead, iA) = resultValue;
-                            Unsafe.Add(ref stackHead, iA + 1) = table;
-                            stack.NotifyTop(iA + frameBase + 2);
                             continue;
                         }
 
@@ -651,271 +527,7 @@ public static partial class LuaVirtualMachine
                     case OpCode.Mod:
                     case OpCode.Pow:
                     case OpCode.IDiv:
-                        Markers.Add();
-                        Markers.Sub();
-                        Markers.Mul();
-                        Markers.Div();
-                        Markers.Mod();
-                        Markers.Pow();
-                        Markers.IDiv();
-
-                        stackHead = ref stack.FastGet(frameBase);
-                        vb = ref RKB(ref stackHead, ref constHead, instruction);
-                        vc = ref RKC(ref stackHead, ref constHead, instruction);
-
-                        [MethodImpl(MethodImplOptions.NoInlining)]
-                        static double Mod(double a, double b)
-                        {
-                            var mod = a % b;
-                            if ((b > 0 && mod < 0) || (b < 0 && mod > 0))
-                            {
-                                mod += b;
-                            }
-
-                            return mod;
-                        }
-
-                        [MethodImpl(MethodImplOptions.NoInlining)]
-                        static long IntegerMod(long a, long b)
-                        {
-                            var mod = a % b;
-                            if ((b > 0 && mod < 0) || (b < 0 && mod > 0))
-                            {
-                                mod += b;
-                            }
-
-                            return mod;
-                        }
-
-                        // Floor division for integers (rounds toward -inf, unlike '/').
-                        [MethodImpl(MethodImplOptions.NoInlining)]
-                        static long IntegerFloorDiv(long a, long b)
-                        {
-                            var quotient = a / b;
-                            if ((a % b != 0) && ((a < 0) != (b < 0)))
-                            {
-                                quotient--;
-                            }
-
-                            return quotient;
-                        }
-
-                        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-                        static double ArithmeticOperation(OpCode code, double a, double b)
-                        {
-                            return code switch
-                            {
-                                OpCode.Add => a + b,
-                                OpCode.Sub => a - b,
-                                OpCode.Mul => a * b,
-                                OpCode.Div => a / b,
-                                OpCode.Mod => Mod(a, b),
-                                OpCode.Pow => Math.Pow(a, b),
-                                OpCode.IDiv => Math.Floor(a / b),
-                                _ => 0,
-                            };
-                        }
-
-                        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-                        static Fixed64 Fixed64ArithmeticOperation(OpCode code, Fixed64 a, Fixed64 b)
-                        {
-                            return code switch
-                            {
-                                OpCode.Add => a + b,
-                                OpCode.Sub => a - b,
-                                OpCode.Mul => a * b,
-                                OpCode.Div => a / b,
-                                OpCode.Mod => a % b,
-                                // Fixed64.Pow not supported — falls through to metamethod/error
-                                _ => Fixed64.Zero,
-                            };
-                        }
-
-                        // Number + Number fast path
-                        if (vb.Type == LuaValueType.Number && vc.Type == LuaValueType.Number)
-                        {
-                            Unsafe.Add(ref stackHead, iA) = ArithmeticOperation(
-                                opCode,
-                                vb.UnsafeReadDouble(),
-                                vc.UnsafeReadDouble()
-                            );
-                            stack.NotifyTop(iA + frameBase + 1);
-                            continue;
-                        }
-
-                        // Integer + Integer fast path (Lua 5.3 semantics: + - * % stay
-                        // integer; / and ^ always produce float). Mod by zero falls through
-                        // to the double path (NaN), matching existing behavior. For '//'
-                        // (Luau) a zero divisor yields ±inf/NaN through the float path, and
-                        // long.MinValue // -1 would overflow, so both fall through too.
-                        if (vb.Type == LuaValueType.Integer && vc.Type == LuaValueType.Integer)
-                        {
-                            var a = vb.UnsafeReadLong();
-                            var b = vc.UnsafeReadLong();
-                            var isIntegerPath =
-                                opCode is OpCode.Add or OpCode.Sub or OpCode.Mul
-                                || (
-                                    (opCode is OpCode.Mod or OpCode.IDiv)
-                                    && b != 0
-                                    && (opCode != OpCode.IDiv || !(a == long.MinValue && b == -1))
-                                );
-
-                            if (isIntegerPath)
-                            {
-                                var result = opCode switch
-                                {
-                                    OpCode.Add => a + b,
-                                    OpCode.Sub => a - b,
-                                    OpCode.Mul => a * b,
-                                    OpCode.IDiv => IntegerFloorDiv(a, b),
-                                    _ => IntegerMod(a, b),
-                                };
-                                Unsafe.Add(ref stackHead, iA) = result;
-                                stack.NotifyTop(iA + frameBase + 1);
-                                continue;
-                            }
-                        }
-
-                        // Fixed64 + Fixed64 fast path (same-type only, no cross-type coercion).
-                        // '//' has no Fixed64 form, so it falls through to the double path.
-                        if (
-                            opCode != OpCode.IDiv
-                            && vb.Type == LuaValueType.Fixed64
-                            && vc.Type == LuaValueType.Fixed64
-                        )
-                        {
-                            Unsafe.Add(ref stackHead, iA) = Fixed64ArithmeticOperation(
-                                opCode,
-                                vb.UnsafeReadFixed64(),
-                                vc.UnsafeReadFixed64()
-                            );
-                            stack.NotifyTop(iA + frameBase + 1);
-                            continue;
-                        }
-
-                        // Fixed64Vector3 + Fixed64Vector3 (add/sub only)
-                        if ((opCode == OpCode.Add || opCode == OpCode.Sub)
-                            && vb.Type == LuaValueType.Fixed64Vector3
-                            && vc.Type == LuaValueType.Fixed64Vector3)
-                        {
-                            var vecA = vb.UnsafeReadFixed64Vector3();
-                            var vecB = vc.UnsafeReadFixed64Vector3();
-                            Unsafe.Add(ref stackHead, iA) = opCode == OpCode.Add ? vecA + vecB : vecA - vecB;
-                            stack.NotifyTop(iA + frameBase + 1);
-                            continue;
-                        }
-
-                        // Fixed64Vector3 * Fixed64 scalar, Fixed64Vector3 / Fixed64 scalar
-                        if ((opCode == OpCode.Mul || opCode == OpCode.Div)
-                            && vb.Type == LuaValueType.Fixed64Vector3
-                            && vc.Type == LuaValueType.Fixed64)
-                        {
-                            var vec = vb.UnsafeReadFixed64Vector3();
-                            var scalar = vc.UnsafeReadFixed64();
-                            Unsafe.Add(ref stackHead, iA) = opCode == OpCode.Mul ? vec * scalar : vec / scalar;
-                            stack.NotifyTop(iA + frameBase + 1);
-                            continue;
-                        }
-
-                        // Fixed64 * Fixed64Vector3 (commutative mul only)
-                        if (opCode == OpCode.Mul
-                            && vb.Type == LuaValueType.Fixed64
-                            && vc.Type == LuaValueType.Fixed64Vector3)
-                        {
-                            var scalar = vb.UnsafeReadFixed64();
-                            var vec = vc.UnsafeReadFixed64Vector3();
-                            Unsafe.Add(ref stackHead, iA) = scalar * vec;
-                            stack.NotifyTop(iA + frameBase + 1);
-                            continue;
-                        }
-
-                        // Fixed64Vector3 * Fixed64Vector3 component-wise, Fixed64Vector3 / Fixed64Vector3 component-wise
-                        if ((opCode == OpCode.Mul || opCode == OpCode.Div)
-                            && vb.Type == LuaValueType.Fixed64Vector3
-                            && vc.Type == LuaValueType.Fixed64Vector3)
-                        {
-                            var vecA = vb.UnsafeReadFixed64Vector3();
-                            var vecB = vc.UnsafeReadFixed64Vector3();
-                            Unsafe.Add(ref stackHead, iA) = opCode == OpCode.Mul ? vecA * vecB : vecA / vecB;
-                            stack.NotifyTop(iA + frameBase + 1);
-                            continue;
-                        }
-
-                        // f64Euler + f64Euler (component-wise, wrapped)
-                        if ((opCode == OpCode.Add || opCode == OpCode.Sub)
-                            && vb.Type == LuaValueType.Fixed64Euler
-                            && vc.Type == LuaValueType.Fixed64Euler)
-                        {
-                            var a = vb.UnsafeReadFixed64Euler();
-                            var b = vc.UnsafeReadFixed64Euler();
-                            Unsafe.Add(ref stackHead, iA) = opCode == OpCode.Add ? a + b : a - b;
-                            stack.NotifyTop(iA + frameBase + 1);
-                            continue;
-                        }
-
-                        // f64Euler * f64AngleSingle scalar, f64Euler / f64AngleSingle scalar (wrapped)
-                        if ((opCode == OpCode.Mul || opCode == OpCode.Div)
-                            && vb.Type == LuaValueType.Fixed64Euler
-                            && vc.Type == LuaValueType.Fixed64Angle)
-                        {
-                            var euler = vb.UnsafeReadFixed64Euler();
-                            var scalar = vc.UnsafeReadFixed64Angle();
-                            Unsafe.Add(ref stackHead, iA) = opCode == OpCode.Mul ? euler * scalar : euler / scalar;
-                            stack.NotifyTop(iA + frameBase + 1);
-                            continue;
-                        }
-
-                        // f64AngleSingle * f64Euler (commutative scalar mul)
-                        if (opCode == OpCode.Mul
-                            && vb.Type == LuaValueType.Fixed64Angle
-                            && vc.Type == LuaValueType.Fixed64Euler)
-                        {
-                            var scalar = vb.UnsafeReadFixed64Angle();
-                            var euler = vc.UnsafeReadFixed64Euler();
-                            Unsafe.Add(ref stackHead, iA) = scalar * euler;
-                            stack.NotifyTop(iA + frameBase + 1);
-                            continue;
-                        }
-
-                        // f64AngleSingle + f64AngleSingle (radians-based)
-                        if (
-                            opCode is OpCode.Add or OpCode.Sub or OpCode.Mul or OpCode.Div
-                            && vb.Type == LuaValueType.Fixed64Angle
-                            && vc.Type == LuaValueType.Fixed64Angle
-                        )
-                        {
-                            var a = vb.UnsafeReadFixed64Angle();
-                            var b = vc.UnsafeReadFixed64Angle();
-                            Unsafe.Add(ref stackHead, iA) = opCode switch
-                            {
-                                OpCode.Add => (LuaValue)(a + b),
-                                OpCode.Sub => (LuaValue)(a - b),
-                                OpCode.Mul => (LuaValue)(a * b),
-                                OpCode.Div => (LuaValue)(a / b),
-                                _ => LuaValue.Nil,
-                            };
-                            stack.NotifyTop(iA + frameBase + 1);
-                            continue;
-                        }
-
-                        // Cross-type (Fixed64/Number/Fixed64Angle with different types) is intentionally not supported.
-                        // Skip TryReadDouble coercion so the metamethod fallback produces the error.
-                        var skipCoercion =
-                            ((vb.Type == LuaValueType.Fixed64 || vc.Type == LuaValueType.Fixed64)
-                                && vb.Type != vc.Type)
-                            || ((vb.Type == LuaValueType.Fixed64Angle || vc.Type == LuaValueType.Fixed64Angle)
-                                && vb.Type != vc.Type);
-
-                        if (!skipCoercion && vb.TryReadDouble(out numB) && vc.TryReadDouble(out var numC))
-                        {
-                            Unsafe.Add(ref stackHead, iA) = ArithmeticOperation(opCode, numB, numC);
-                            stack.NotifyTop(iA + frameBase + 1);
-                            continue;
-                        }
-
-                        if (
-                            ExecuteBinaryOperationMetaMethod(vb, vc, context, opCode, out doRestart)
-                        )
+                        if (OpBinaryArith(context, stack, frameBase, ref constHead, instruction, iA, opCode, out doRestart))
                         {
                             if (doRestart)
                             {
@@ -927,64 +539,7 @@ public static partial class LuaVirtualMachine
 
                         return true;
                     case OpCode.Unm:
-                        Markers.Unm();
-                        stackHead = ref stack.FastGet(frameBase);
-                        vb = ref Unsafe.Add(ref stackHead, instruction.B);
-
-                        // Integer unary minus (wraps on long.MinValue, matching Lua 5.3)
-                        if (vb.Type == LuaValueType.Integer)
-                        {
-                            ra1 = iA + frameBase + 1;
-                            Unsafe.Add(ref stackHead, iA) = -vb.UnsafeReadLong();
-                            stack.NotifyTop(ra1);
-                            continue;
-                        }
-
-                        // Fixed64 unary minus (must precede TryReadDouble to preserve type)
-                        if (vb.Type == LuaValueType.Fixed64)
-                        {
-                            ra1 = iA + frameBase + 1;
-                            Unsafe.Add(ref stackHead, iA) = -vb.UnsafeReadFixed64();
-                            stack.NotifyTop(ra1);
-                            continue;
-                        }
-
-                        // Fixed64Vector3 unary minus (must precede TryReadDouble)
-                        if (vb.Type == LuaValueType.Fixed64Vector3)
-                        {
-                            ra1 = iA + frameBase + 1;
-                            Unsafe.Add(ref stackHead, iA) = -vb.UnsafeReadFixed64Vector3();
-                            stack.NotifyTop(ra1);
-                            continue;
-                        }
-
-                        // f64Euler unary minus (component negation, wrapped)
-                        if (vb.Type == LuaValueType.Fixed64Euler)
-                        {
-                            ra1 = iA + frameBase + 1;
-                            Unsafe.Add(ref stackHead, iA) = -vb.UnsafeReadFixed64Euler();
-                            stack.NotifyTop(ra1);
-                            continue;
-                        }
-
-                        // f64AngleSingle unary minus
-                        if (vb.Type == LuaValueType.Fixed64Angle)
-                        {
-                            ra1 = iA + frameBase + 1;
-                            Unsafe.Add(ref stackHead, iA) = -vb.UnsafeReadFixed64Angle();
-                            stack.NotifyTop(ra1);
-                            continue;
-                        }
-
-                        if (vb.TryReadDouble(out numB))
-                        {
-                            ra1 = iA + frameBase + 1;
-                            Unsafe.Add(ref stackHead, iA) = -numB;
-                            stack.NotifyTop(ra1);
-                            continue;
-                        }
-
-                        if (ExecuteUnaryOperationMetaMethod(vb, context, OpCode.Unm, out doRestart))
+                        if (OpUnaryArith(context, stack, frameBase, instruction, iA, out doRestart))
                         {
                             if (doRestart)
                             {
@@ -996,27 +551,10 @@ public static partial class LuaVirtualMachine
 
                         return true;
                     case OpCode.Not:
-                        Markers.Not();
-                        stackHead = ref stack.FastGet(frameBase);
-                        Unsafe.Add(ref stackHead, iA) = !Unsafe
-                            .Add(ref stackHead, instruction.B)
-                            .ToBoolean();
-                        stack.NotifyTop(iA + frameBase + 1);
+                        OpNot(stack, frameBase, iA, instruction);
                         continue;
                     case OpCode.Len:
-                        Markers.Len();
-                        stackHead = ref stack.FastGet(frameBase);
-                        vb = ref Unsafe.Add(ref stackHead, instruction.B);
-
-                        if (vb.TryReadString(out var str))
-                        {
-                            ra1 = iA + frameBase + 1;
-                            Unsafe.Add(ref stackHead, iA) = str.Length;
-                            stack.NotifyTop(ra1);
-                            continue;
-                        }
-
-                        if (ExecuteUnaryOperationMetaMethod(vb, context, OpCode.Len, out doRestart))
+                        if (OpLen(context, stack, frameBase, instruction, iA, out doRestart))
                         {
                             if (doRestart)
                             {
@@ -1037,203 +575,43 @@ public static partial class LuaVirtualMachine
 
                         return true;
                     case OpCode.Jmp:
-                        Markers.Jmp();
-
-                        context.Pc += instruction.SBx;
-                        if (iA != 0)
-                        {
-                            context.State.CloseUpValues(frameBase + iA - 1);
-                        }
-
-                        context.ThrowIfCancellationRequested();
+                        OpJmp(context, instruction, iA, frameBase);
                         continue;
                     case OpCode.Eq:
-                        Markers.Eq();
-
-                        stackHead = ref stack.Get(frameBase);
-                        vb = ref RKB(ref stackHead, ref constHead, instruction);
-                        vc = ref RKC(ref stackHead, ref constHead, instruction);
-                        if (vb == vc)
+                        if (OpEq(context, stack, frameBase, ref constHead, instruction, iA, out doRestart))
                         {
-                            if (iA != 1)
+                            if (doRestart)
                             {
-                                context.Pc++;
+                                goto Restart;
                             }
 
                             continue;
                         }
 
-                        // Lua 5.2 semantics: __eq is only consulted when both operands are
-                        // the same kind (table or userdata) and at least one carries a
-                        // metatable. Mixed-type and primitive comparisons are never equal via
-                        // a metamethod, so resolve them directly and skip the probe.
-                        if (
-                            vb.Type == vc.Type
-                            && vb.Type
-                                is LuaValueType.Table
-                                    or LuaValueType.UserData
-                                    or LuaValueType.UserData2
-                            && (
-                                context.GlobalState.TryGetMetatable(vb, out _)
-                                || context.GlobalState.TryGetMetatable(vc, out _)
-                            )
-                        )
-                        {
-                            if (
-                                ExecuteCompareOperationMetaMethod(
-                                    vb,
-                                    vc,
-                                    context,
-                                    OpCode.Eq,
-                                    out doRestart
-                                )
-                            )
-                            {
-                                if (doRestart)
-                                {
-                                    goto Restart;
-                                }
-
-                                continue;
-                            }
-
-                            return true;
-                        }
-
-                        if (iA == 1)
-                        {
-                            context.Pc++;
-                        }
-
-                        continue;
+                        return true;
                     case OpCode.Lt:
                     case OpCode.Le:
-                        Markers.Lt();
-                        Markers.Le();
-
-                        stackHead = ref stack.Get(frameBase);
-                        vb = ref RKB(ref stackHead, ref constHead, instruction);
-                        vc = ref RKC(ref stackHead, ref constHead, instruction);
-
-                        // Integer comparison fast path (no double round-trip).
-                        if (vb.Type == LuaValueType.Integer && vc.Type == LuaValueType.Integer)
+                        if (OpBinaryCmp(context, stack, frameBase, ref constHead, instruction, opCode, iA, out doRestart))
                         {
-                            var compareResult = opCode == OpCode.Lt
-                                ? vb.UnsafeReadLong() < vc.UnsafeReadLong()
-                                : vb.UnsafeReadLong() <= vc.UnsafeReadLong();
-                            if (compareResult != (iA == 1))
+                            if (doRestart)
                             {
-                                context.Pc++;
+                                goto Restart;
                             }
 
                             continue;
                         }
 
-                        if (vb.TryReadNumber(out numB) && vc.TryReadNumber(out numC))
-                        {
-                            var compareResult = opCode == OpCode.Lt ? numB < numC : numB <= numC;
-                            if (compareResult != (iA == 1))
-                            {
-                                context.Pc++;
-                            }
-
-                            continue;
-                        }
-
-                        // Fixed64 comparison (TryReadFixed64 converts Number → Fixed64)
-                        if (vb.TryReadFixed64(out var f64B) && vc.TryReadFixed64(out var f64C))
-                        {
-                            var compareResult = opCode == OpCode.Lt ? f64B < f64C : f64B <= f64C;
-                            if (compareResult != (iA == 1))
-                            {
-                                context.Pc++;
-                            }
-
-                            continue;
-                        }
-
-                        // f64AngleSingle comparison
-                        if (vb.TryReadFixed64Angle(out var angB) && vc.TryReadFixed64Angle(out var angC))
-                        {
-                            var compareResult = opCode == OpCode.Lt ? angB < angC : angB <= angC;
-                            if (compareResult != (iA == 1))
-                            {
-                                context.Pc++;
-                            }
-
-                            continue;
-                        }
-
-                        if (vb.TryReadString(out var strB) && vc.TryReadString(out var strC))
-                        {
-                            var c = StringComparer.Ordinal.Compare(strB, strC);
-                            var compareResult = opCode == OpCode.Lt ? c < 0 : c <= 0;
-                            if (compareResult != (iA == 1))
-                            {
-                                context.Pc++;
-                            }
-
-                            continue;
-                        }
-
-                        if (
-                            context.GlobalState.TryGetMetatable(vb, out _)
-                            || context.GlobalState.TryGetMetatable(vc, out _)
-                        )
-                        {
-                            if (
-                                ExecuteCompareOperationMetaMethod(
-                                    vb,
-                                    vc,
-                                    context,
-                                    opCode,
-                                    out doRestart
-                                )
-                            )
-                            {
-                                if (doRestart)
-                                {
-                                    goto Restart;
-                                }
-
-                                continue;
-                            }
-
-                            return true;
-                        }
-
-                        // Neither operand carries a metatable that could provide __lt/__le,
-                        // so the comparison is invalid — raise the same error the metamethod
-                        // path would have produced.
-                        LuaRuntimeException.AttemptInvalidOperation(
-                            GetstateWithCurrentPc(context),
-                            "compare",
-                            vb,
-                            vc
-                        );
                         return true;
+                    case OpCode.JmpIfEqK:
+                    case OpCode.JmpIfNeK:
+                        OpJmpIf(context, ref instructionsHead, stack, iA, frameBase, ref constHead, opCode, instruction);
+                        continue;
                     case OpCode.Test:
-                        Markers.Test();
-                        if (stack.Get(iA + frameBase).ToBoolean() != (instruction.C == 1))
-                        {
-                            context.Pc++;
-                        }
-
+                        OpTest(context, stack, iA, frameBase, instruction);
                         continue;
                     case OpCode.TestSet:
-                        Markers.TestSet();
-                        vb = ref stack.Get(instruction.B + frameBase);
-                        if (vb.ToBoolean() != (instruction.C == 1))
-                        {
-                            context.Pc++;
-                        }
-                        else
-                        {
-                            stack.GetWithNotifyTop(iA + frameBase) = vb;
-                        }
-
+                        OpTestSet(context, stack, instruction, frameBase, iA);
                         continue;
-
                     case OpCode.Call:
                         Markers.Call();
                         if (Call(context, out doRestart))
@@ -1275,98 +653,11 @@ public static partial class LuaVirtualMachine
 
                         goto End;
                     case OpCode.ForLoop:
-                        Markers.ForLoop();
-
-                        ref var indexRef = ref stack.Get(iA + frameBase);
-
-                        // Integer fast path. ForPrep guarantees all control slots share a
-                        // type, so an Integer index implies Integer limit and step.
-                        if (indexRef.Type == LuaValueType.Integer)
-                        {
-                            var intLimit = Unsafe.Add(ref indexRef, 1).UnsafeReadLong();
-                            var intStep = Unsafe.Add(ref indexRef, 2).UnsafeReadLong();
-                            var intIndex = indexRef.UnsafeReadLong() + intStep;
-
-                            if (intStep >= 0 ? intIndex <= intLimit : intLimit <= intIndex)
-                            {
-                                context.Pc += instruction.SBx;
-                                indexRef = intIndex;
-                                Unsafe.Add(ref indexRef, 3) = intIndex;
-                                stack.NotifyTop(iA + frameBase + 4);
-                                context.ThrowIfCancellationRequested();
-                                continue;
-                            }
-
-                            stack.NotifyTop(iA + frameBase + 1);
-                            continue;
-                        }
-
-                        var limit = Unsafe.Add(ref indexRef, 1).UnsafeReadDouble();
-                        var step = Unsafe.Add(ref indexRef, 2).UnsafeReadDouble();
-                        var index = indexRef.UnsafeReadDouble() + step;
-
-                        if (step >= 0 ? index <= limit : limit <= index)
-                        {
-                            context.Pc += instruction.SBx;
-                            indexRef = index;
-                            Unsafe.Add(ref indexRef, 3) = index;
-                            stack.NotifyTop(iA + frameBase + 4);
-                            context.ThrowIfCancellationRequested();
-                            continue;
-                        }
-
-                        stack.NotifyTop(iA + frameBase + 1);
+                        OpForLoop(context, stack, iA, frameBase, instruction);
                         continue;
                     case OpCode.ForPrep:
-                        Markers.ForPrep();
-                        indexRef = ref stack.Get(iA + frameBase);
-
-                        // Integer fast path: all three control values are already integers,
-                        // so keep them Integer and iterate with long arithmetic (the loop
-                        // variable stays an integer; no double round-trip).
-                        if (
-                            indexRef.Type == LuaValueType.Integer
-                            && Unsafe.Add(ref indexRef, 1).Type == LuaValueType.Integer
-                            && Unsafe.Add(ref indexRef, 2).Type == LuaValueType.Integer
-                        )
-                        {
-                            indexRef =
-                                indexRef.UnsafeReadLong()
-                                - Unsafe.Add(ref indexRef, 2).UnsafeReadLong();
-                            stack.NotifyTop(iA + frameBase + 1);
-                            context.Pc += instruction.SBx;
-                            continue;
-                        }
-
-                        if (!indexRef.TryReadDouble(out var init))
-                        {
-                            ThrowLuaRuntimeException(
-                                context,
-                                "'for' initial value must be a number"
-                            );
+                        if (OpForPrep(context, stack, iA, frameBase, instruction))
                             return true;
-                        }
-
-                        if (!LuaValue.TryReadOrSetDouble(ref Unsafe.Add(ref indexRef, 1), out var limitValue))
-                        {
-                            ThrowLuaRuntimeException(context, "'for' limit must be a number");
-                            return true;
-                        }
-
-                        if (!LuaValue.TryReadOrSetDouble(ref Unsafe.Add(ref indexRef, 2), out step))
-                        {
-                            ThrowLuaRuntimeException(context, "'for' step must be a number");
-                            return true;
-                        }
-
-                        indexRef = init - step;
-                        // Normalize the control slots to Number (double) so ForLoop's
-                        // UnsafeReadDouble fast path works even when the bounds were
-                        // Integer literals (e.g. `for i = 1, #t`).
-                        Unsafe.Add(ref indexRef, 1) = limitValue;
-                        Unsafe.Add(ref indexRef, 2) = step;
-                        stack.NotifyTop(iA + frameBase + 1);
-                        context.Pc += instruction.SBx;
                         continue;
                     case OpCode.TForCall:
                         Markers.TForCall();
@@ -1469,6 +760,981 @@ public static partial class LuaVirtualMachine
             context.PopOnTopCallStackFrames();
             throw;
         }
+    }
+
+    private static bool OpForPrep(VirtualMachineExecutionContext context, LuaStack stack, int iA, int frameBase,
+        Instruction instruction)
+    {
+        Markers.ForPrep();
+        ref var indexRef = ref stack.Get(iA + frameBase);
+
+        // Integer fast path: all three control values are already integers,
+        // so keep them Integer and iterate with long arithmetic (the loop
+        // variable stays an integer; no double round-trip).
+        if (
+            indexRef.Type == LuaValueType.Integer
+            && Unsafe.Add(ref indexRef, 1).Type == LuaValueType.Integer
+            && Unsafe.Add(ref indexRef, 2).Type == LuaValueType.Integer
+        )
+        {
+            indexRef =
+                indexRef.UnsafeReadLong()
+                - Unsafe.Add(ref indexRef, 2).UnsafeReadLong();
+            stack.NotifyTop(iA + frameBase + 1);
+            context.Pc += instruction.SBx;
+            return false;
+        }
+
+        if (!indexRef.TryReadDouble(out var init))
+        {
+            ThrowLuaRuntimeException(
+                context,
+                "'for' initial value must be a number"
+            );
+            return true;
+        }
+
+        if (!LuaValue.TryReadOrSetDouble(ref Unsafe.Add(ref indexRef, 1), out var limitValue))
+        {
+            ThrowLuaRuntimeException(context, "'for' limit must be a number");
+            return true;
+        }
+
+        if (!LuaValue.TryReadOrSetDouble(ref Unsafe.Add(ref indexRef, 2), out var step))
+        {
+            ThrowLuaRuntimeException(context, "'for' step must be a number");
+            return true;
+        }
+
+        indexRef = init - step;
+        // Normalize the control slots to Number (double) so ForLoop's
+        // UnsafeReadDouble fast path works even when the bounds were
+        // Integer literals (e.g. `for i = 1, #t`).
+        Unsafe.Add(ref indexRef, 1) = limitValue;
+        Unsafe.Add(ref indexRef, 2) = step;
+        stack.NotifyTop(iA + frameBase + 1);
+        context.Pc += instruction.SBx;
+        return false;
+    }
+
+    private static void OpForLoop(VirtualMachineExecutionContext context, LuaStack stack, int iA, int frameBase,
+        Instruction instruction)
+    {
+        Markers.ForLoop();
+
+        ref var indexRef = ref stack.Get(iA + frameBase);
+
+        // Integer fast path. ForPrep guarantees all control slots share a
+        // type, so an Integer index implies Integer limit and step.
+        if (indexRef.Type == LuaValueType.Integer)
+        {
+            var intLimit = Unsafe.Add(ref indexRef, 1).UnsafeReadLong();
+            var intStep = Unsafe.Add(ref indexRef, 2).UnsafeReadLong();
+            var intIndex = indexRef.UnsafeReadLong() + intStep;
+
+            if (intStep >= 0 ? intIndex <= intLimit : intLimit <= intIndex)
+            {
+                context.Pc += instruction.SBx;
+                indexRef = intIndex;
+                Unsafe.Add(ref indexRef, 3) = intIndex;
+                stack.NotifyTop(iA + frameBase + 4);
+                context.ThrowIfCancellationRequested();
+                return;
+            }
+
+            stack.NotifyTop(iA + frameBase + 1);
+            return;
+        }
+
+        var limit = Unsafe.Add(ref indexRef, 1).UnsafeReadDouble();
+        var step = Unsafe.Add(ref indexRef, 2).UnsafeReadDouble();
+        var index = indexRef.UnsafeReadDouble() + step;
+
+        if (step >= 0 ? index <= limit : limit <= index)
+        {
+            context.Pc += instruction.SBx;
+            indexRef = index;
+            Unsafe.Add(ref indexRef, 3) = index;
+            stack.NotifyTop(iA + frameBase + 4);
+            context.ThrowIfCancellationRequested();
+            return;
+        }
+
+        stack.NotifyTop(iA + frameBase + 1);
+        return;
+    }
+
+    private static void OpTestSet(VirtualMachineExecutionContext context, LuaStack stack, Instruction instruction,
+        int frameBase, int iA)
+    {
+        Markers.TestSet();
+        ref readonly var vb = ref stack.Get(instruction.B + frameBase);
+        if (vb.ToBoolean() != (instruction.C == 1))
+        {
+            context.Pc++;
+        }
+        else
+        {
+            stack.GetWithNotifyTop(iA + frameBase) = vb;
+        }
+
+        return;
+    }
+
+    private static void OpTest(VirtualMachineExecutionContext context, LuaStack stack, int iA, int frameBase,
+        Instruction instruction)
+    {
+        Markers.Test();
+        if (stack.Get(iA + frameBase).ToBoolean() != (instruction.C == 1))
+        {
+            context.Pc++;
+        }
+
+        return;
+    }
+
+    private static void OpJmpIf(
+        VirtualMachineExecutionContext context,
+        ref Instruction instructionsHead,
+        LuaStack stack,
+        int iA,
+        int frameBase,
+        ref LuaValue constHead,
+        OpCode opCode,
+        Instruction instruction)
+    {
+        // Fused compare+branch for `x == <const>` / `x ~= <const>`: the
+        // constant side's type (nil/bool/number/string, enforced at compile
+        // time in EncodeComparison) means __eq is categorically unreachable
+        // here regardless of the register's runtime type, so this is always a
+        // raw LuaValue equality check -- no metamethod probe needed, unlike the
+        // general Eq case above.
+        //
+        // instruction.SBx was fixed up (FixJump) against this instruction's OWN
+        // pc, but consuming the following ExtraArg advances context.Pc by 1
+        // first -- capture the main instruction's pc before that so the branch
+        // target math matches what FixJump actually computed.
+        var jmpIfKPc = context.Pc;
+        var jmpIfKExtra = Unsafe.Add(ref instructionsHead, ++context.Pc).Ax;
+        ref readonly var vb = ref stack.Get(iA + frameBase);
+        // Low 8 bits: constant-pool index (guaranteed <= MaxIndexRK, 8 bits, by
+        // EncodeComparison -- the fast path only fires when the constant already
+        // fit an RK operand). High bits: an optional upvalue-close level, packed
+        // in here (instead of this instruction's own A, which holds the compare
+        // register) by PatchClose when this jump is used as a `break`/`goto`
+        // that exits a scope with captured locals -- see PatchClose.
+        ref readonly var vc = ref Unsafe.Add(ref constHead, jmpIfKExtra & 0xFF);
+        if ((vb == vc) == (opCode == OpCode.JmpIfEqK))
+        {
+            // Only close on the branch actually being taken -- unlike plain
+            // Jmp (always taken), this compare only exits the enclosing scope
+            // when it fires; closing unconditionally would freeze captured
+            // locals for a scope that's still active on the fall-through path.
+            if (jmpIfKExtra >> 8 is var closeLevel and not 0)
+            {
+                context.State.CloseUpValues(frameBase + closeLevel - 1);
+            }
+
+            context.Pc = jmpIfKPc + instruction.SBx;
+        }
+    }
+
+    private static bool OpBinaryCmp(VirtualMachineExecutionContext context, LuaStack stack, int frameBase,
+        ref LuaValue constHead, Instruction instruction, OpCode opCode, int iA, out bool doRestart)
+    {
+        Markers.Lt();
+        Markers.Le();
+        doRestart = false;
+
+        ref var stackHead = ref stack.Get(frameBase);
+        ref readonly var vb = ref RKB(ref stackHead, ref constHead, instruction);
+        ref readonly var vc = ref RKC(ref stackHead, ref constHead, instruction);
+
+        // Integer comparison fast path (no double round-trip).
+        if (vb.Type == LuaValueType.Integer && vc.Type == LuaValueType.Integer)
+        {
+            var compareResult = opCode == OpCode.Lt
+                ? vb.UnsafeReadLong() < vc.UnsafeReadLong()
+                : vb.UnsafeReadLong() <= vc.UnsafeReadLong();
+            if (compareResult != (iA == 1))
+            {
+                context.Pc++;
+            }
+
+            return true;
+        }
+
+        if (vb.TryReadNumber(out var numB) && vc.TryReadNumber(out var numC))
+        {
+            var compareResult = opCode == OpCode.Lt ? numB < numC : numB <= numC;
+            if (compareResult != (iA == 1))
+            {
+                context.Pc++;
+            }
+
+            return true;
+        }
+
+        // Fixed64 comparison (TryReadFixed64 converts Number → Fixed64)
+        if (vb.TryReadFixed64(out var f64B) && vc.TryReadFixed64(out var f64C))
+        {
+            var compareResult = opCode == OpCode.Lt ? f64B < f64C : f64B <= f64C;
+            if (compareResult != (iA == 1))
+            {
+                context.Pc++;
+            }
+
+            return true;
+        }
+
+        // f64AngleSingle comparison
+        if (vb.TryReadFixed64Angle(out var angB) && vc.TryReadFixed64Angle(out var angC))
+        {
+            var compareResult = opCode == OpCode.Lt ? angB < angC : angB <= angC;
+            if (compareResult != (iA == 1))
+            {
+                context.Pc++;
+            }
+
+            return true;
+        }
+
+        if (vb.TryReadString(out var strB) && vc.TryReadString(out var strC))
+        {
+            var c = StringComparer.Ordinal.Compare(strB, strC);
+            var compareResult = opCode == OpCode.Lt ? c < 0 : c <= 0;
+            if (compareResult != (iA == 1))
+            {
+                context.Pc++;
+            }
+
+            return true;
+        }
+
+        if (
+            context.GlobalState.TryGetMetatable(vb, out _)
+            || context.GlobalState.TryGetMetatable(vc, out _)
+        )
+        {
+            if (
+                ExecuteCompareOperationMetaMethod(
+                    vb,
+                    vc,
+                    context,
+                    opCode,
+                    out doRestart
+                )
+            )
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        // Neither operand carries a metatable that could provide __lt/__le,
+        // so the comparison is invalid — raise the same error the metamethod
+        // path would have produced.
+        LuaRuntimeException.AttemptInvalidOperation(
+            GetstateWithCurrentPc(context),
+            "compare",
+            vb,
+            vc
+        );
+        return false;
+    }
+
+    private static bool OpEq(VirtualMachineExecutionContext context, LuaStack stack, int frameBase, ref LuaValue constHead,
+        Instruction instruction, int iA, out bool doRestart)
+    {
+        doRestart = false;
+        
+        Markers.Eq();
+
+        ref var stackHead = ref stack.Get(frameBase);
+        ref readonly var vb = ref RKB(ref stackHead, ref constHead, instruction);
+        ref readonly var vc = ref RKC(ref stackHead, ref constHead, instruction);
+        if (vb == vc)
+        {
+            if (iA != 1)
+            {
+                context.Pc++;
+            }
+
+            doRestart = false;
+            return true;
+        }
+
+        // Lua 5.2 semantics: __eq is only consulted when both operands are
+        // the same kind (table or userdata) and at least one carries a
+        // metatable. Mixed-type and primitive comparisons are never equal via
+        // a metamethod, so resolve them directly and skip the probe.
+        if (
+            vb.Type == vc.Type
+            && vb.Type
+                is LuaValueType.Table
+                or LuaValueType.UserData
+                or LuaValueType.UserData2
+            && (
+                context.GlobalState.TryGetMetatable(vb, out _)
+                || context.GlobalState.TryGetMetatable(vc, out _)
+            )
+        )
+        {
+            if (
+                ExecuteCompareOperationMetaMethod(
+                    vb,
+                    vc,
+                    context,
+                    OpCode.Eq,
+                    out doRestart
+                )
+            )
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        if (iA == 1)
+        {
+            context.Pc++;
+        }
+
+        // Not equal and not metamethod-eligible (mismatched primitive types, e.g.) -- handled
+        // synchronously, same as the vb==vc case above; must return true (continue the loop),
+        // not false (which the caller reads as "suspend/restart needed", incorrectly halting
+        // MoveNext on every unequal primitive comparison).
+        return true;
+    }
+
+    private static void OpJmp(VirtualMachineExecutionContext context, Instruction instruction, int iA, int frameBase)
+    {
+        Markers.Jmp();
+
+        context.Pc += instruction.SBx;
+        if (iA != 0)
+        {
+            context.State.CloseUpValues(frameBase + iA - 1);
+        }
+
+        context.ThrowIfCancellationRequested();
+        return;
+    }
+
+    private static bool OpLen(VirtualMachineExecutionContext context, LuaStack stack, int frameBase,
+        Instruction instruction, int iA, out bool doRestart)
+    {
+        Markers.Len();
+        ref var stackHead = ref stack.FastGet(frameBase);
+        ref readonly var vb = ref Unsafe.Add(ref stackHead, instruction.B);
+
+        if (vb.TryReadString(out var str))
+        {
+            var ra1 = iA + frameBase + 1;
+            Unsafe.Add(ref stackHead, iA) = str.Length;
+            stack.NotifyTop(ra1);
+            doRestart = false;
+            return true;
+        }
+
+        if (ExecuteUnaryOperationMetaMethod(vb, context, OpCode.Len, out doRestart))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool OpSelf(VirtualMachineExecutionContext context, LuaStack stack, int frameBase, ref LuaValue constHead,
+        Instruction instruction, int iA, out bool doRestart)
+    {
+        doRestart = false;
+        Markers.Self();
+
+        ref var stackHead = ref stack.FastGet(frameBase);
+        ref readonly var vc = ref RKC(ref stackHead, ref constHead, instruction);
+        LuaValue table = Unsafe.Add(ref stackHead, instruction.B);
+
+        doRestart = false;
+        if (
+            (
+                table.TryReadTable(out var luaTable)
+                && luaTable.TryGetValue(vc, out var resultValue)
+            )
+            || GetTableValueSlowPath(
+                table,
+                vc,
+                context,
+                out resultValue,
+                out doRestart
+            )
+        )
+        {
+            if (doRestart)
+            {
+                return true;
+            }
+
+            Unsafe.Add(ref stackHead, iA) = resultValue;
+            Unsafe.Add(ref stackHead, iA + 1) = table;
+            stack.NotifyTop(iA + frameBase + 2);
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool OpGetTable(VirtualMachineExecutionContext context, LuaStack stack, int frameBase,
+        ref LuaValue constHead, Instruction instruction, out bool doRestart)
+    {
+        Markers.GetTabUp();
+        Markers.GetTable();
+
+        ref var stackHead = ref stack.FastGet(frameBase);
+        ref readonly var vc = ref RKC(ref stackHead, ref constHead, instruction);
+        ref readonly var vb = ref instruction.OpCode == OpCode.GetTable
+            ? ref Unsafe.Add(ref stackHead, instruction.B)
+            : ref context.LuaClosure.GetUpValueRef(instruction.B);
+        doRestart = false;
+        if (
+            (
+                vb.TryReadTable(out var luaTable)
+                && luaTable.TryGetValue(vc, out var resultValue)
+            )
+            || GetTableValueSlowPath(
+                vb,
+                vc,
+                context,
+                out resultValue,
+                out doRestart
+            )
+        )
+        {
+            if (doRestart)
+            {
+                return true;
+            }
+
+            stack.GetWithNotifyTop(instruction.A + frameBase) = resultValue;
+            return true;
+        }
+
+        return false;
+    }
+
+    private static void OpMove(LuaStack stack, int frameBase, int iA, Instruction instruction)
+    {
+        Markers.Move();
+        ref var stackHead = ref stack.FastGet(frameBase);
+        Unsafe.Add(ref stackHead, iA) = Unsafe.Add(ref stackHead, instruction.B);
+        stack.NotifyTop(iA + frameBase + 1);
+        return;
+    }
+
+    private static void OpLoadK(LuaStack stack, int iA, int frameBase, ref LuaValue constHead, Instruction instruction)
+    {
+        Markers.LoadK();
+        stack.GetWithNotifyTop(iA + frameBase) = Unsafe.Add(
+            ref constHead,
+            instruction.Bx
+        );
+        return;
+    }
+
+    private static void OpLoadKX(VirtualMachineExecutionContext context, LuaStack stack, int iA, int frameBase,
+        ref LuaValue constHead, ref Instruction instructionsHead)
+    {
+        Markers.LoadKX();
+        stack.GetWithNotifyTop(iA + frameBase) = Unsafe.Add(
+            ref constHead,
+            Unsafe.Add(ref instructionsHead, ++context.Pc).Ax
+        );
+    }
+
+    private static void OpLoadBool(VirtualMachineExecutionContext context, LuaStack stack, int iA, int frameBase,
+        Instruction instruction)
+    {
+        Markers.LoadBool();
+        stack.GetWithNotifyTop(iA + frameBase) = instruction.B != 0;
+        if (instruction.C != 0)
+        {
+            context.Pc++;
+        }
+
+        return;
+    }
+
+    private static void OpLoadBuiltin(VirtualMachineExecutionContext context, LuaStack stack, int iA, int frameBase,
+        Instruction instruction)
+    {
+        Markers.LoadBuiltin();
+        stack.GetWithNotifyTop(iA + frameBase) = context.GlobalState.GetBuiltin(
+            instruction.Bx
+        );
+        return;
+    }
+
+    private static void OpLoadNil(int iA, int frameBase, Instruction instruction, LuaStack stack)
+    {
+        Markers.LoadNil();
+        var ra1 = iA + frameBase + 1;
+        var iB = instruction.B;
+        ref var stackHead = ref stack.FastGet(ra1 - 1);
+        for (var i = 0; i <= iB; i++)
+        {
+            Unsafe.Add(ref stackHead, i) = default;
+        }
+
+        stack.NotifyTop(ra1 + iB);
+        return;
+    }
+
+    private static void OpGetUpVal(VirtualMachineExecutionContext context, LuaStack stack, int iA, int frameBase,
+        Instruction instruction)
+    {
+        Markers.GetUpVal();
+        stack.GetWithNotifyTop(iA + frameBase) = context.LuaClosure.GetUpValue(
+            instruction.B
+        );
+        return;
+    }
+
+    private static bool OpSetTable(VirtualMachineExecutionContext context, LuaStack stack, int frameBase,
+        ref LuaValue constHead, Instruction instruction, OpCode opCode, int iA, out bool doRestart)
+    {
+        doRestart = false;
+        
+        Markers.SetTabUp();
+        Markers.SetTable();
+
+        ref var stackHead = ref stack.FastGet(frameBase);
+        ref readonly var vb = ref RKB(ref stackHead, ref constHead, instruction);
+        if (vb.TryReadNumber(out var numB))
+        {
+            if (double.IsNaN(numB))
+            {
+                ThrowLuaRuntimeException(context, "table index is NaN");
+                return false;
+            }
+        }
+
+        var table =
+            opCode == OpCode.SetTabUp
+                ? context.LuaClosure.GetUpValue(iA)
+                : Unsafe.Add(ref stackHead, iA);
+
+        if (table.TryReadTable(out var luaTable))
+        {
+            ref var valueRef = ref luaTable.FindValue(vb);
+            if (
+                !Unsafe.IsNullRef(ref valueRef)
+                && valueRef.Type != LuaValueType.Nil
+            )
+            {
+                // Overwriting a live entry: if it's a metamethod key, the
+                // inline metamethod cache must be invalidated.
+                if (MetamethodCache.IsMetamethodKey(vb))
+                {
+                    MetamethodCache.Invalidate();
+                }
+
+                valueRef = RKC(ref stackHead, ref constHead, instruction);
+                LuaTableDiagnostics.RecordSetTableFast();
+                doRestart = false;
+                return true;
+            }
+        }
+
+        ref readonly var vc = ref RKC(ref stackHead, ref constHead, instruction);
+#if LUA_VM_DIAGNOSTICS
+        var __diagStart = System.Diagnostics.Stopwatch.GetTimestamp();
+#endif
+        var __slowResult = SetTableValueSlowPath(table, vb, vc, context, out doRestart);
+#if LUA_VM_DIAGNOSTICS
+        LuaTableDiagnostics.RecordSetTableSlow(System.Diagnostics.Stopwatch.GetTimestamp() - __diagStart);
+#endif
+        if (__slowResult)
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    private static void OpSetUpVal(VirtualMachineExecutionContext context, Instruction instruction, LuaStack stack, int iA,
+        int frameBase)
+    {
+        Markers.SetUpVal();
+        context.LuaClosure.SetUpValue(instruction.B, stack.FastGet(iA + frameBase));
+        return;
+    }
+
+    private static void OpNewTable(LuaStack stack, int iA, int frameBase, Instruction instruction)
+    {
+        Markers.NewTable();
+        stack.GetWithNotifyTop(iA + frameBase) = new LuaTable(
+            instruction.B,
+            instruction.C
+        );
+        return;
+    }
+
+    private static void OpNot(LuaStack stack, int frameBase, int iA, Instruction instruction)
+    {
+        Markers.Not();
+        ref var stackHead = ref stack.FastGet(frameBase);
+        Unsafe.Add(ref stackHead, iA) = !Unsafe
+            .Add(ref stackHead, instruction.B)
+            .ToBoolean();
+        stack.NotifyTop(iA + frameBase + 1);
+    }
+
+    private static bool OpUnaryArith(VirtualMachineExecutionContext context,
+        LuaStack stack,
+        int frameBase,
+        Instruction instruction,
+        int iA,
+        out bool doRestart)
+    {
+        doRestart = false;
+        
+        Markers.Unm();
+        ref var stackHead = ref stack.FastGet(frameBase);
+        ref var vb = ref Unsafe.Add(ref stackHead, instruction.B);
+
+        // Integer unary minus (wraps on long.MinValue, matching Lua 5.3)
+        if (vb.Type == LuaValueType.Integer)
+        {
+            var ra1 = iA + frameBase + 1;
+            Unsafe.Add(ref stackHead, iA) = -vb.UnsafeReadLong();
+            stack.NotifyTop(ra1);
+            return true;
+        }
+
+        // Fixed64 unary minus (must precede TryReadDouble to preserve type)
+        if (vb.Type == LuaValueType.Fixed64)
+        {
+            var ra1 = iA + frameBase + 1;
+            Unsafe.Add(ref stackHead, iA) = -vb.UnsafeReadFixed64();
+            stack.NotifyTop(ra1);
+            return true;
+        }
+
+        // Fixed64Vector3 unary minus (must precede TryReadDouble)
+        if (vb.Type == LuaValueType.Fixed64Vector3)
+        {
+            var ra1 = iA + frameBase + 1;
+            Unsafe.Add(ref stackHead, iA) = -vb.UnsafeReadFixed64Vector3();
+            stack.NotifyTop(ra1);
+            return true;
+        }
+
+        // f64Euler unary minus (component negation, wrapped)
+        if (vb.Type == LuaValueType.Fixed64Euler)
+        {
+            var ra1 = iA + frameBase + 1;
+            Unsafe.Add(ref stackHead, iA) = -vb.UnsafeReadFixed64Euler();
+            stack.NotifyTop(ra1);
+            return true;
+        }
+
+        // f64AngleSingle unary minus
+        if (vb.Type == LuaValueType.Fixed64Angle)
+        {
+            var ra1 = iA + frameBase + 1;
+            Unsafe.Add(ref stackHead, iA) = -vb.UnsafeReadFixed64Angle();
+            stack.NotifyTop(ra1);
+            return true;
+        }
+
+        if (vb.TryReadDouble(out var numB))
+        {
+            var ra1 = iA + frameBase + 1;
+            Unsafe.Add(ref stackHead, iA) = -numB;
+            stack.NotifyTop(ra1);
+            return true;
+        }
+
+        return ExecuteUnaryOperationMetaMethod(vb, context, OpCode.Unm, out doRestart);
+    }
+
+    private static bool OpBinaryArith(
+        VirtualMachineExecutionContext context,
+        LuaStack stack,
+        int frameBase,
+        ref LuaValue constHead,
+        Instruction instruction,
+        int iA,
+        OpCode opCode,
+        out bool doRestart)
+    {
+        doRestart = false;
+        
+        Markers.Add();
+        Markers.Sub();
+        Markers.Mul();
+        Markers.Div();
+        Markers.Mod();
+        Markers.Pow();
+        Markers.IDiv();
+
+        ref LuaValue stackHead = ref stack.FastGet(frameBase);
+        ref readonly LuaValue vb = ref RKB(ref stackHead, ref constHead, instruction);
+        ref readonly LuaValue vc = ref RKC(ref stackHead, ref constHead, instruction);
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        static double Mod(double a, double b)
+        {
+            var mod = a % b;
+            if ((b > 0 && mod < 0) || (b < 0 && mod > 0))
+            {
+                mod += b;
+            }
+
+            return mod;
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        static long IntegerMod(long a, long b)
+        {
+            var mod = a % b;
+            if ((b > 0 && mod < 0) || (b < 0 && mod > 0))
+            {
+                mod += b;
+            }
+
+            return mod;
+        }
+
+        // Floor division for integers (rounds toward -inf, unlike '/').
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        static long IntegerFloorDiv(long a, long b)
+        {
+            var quotient = a / b;
+            if ((a % b != 0) && ((a < 0) != (b < 0)))
+            {
+                quotient--;
+            }
+
+            return quotient;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        static double ArithmeticOperation(OpCode code, double a, double b)
+        {
+            return code switch
+            {
+                OpCode.Add => a + b,
+                OpCode.Sub => a - b,
+                OpCode.Mul => a * b,
+                OpCode.Div => a / b,
+                OpCode.Mod => Mod(a, b),
+                OpCode.Pow => Math.Pow(a, b),
+                OpCode.IDiv => Math.Floor(a / b),
+                _ => 0,
+            };
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        static Fixed64 Fixed64ArithmeticOperation(OpCode code, Fixed64 a, Fixed64 b)
+        {
+            return code switch
+            {
+                OpCode.Add => a + b,
+                OpCode.Sub => a - b,
+                OpCode.Mul => a * b,
+                OpCode.Div => a / b,
+                OpCode.Mod => a % b,
+                // Fixed64.Pow not supported — falls through to metamethod/error
+                _ => Fixed64.Zero,
+            };
+        }
+
+        // Number + Number fast path
+        if (vb.Type == LuaValueType.Number && vc.Type == LuaValueType.Number)
+        {
+            Unsafe.Add(ref stackHead, iA) = ArithmeticOperation(
+                opCode,
+                vb.UnsafeReadDouble(),
+                vc.UnsafeReadDouble()
+            );
+            stack.NotifyTop(iA + frameBase + 1);
+            return true;
+        }
+
+        // Integer + Integer fast path (Lua 5.3 semantics: + - * % stay
+        // integer; / and ^ always produce float). Mod by zero falls through
+        // to the double path (NaN), matching existing behavior. For '//'
+        // (Luau) a zero divisor yields ±inf/NaN through the float path, and
+        // long.MinValue // -1 would overflow, so both fall through too.
+        if (vb.Type == LuaValueType.Integer && vc.Type == LuaValueType.Integer)
+        {
+            var a = vb.UnsafeReadLong();
+            var b = vc.UnsafeReadLong();
+            var isIntegerPath =
+                opCode is OpCode.Add or OpCode.Sub or OpCode.Mul
+                || (
+                    (opCode is OpCode.Mod or OpCode.IDiv)
+                    && b != 0
+                    && (opCode != OpCode.IDiv || !(a == long.MinValue && b == -1))
+                );
+
+            if (isIntegerPath)
+            {
+                var result = opCode switch
+                {
+                    OpCode.Add => a + b,
+                    OpCode.Sub => a - b,
+                    OpCode.Mul => a * b,
+                    OpCode.IDiv => IntegerFloorDiv(a, b),
+                    _ => IntegerMod(a, b),
+                };
+                Unsafe.Add(ref stackHead, iA) = result;
+                stack.NotifyTop(iA + frameBase + 1);
+                return true;
+            }
+        }
+
+        // Fixed64 + Fixed64 fast path (same-type only, no cross-type coercion).
+        // '//' has no Fixed64 form, so it falls through to the double path.
+        if (
+            opCode != OpCode.IDiv
+            && vb.Type == LuaValueType.Fixed64
+            && vc.Type == LuaValueType.Fixed64
+        )
+        {
+            Unsafe.Add(ref stackHead, iA) = Fixed64ArithmeticOperation(
+                opCode,
+                vb.UnsafeReadFixed64(),
+                vc.UnsafeReadFixed64()
+            );
+            stack.NotifyTop(iA + frameBase + 1);
+            return true;
+        }
+
+        // Fixed64Vector3 + Fixed64Vector3 (add/sub only)
+        if ((opCode == OpCode.Add || opCode == OpCode.Sub)
+            && vb.Type == LuaValueType.Fixed64Vector3
+            && vc.Type == LuaValueType.Fixed64Vector3)
+        {
+            var vecA = vb.UnsafeReadFixed64Vector3();
+            var vecB = vc.UnsafeReadFixed64Vector3();
+            Unsafe.Add(ref stackHead, iA) = opCode == OpCode.Add ? vecA + vecB : vecA - vecB;
+            stack.NotifyTop(iA + frameBase + 1);
+            return true;
+        }
+
+        // Fixed64Vector3 * Fixed64 scalar, Fixed64Vector3 / Fixed64 scalar
+        if ((opCode == OpCode.Mul || opCode == OpCode.Div)
+            && vb.Type == LuaValueType.Fixed64Vector3
+            && vc.Type == LuaValueType.Fixed64)
+        {
+            var vec = vb.UnsafeReadFixed64Vector3();
+            var scalar = vc.UnsafeReadFixed64();
+            Unsafe.Add(ref stackHead, iA) = opCode == OpCode.Mul ? vec * scalar : vec / scalar;
+            stack.NotifyTop(iA + frameBase + 1);
+            return true;
+        }
+
+        // Fixed64 * Fixed64Vector3 (commutative mul only)
+        if (opCode == OpCode.Mul
+            && vb.Type == LuaValueType.Fixed64
+            && vc.Type == LuaValueType.Fixed64Vector3)
+        {
+            var scalar = vb.UnsafeReadFixed64();
+            var vec = vc.UnsafeReadFixed64Vector3();
+            Unsafe.Add(ref stackHead, iA) = scalar * vec;
+            stack.NotifyTop(iA + frameBase + 1);
+            return true;
+        }
+
+        // Fixed64Vector3 * Fixed64Vector3 component-wise, Fixed64Vector3 / Fixed64Vector3 component-wise
+        if ((opCode == OpCode.Mul || opCode == OpCode.Div)
+            && vb.Type == LuaValueType.Fixed64Vector3
+            && vc.Type == LuaValueType.Fixed64Vector3)
+        {
+            var vecA = vb.UnsafeReadFixed64Vector3();
+            var vecB = vc.UnsafeReadFixed64Vector3();
+            Unsafe.Add(ref stackHead, iA) = opCode == OpCode.Mul ? vecA * vecB : vecA / vecB;
+            stack.NotifyTop(iA + frameBase + 1);
+            return true;
+        }
+
+        // f64Euler + f64Euler (component-wise, wrapped)
+        if ((opCode == OpCode.Add || opCode == OpCode.Sub)
+            && vb.Type == LuaValueType.Fixed64Euler
+            && vc.Type == LuaValueType.Fixed64Euler)
+        {
+            var a = vb.UnsafeReadFixed64Euler();
+            var b = vc.UnsafeReadFixed64Euler();
+            Unsafe.Add(ref stackHead, iA) = opCode == OpCode.Add ? a + b : a - b;
+            stack.NotifyTop(iA + frameBase + 1);
+            return true;
+        }
+
+        // f64Euler * f64AngleSingle scalar, f64Euler / f64AngleSingle scalar (wrapped)
+        if ((opCode == OpCode.Mul || opCode == OpCode.Div)
+            && vb.Type == LuaValueType.Fixed64Euler
+            && vc.Type == LuaValueType.Fixed64Angle)
+        {
+            var euler = vb.UnsafeReadFixed64Euler();
+            var scalar = vc.UnsafeReadFixed64Angle();
+            Unsafe.Add(ref stackHead, iA) = opCode == OpCode.Mul ? euler * scalar : euler / scalar;
+            stack.NotifyTop(iA + frameBase + 1);
+            return true;
+        }
+
+        // f64AngleSingle * f64Euler (commutative scalar mul)
+        if (opCode == OpCode.Mul
+            && vb.Type == LuaValueType.Fixed64Angle
+            && vc.Type == LuaValueType.Fixed64Euler)
+        {
+            var scalar = vb.UnsafeReadFixed64Angle();
+            var euler = vc.UnsafeReadFixed64Euler();
+            Unsafe.Add(ref stackHead, iA) = scalar * euler;
+            stack.NotifyTop(iA + frameBase + 1);
+            return true;
+        }
+
+        // f64AngleSingle + f64AngleSingle (radians-based)
+        if (
+            opCode is OpCode.Add or OpCode.Sub or OpCode.Mul or OpCode.Div
+            && vb.Type == LuaValueType.Fixed64Angle
+            && vc.Type == LuaValueType.Fixed64Angle
+        )
+        {
+            var a = vb.UnsafeReadFixed64Angle();
+            var b = vc.UnsafeReadFixed64Angle();
+            Unsafe.Add(ref stackHead, iA) = opCode switch
+            {
+                OpCode.Add => (LuaValue)(a + b),
+                OpCode.Sub => (LuaValue)(a - b),
+                OpCode.Mul => (LuaValue)(a * b),
+                OpCode.Div => (LuaValue)(a / b),
+                _ => LuaValue.Nil,
+            };
+            stack.NotifyTop(iA + frameBase + 1);
+            return true;
+        }
+
+        // Cross-type (Fixed64/Number/Fixed64Angle with different types) is intentionally not supported.
+        // Skip TryReadDouble coercion so the metamethod fallback produces the error.
+        var skipCoercion =
+            ((vb.Type == LuaValueType.Fixed64 || vc.Type == LuaValueType.Fixed64)
+             && vb.Type != vc.Type)
+            || ((vb.Type == LuaValueType.Fixed64Angle || vc.Type == LuaValueType.Fixed64Angle)
+                && vb.Type != vc.Type);
+
+        if (!skipCoercion && vb.TryReadDouble(out var numB) && vc.TryReadDouble(out var numC))
+        {
+            Unsafe.Add(ref stackHead, iA) = ArithmeticOperation(opCode, numB, numC);
+            stack.NotifyTop(iA + frameBase + 1);
+            return true;
+        }
+
+        return ExecuteBinaryOperationMetaMethod(vb, vc, context, opCode, out doRestart);
     }
 
     static void ThrowLuaRuntimeException(VirtualMachineExecutionContext context, string message)
