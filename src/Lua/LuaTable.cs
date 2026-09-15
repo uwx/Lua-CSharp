@@ -96,7 +96,7 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
                     {
                         if (array.Length < index)
                         {
-                            EnsureArrayCapacity(index);
+                            GrowArray(index);
                         }
 
                         array[index - 1] = value;
@@ -284,7 +284,7 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
 
         if (index > array.Length || array[^1].Type != LuaValueType.Nil)
         {
-            EnsureArrayCapacity(array.Length + 1);
+            GrowArray(array.Length + 1);
         }
 
         if (arrayIndex != array.Length - 1)
@@ -446,11 +446,11 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
 
     internal void EnsureArrayCapacity(int newCapacity)
     {
-        if (array.Length >= newCapacity)
-        {
-            return;
-        }
+        if (array.Length < newCapacity) GrowArray(newCapacity);
+    }
 
+    private void GrowArray(int newCapacity)
+    {
         var prevLength = array.Length;
         var newLength = newCapacity <= 8 ? 8 : MathEx.NextPowerOfTwo(newCapacity);
 
@@ -464,6 +464,7 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
             return;
         }
 
+        
         using PooledList<(int, LuaValue)> indexList = new(dict.Count);
 
         // Move some of the elements of the hash part to a newly allocated array
@@ -478,7 +479,7 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
             }
         }
 
-        foreach (var (index, value) in indexList.AsSpan())
+        foreach (var (index, value) in PooledList<(int, LuaValue)>.AsSpan(indexList))
         {
             dict.Remove(index);
             array[index - 1] = value;

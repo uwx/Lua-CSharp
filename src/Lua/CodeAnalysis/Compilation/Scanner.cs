@@ -385,7 +385,7 @@ struct Scanner
                         if (!comment)
                         {
                             var s = Intern(
-                                Buffer.AsSpan().Slice(2 + sep, Buffer.Length - (4 + (2 * sep)))
+                                PooledList<char>.AsSpan(Buffer).Slice(2 + sep, Buffer.Length - (4 + (2 * sep)))
                             );
                             Buffer.Clear();
                             return s;
@@ -535,7 +535,7 @@ struct Scanner
 
                 if (
                     !long.TryParse(
-                        Buffer.AsSpan(),
+                        PooledList<char>.AsSpan(Buffer),
                         NumberStyles.Float,
                         CultureInfo.InvariantCulture,
                         out var e
@@ -616,7 +616,7 @@ struct Scanner
             _ = ReadDigits();
         }
 
-        var strSpan = Buffer.AsSpan();
+        var strSpan = PooledList<char>.AsSpan(Buffer);
         if (strSpan.StartsWith("0"))
         {
             if (strSpan.Length == 1)
@@ -671,7 +671,7 @@ struct Scanner
 
         Save('\'');
 
-        Token = new(pos - Buffer.Length, TkString, Intern(Buffer.AsSpan()));
+        Token = new(pos - Buffer.Length, TkString, Intern(PooledList<char>.AsSpan(Buffer)));
         Buffer.Clear();
         ScanError(pos, message, TkString);
     }
@@ -918,7 +918,7 @@ struct Scanner
                 continue;
             }
 
-            var text = Intern(Buffer.AsSpan());
+            var text = Intern(PooledList<char>.AsSpan(Buffer));
             Buffer.Clear();
             Token = new(pos, tokenType, text, RawTokenLength(pos));
             return Token;
@@ -934,11 +934,11 @@ struct Scanner
             switch (Current)
             {
                 case EndOfStream:
-                    Token = new(R.Position - Buffer.Length, TkString, Intern(Buffer.AsSpan()));
+                    Token = new(R.Position - Buffer.Length, TkString, Intern(PooledList<char>.AsSpan(Buffer)));
                     ScanError(R.Position, "unfinished string", TkEos);
                     break;
                 case '\n' or '\r':
-                    Token = new(R.Position - Buffer.Length, TkString, Intern(Buffer.AsSpan()));
+                    Token = new(R.Position - Buffer.Length, TkString, Intern(PooledList<char>.AsSpan(Buffer)));
                     ScanError(R.Position, "unfinished string", TkString);
                     break;
                 case '\\':
@@ -957,7 +957,7 @@ struct Scanner
         // {
         //     length--;
         // }
-        var str = Intern(Buffer.AsSpan().Slice(1, length));
+        var str = Intern(PooledList<char>.AsSpan(Buffer).Slice(1, length));
         Buffer.Clear();
         return new(pos, TkString, str, RawTokenLength(pos));
     }
@@ -978,7 +978,7 @@ struct Scanner
     public Token ReservedOrName(int pos)
     {
         var rawLength = RawTokenLength(pos);
-        var str = Intern(Buffer.AsSpan());
+        var str = Intern(PooledList<char>.AsSpan(Buffer));
         Buffer.Clear();
         for (var i = 0; i < Tokens.Length; i++)
         {

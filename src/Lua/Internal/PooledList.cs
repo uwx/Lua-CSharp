@@ -5,17 +5,21 @@ namespace Lua.Internal;
 
 struct PooledList<T> : IDisposable
 {
+    InlineArray16<T> inlineBuffer;
+    
     T[]? buffer;
     int tail;
 
+    private readonly int _sizeHint = 32;
+
     public PooledList(int sizeHint)
     {
-        buffer = ArrayPool<T>.Shared.Rent(sizeHint);
+        _sizeHint = sizeHint;
     }
 
     public bool IsDisposed => tail == -1;
 
-    public int Count => tail;
+    public readonly int Count => tail;
 
     public int Length => tail;
 
@@ -25,7 +29,15 @@ struct PooledList<T> : IDisposable
 
         if (buffer == null)
         {
-            buffer = ArrayPool<T>.Shared.Rent(32);
+            if (tail < 16)
+            {
+                inlineBuffer[tail] = item;
+                tail++;
+                return;
+            }
+            
+            buffer = ArrayPool<T>.Shared.Rent(_sizeHint);
+            ((Span<T>)inlineBuffer).CopyTo(buffer);
         }
         else if (buffer.Length == tail)
         {
@@ -45,7 +57,15 @@ struct PooledList<T> : IDisposable
 
         if (buffer == null)
         {
-            buffer = ArrayPool<T>.Shared.Rent(items.Length);
+            if (tail + items.Length <= 16)
+            {
+                items.CopyTo(((Span<T>)inlineBuffer)[tail..]);
+                tail += items.Length;
+                return;
+            }
+
+            buffer = ArrayPool<T>.Shared.Rent(Math.Max(_sizeHint, tail + items.Length));
+            ((Span<T>)inlineBuffer).CopyTo(buffer);
         }
         else if (buffer.Length < tail + items.Length)
         {
@@ -71,7 +91,7 @@ struct PooledList<T> : IDisposable
 
         if (count > tail)
         {
-            throw new ArgumentOutOfRangeException(nameof(count));
+            ThrowArgumentOutOfRangeException();
         }
 
         tail = count;
@@ -83,10 +103,16 @@ struct PooledList<T> : IDisposable
 
         if (count > tail)
         {
-            throw new ArgumentOutOfRangeException(nameof(count));
+            ThrowArgumentOutOfRangeException();
         }
 
         tail -= count;
+    }
+
+    private static void ThrowArgumentOutOfRangeException()
+    {
+        // ReSharper disable once NotResolvedInText
+        throw new ArgumentOutOfRangeException("count");
     }
 
     public void Clear()
@@ -96,6 +122,10 @@ struct PooledList<T> : IDisposable
         if (buffer != null)
         {
             new Span<T>(buffer, 0, tail).Clear();
+        }
+        else
+        {
+            ((Span<T>)inlineBuffer)[..tail].Clear();
         }
 
         tail = 0;
@@ -117,13 +147,18 @@ struct PooledList<T> : IDisposable
     public T this[int index]
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => AsSpan()[index];
+        get => AsSpan(this)[index];
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ReadOnlySpan<T> AsSpan()
+    public static ReadOnlySpan<T> AsSpan(in PooledList<T> list)
     {
-        return new(buffer, 0, tail);
+        if (list.buffer == null)
+        {
+            return ((ReadOnlySpan<T>)list.inlineBuffer)[..list.tail];
+        }
+
+        return new(list.buffer, 0, list.tail);
     }
 
     void ThrowIfDisposed()

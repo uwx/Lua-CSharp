@@ -64,7 +64,7 @@ public sealed class TableLibrary
             }
         }
 
-        return new(context.Return(builder.AsSpan().ToString()));
+        return new(context.Return(PooledList<char>.AsSpan(builder).ToString()));
     }
 
     public static ValueTask<int> Insert(

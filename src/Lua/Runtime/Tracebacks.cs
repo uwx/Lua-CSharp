@@ -334,6 +334,6 @@ public class Traceback(
             }
         }
 
-        return list.AsSpan()[..^1].ToString();
+        return PooledList<char>.AsSpan(list)[..^1].ToString();
     }
 }

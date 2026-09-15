@@ -163,7 +163,7 @@ public class LuaRuntimeException : Exception, ILuaTracebackBuildable
             builder.AddRange($" ({tB} '{nameB}')");
         }
 
-        throw new LuaRuntimeException(state, builder.AsSpan().ToString());
+        throw new LuaRuntimeException(state, PooledList<char>.AsSpan(builder).ToString());
     }
 
     internal static void AttemptInvalidOperationOnLuaStack(
@@ -193,7 +193,7 @@ public class LuaRuntimeException : Exception, ILuaTracebackBuildable
             builder.AddRange($" ({t} '{name}')");
         }
 
-        throw new LuaRuntimeException(state, builder.AsSpan().ToString());
+        throw new LuaRuntimeException(state, PooledList<char>.AsSpan(builder).ToString());
     }
 
     internal static void AttemptInvalidOperationOnUpValues(LuaState state, string op, int reg)
@@ -328,7 +328,7 @@ public class LuaRuntimeException : Exception, ILuaTracebackBuildable
             pooledList.AddRange("Lua-CSharp: ");
             traceback.WriteLastLuaTrace(ref pooledList, level);
             pooledList.AddRange($"{errorObject}");
-            return pooledList.AsSpan().ToString();
+            return PooledList<char>.AsSpan(pooledList).ToString();
         }
         finally
         {
@@ -393,7 +393,7 @@ public class LuaRuntimeException : Exception, ILuaTracebackBuildable
                     {
                         Traceback.WriteLastLuaTrace(callStack, ref pooledList);
                         pooledList.AddRange(message);
-                        return pooledList.AsSpan().ToString();
+                        return PooledList<char>.AsSpan(pooledList).ToString();
                     }
                     finally
                     {
@@ -412,7 +412,7 @@ public class LuaRuntimeException : Exception, ILuaTracebackBuildable
             {
                 luaTraceback.WriteLastLuaTrace(ref pooledList, level);
                 pooledList.AddRange(message);
-                return pooledList.AsSpan().ToString();
+                return PooledList<char>.AsSpan(pooledList).ToString();
             }
             finally
             {
@@ -459,7 +459,7 @@ public class LuaRuntimeException : Exception, ILuaTracebackBuildable
                 pooledList.AddRange(StackTrace);
             }
 
-            return pooledList.AsSpan().ToString();
+            return PooledList<char>.AsSpan(pooledList).ToString();
         }
         finally
         {
