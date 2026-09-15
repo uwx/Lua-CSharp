@@ -249,10 +249,10 @@ unsafe ref struct DumpState(IBufferWriter<byte> writer, bool reversedEndian)
                 case LuaValueType.Nil:
                     break;
                 case LuaValueType.Boolean:
-                    WriteBool(c.UnsafeReadDouble() != 0);
+                    WriteBool(c.ReadAsBool());
                     break;
                 case LuaValueType.Number:
-                    WriteDouble(c.UnsafeReadDouble());
+                    WriteDouble(c.ReadAsInt64());
                     break;
                 case LuaValueType.String:
                     WriteString(c.UnsafeRead<string>());

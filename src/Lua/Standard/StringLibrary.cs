@@ -595,7 +595,7 @@ public sealed class StringLibrary
         StringBuilder builder = new();
         var replacedBuilder =
             repl.Type == LuaValueType.String
-                ? new StringBuilder(repl.UnsafeReadString().Length)
+                ? new StringBuilder(repl.ReadAsString().Length)
                 : null;
         var lastIndex = 0;
         var replaceCount = 0;

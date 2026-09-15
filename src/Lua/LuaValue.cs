@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.CompilerServices;
@@ -27,13 +28,16 @@ public enum LuaValueType : byte
     Fixed64Vector3,
     Fixed64Angle,
     Fixed64Euler,
-    UserData2, // this is like userdata but the type is wrapped so you don't need to make your type implement ILuaUserData, useful for e.g making userdatas out of standard library objects
-    
+
+    // this is like userdata but the type is wrapped so you don't need to make your type implement ILuaUserData,
+    // useful for e.g. making userdatas out of standard library objects
+    UserData2,
+
     // Ugly hacks to save allocation size on UpValue and UpValueSlot
     // Internal type for open upvalues. Not to be used directly except by UpValue.
     // integer = registerIndex, referenceValue = LuaStack
     UpValue,
-    
+
     // Internal type for UpValueSlot containing an UpValue
     // referenceValue = UpValue
     UpValueCell
@@ -57,484 +61,429 @@ public readonly struct LuaValue : IEquatable<LuaValue>
     public static LuaValue Nil
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => default;
+        get => new LuaValue(LuaValueType.Nil, null);
     }
 
     public readonly LuaValueType Type;
     internal readonly object? referenceValue;
     internal readonly ValueUnion valueUnion;
-    
-    internal double value
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Unsafe.As<ValueUnion, double>(ref Unsafe.AsRef(in valueUnion));
-    }
 
-    internal long integer
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Unsafe.As<ValueUnion, long>(ref Unsafe.AsRef(in valueUnion));
-    }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal double ReadAsDouble() => MemoryMarshal.Read<double>(valueUnion);
 
-    internal Fixed64 f64Value
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Unsafe.As<ValueUnion, Fixed64>(ref Unsafe.AsRef(in valueUnion));
-    }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal long ReadAsInt64() => MemoryMarshal.Read<long>(valueUnion);
 
-    internal Vector3d f64Vec3Value
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Unsafe.As<ValueUnion, Vector3d>(ref Unsafe.AsRef(in valueUnion));
-    }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal double ReadAsNumber() => Type == LuaValueType.Integer ? ReadAsInt64() : ReadAsDouble();
 
-    internal f64AngleSingle f64AngleValue
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Unsafe.As<ValueUnion, f64AngleSingle>(ref Unsafe.AsRef(in valueUnion));
-    }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal bool ReadAsBool() => ReadAsDouble() != 0;
 
-    internal f64Euler f64EulerValue
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Unsafe.As<ValueUnion, f64Euler>(ref Unsafe.AsRef(in valueUnion));
-    }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal Fixed64 ReadAsFixed64() => MemoryMarshal.Read<Fixed64>(valueUnion);
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal Vector3d ReadAsF64Vector3() => MemoryMarshal.Read<Vector3d>(valueUnion);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal f64AngleSingle ReadAsF64Angle() => MemoryMarshal.Read<f64AngleSingle>(valueUnion);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal f64Euler ReadAsF64Euler() => MemoryMarshal.Read<f64Euler>(valueUnion);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal UserDataObject ReadAsUserData2() => Unsafe.As<UserDataObject>(referenceValue!);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal LuaValue(LuaValueType type, double value, object? referenceValue)
     {
         Type = type;
-        Unsafe.As<ValueUnion, double>(ref valueUnion) = value;
         this.referenceValue = referenceValue;
+        Unsafe.SkipInit(out valueUnion);
+        MemoryMarshal.Write(valueUnion, value);
     }
-    
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal LuaValue(LuaValueType type, long value, object? referenceValue)
     {
         Type = type;
-        Unsafe.As<ValueUnion, long>(ref valueUnion) = value;
         this.referenceValue = referenceValue;
+        Unsafe.SkipInit(out valueUnion);
+        MemoryMarshal.Write(valueUnion, value);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal LuaValue(LuaValueType type, object? referenceValue)
     {
         Type = type;
-        Unsafe.SkipInit(out valueUnion);
         this.referenceValue = referenceValue;
+        Unsafe.SkipInit(out valueUnion);
+    }
+
+    private bool TryReadNumberAs<T>([MaybeNullWhen(false)] out T result)
+    {
+        double value = ReadAsDouble();
+
+        if (typeof(T) == typeof(float))
+        {
+            result = (T) (object) (float) value;
+            return true;
+        }
+        else if (typeof(T) == typeof(byte))
+        {
+            result = (T) (object) (byte) value;
+            return MathEx.IsInteger(value);
+        }
+        else if (typeof(T) == typeof(sbyte))
+        {
+            result = (T) (object) (sbyte) value;
+            return MathEx.IsInteger(value);
+        }
+        else if (typeof(T) == typeof(short))
+        {
+            result = (T) (object) (short) value;
+            return MathEx.IsInteger(value);
+        }
+        else if (typeof(T) == typeof(ushort))
+        {
+            result = (T) (object) (ushort) value;
+            return MathEx.IsInteger(value);
+        }
+        else if (typeof(T) == typeof(int))
+        {
+            result = (T) (object) (int) value;
+            return MathEx.IsInteger(value);
+        }
+        else if (typeof(T) == typeof(long))
+        {
+            result = (T) (object) (long) value;
+            return MathEx.IsInteger(value);
+        }
+        else if (typeof(T) == typeof(uint))
+        {
+            if (MathEx.IsInteger(value))
+            {
+                result = (T) (object) checked((uint) value); // TODO: remove checked? 
+                return true;
+            }
+        }
+        else if (typeof(T) == typeof(ulong))
+        {
+            if (MathEx.IsInteger(value))
+            {
+                result = (T) (object) checked((ulong) value); // TODO: remove checked?
+                return true;
+            }
+        }
+        else if (typeof(T) == typeof(Fixed64))
+        {
+            // Number → Fixed64 conversion (lossy by design)
+            result = (T) (object) (Fixed64) value;
+            return true;
+        }
+        else if (value is T exact)
+        {
+            result = exact;
+            return true;
+        }
+
+        result = default;
+        return false;
+    }
+
+    private bool TryReadIntegerAs<T>([MaybeNullWhen(false)] out T result)
+    {
+        long value = ReadAsInt64();
+
+        if (typeof(T) == typeof(double))
+        {
+            result = (T) (object) (double) value;
+            return true;
+        }
+        else if (typeof(T) == typeof(float))
+        {
+            result = (T) (object) (float) value;
+            return true;
+        }
+        else if (typeof(T) == typeof(byte))
+        {
+            result = (T) (object) (byte) value;
+            return true;
+        }
+        else if (typeof(T) == typeof(sbyte))
+        {
+            result = (T) (object) (sbyte) value;
+            return true;
+        }
+        else if (typeof(T) == typeof(short))
+        {
+            result = (T) (object) (short) value;
+            return true;
+        }
+        else if (typeof(T) == typeof(ushort))
+        {
+            result = (T) (object) (ushort) value;
+            return true;
+        }
+        else if (typeof(T) == typeof(int))
+        {
+            result = (T) (object) (int) value;
+            return true;
+        }
+        else if (typeof(T) == typeof(uint))
+        {
+            result = (T) (object) (uint) value;
+            return true;
+        }
+        else if (typeof(T) == typeof(ulong))
+        {
+            result = (T) (object) (ulong) value;
+            return true;
+        }
+        else if (typeof(T) == typeof(Fixed64))
+        {
+            result = (T) (object) (Fixed64) value;
+            return true;
+        }
+        else if (value is T exact)
+        {
+            result = exact;
+            return true;
+        }
+
+        result = default;
+        return false;
+    }
+
+    private bool TryReadBoolAs<T>([MaybeNullWhen(false)] out T result)
+    {
+        double value = MemoryMarshal.Read<double>(valueUnion);
+
+        if (typeof(T) == typeof(bool))
+        {
+            result = (T) (object) (value != 0);
+            return true;
+        }
+        else if (typeof(T) == typeof(object))
+        {
+            result = (T) (object) value;
+            return true;
+        }
+
+        result = default;
+        return false;
+    }
+
+    private bool TryReadStringAs<T>([MaybeNullWhen(false)] out T result)
+    {
+        if (typeof(T) == typeof(double))
+        {
+            if (TryParseToDouble(out double exact))
+            {
+                result = (T) (object) exact;
+                return true;
+            }
+        }
+        else if (ReadAsString() is T exact)
+        {
+            result = exact;
+            return true;
+        }
+
+        result = default;
+        return false;
+    }
+
+    private bool TryReadFunctionAs<T>([MaybeNullWhen(false)] out T result)
+    {
+        var value = Unsafe.As<LuaFunction>(referenceValue!);
+        if (value is T exact)
+        {
+            result = exact;
+            return true;
+        }
+
+        result = default;
+        return false;
+    }
+
+    private bool TryReadThreadAs<T>([MaybeNullWhen(false)] out T result)
+    {
+        var value = Unsafe.As<LuaState>(referenceValue!);
+        if (value is T exact)
+        {
+            result = exact;
+            return true;
+        }
+
+        result = default;
+        return false;
+    }
+
+    private bool TryReadLightUserData<T>([MaybeNullWhen(false)] out T result)
+    {
+        if (referenceValue is T exact)
+        {
+            result = exact;
+            return true;
+        }
+
+        result = default;
+        return false;
+    }
+
+    private bool TryReadUserDataAs<T>([MaybeNullWhen(false)] out T result)
+    {
+        var value = Unsafe.As<ILuaUserData>(referenceValue!);
+        if (value is T exact)
+        {
+            result = exact;
+            return true;
+        }
+
+        result = default;
+        return false;
+    }
+
+    private bool TryReadUserData2As<T>([MaybeNullWhen(false)] out T result)
+    {
+        if (ReadAsUserData2().Value is T exact)
+        {
+            result = exact;
+            return true;
+        }
+
+        result = default;
+        return false;
+    }
+
+    private bool TryReadTableAs<T>([MaybeNullWhen(false)] out T result)
+    {
+        var value = Unsafe.As<LuaTable>(referenceValue!);
+        if (value is T exact)
+        {
+            result = exact;
+            return true;
+        }
+
+        result = default;
+        return false;
+    }
+
+    private bool TryReadFixed64As<T>([MaybeNullWhen(false)] out T result)
+    {
+        var value = ReadAsFixed64();
+
+        if (typeof(T) == typeof(Fixed64))
+        {
+            result = (T) (object) value;
+            return true;
+        }
+        else if (typeof(T) == typeof(double))
+        {
+            result = (T) (object) (double) value;
+            return true;
+        }
+        else if (typeof(T) == typeof(object))
+        {
+            result = (T) (object) value;
+            return true;
+        }
+
+        result = default;
+        return false;
+    }
+
+    private bool TryReadF64Vector3As<T>([MaybeNullWhen(false)] out T result)
+    {
+        var value = ReadAsF64Vector3();
+
+        if (typeof(T) == typeof(Vector3d))
+        {
+            result = (T) (object) value;
+            return true;
+        }
+        else if (typeof(T) == typeof(object))
+        {
+            result = (T) (object) value;
+            return true;
+        }
+
+        result = default;
+        return false;
+    }
+
+    private bool TryReadF64AngleAs<T>([MaybeNullWhen(false)] out T result)
+    {
+        var value = ReadAsF64Angle();
+
+        if (typeof(T) == typeof(f64AngleSingle))
+        {
+            result = (T) (object) value;
+            return true;
+        }
+        else if (typeof(T) == typeof(object))
+        {
+            result = (T) (object) value;
+            return true;
+        }
+
+        result = default;
+        return false;
+    }
+
+    private bool TryReadF64EulerAs<T>([MaybeNullWhen(false)] out T result)
+    {
+        var value = ReadAsF64Euler();
+
+        if (typeof(T) == typeof(f64Euler))
+        {
+            result = (T) (object) value;
+            return true;
+        }
+        else if (typeof(T) == typeof(object))
+        {
+            result = (T) (object) value;
+            return true;
+        }
+
+        result = default;
+        return false;
     }
 
     public bool TryRead<T>([MaybeNullWhen(false)] out T result)
     {
-        var t = typeof(T);
-
-        if (t == typeof(LuaValue))
+        if (typeof(T) == typeof(LuaValue))
         {
-            var v = this;
-            result = Unsafe.As<LuaValue, T>(ref v);
+            result = (T) (object) this;
             return true;
         }
 
-        switch (Type)
+        return Type switch
         {
-            case LuaValueType.Number:
-                if (t == typeof(float))
-                {
-                    var v = (float)value;
-                    result = Unsafe.As<float, T>(ref v);
-                    return true;
-                }
-                else if (t == typeof(double))
-                {
-                    var v = value;
-                    result = Unsafe.As<double, T>(ref v);
-                    return true;
-                }
-                else if (t == typeof(byte))
-                {
-                    if (!MathEx.IsInteger(value))
-                    {
-                        break;
-                    }
+            LuaValueType.Number => TryReadNumberAs(out result),
+            LuaValueType.Integer => TryReadIntegerAs(out result),
+            LuaValueType.Boolean => TryReadBoolAs(out result),
+            LuaValueType.String => TryReadStringAs(out result),
+            LuaValueType.Function => TryReadFunctionAs(out result),
+            LuaValueType.Thread => TryReadThreadAs(out result),
+            LuaValueType.LightUserData => TryReadLightUserData(out result),
+            LuaValueType.UserData => TryReadUserDataAs(out result),
+            LuaValueType.UserData2 => TryReadUserData2As(out result),
+            LuaValueType.Table => TryReadTableAs(out result),
+            LuaValueType.Fixed64 => TryReadFixed64As(out result),
+            LuaValueType.Fixed64Vector3 => TryReadF64Vector3As(out result),
+            LuaValueType.Fixed64Angle => TryReadF64AngleAs(out result),
+            LuaValueType.Fixed64Euler => TryReadF64EulerAs(out result),
+            _ => ReturnDefault(out result),
+        };
+    }
 
-                    var v = (byte)value;
-                    result = Unsafe.As<byte, T>(ref v);
-                    return true;
-                }
-                else if (t == typeof(sbyte))
-                {
-                    if (!MathEx.IsInteger(value))
-                    {
-                        break;
-                    }
-
-                    var v = (sbyte)value;
-                    result = Unsafe.As<sbyte, T>(ref v);
-                    return true;
-                }
-                else if (t == typeof(short))
-                {
-                    if (!MathEx.IsInteger(value))
-                    {
-                        break;
-                    }
-
-                    var v = (short)value;
-                    result = Unsafe.As<short, T>(ref v);
-                    return true;
-                }
-                else if (t == typeof(ushort))
-                {
-                    if (!MathEx.IsInteger(value))
-                    {
-                        break;
-                    }
-
-                    var v = (ushort)value;
-                    result = Unsafe.As<ushort, T>(ref v);
-                    return true;
-                }
-                else if (t == typeof(int))
-                {
-                    if (!MathEx.IsInteger(value))
-                    {
-                        break;
-                    }
-
-                    var v = (int)value;
-                    result = Unsafe.As<int, T>(ref v);
-                    return true;
-                }
-                else if (t == typeof(long))
-                {
-                    if (!MathEx.IsInteger(value))
-                    {
-                        break;
-                    }
-
-                    var v = (long)value;
-                    result = Unsafe.As<long, T>(ref v);
-                    return true;
-                }
-                else if (t == typeof(uint))
-                {
-                    if (!MathEx.IsInteger(value))
-                    {
-                        break;
-                    }
-
-                    var v = checked((uint)value);
-                    result = Unsafe.As<uint, T>(ref v);
-                    return true;
-                }
-                else if (t == typeof(ulong))
-                {
-                    if (!MathEx.IsInteger(value))
-                    {
-                        break;
-                    }
-
-                    var v = checked((ulong)value);
-                    result = Unsafe.As<ulong, T>(ref v);
-                    return true;
-                }
-                else if (t == typeof(Fixed64))
-                {
-                    // Number → Fixed64 conversion (lossy by design)
-                    var v = (Fixed64)value;
-                    result = Unsafe.As<Fixed64, T>(ref v);
-                    return true;
-                }
-                else if (t == typeof(object))
-                {
-                    result = (T)(object)value;
-                    return true;
-                }
-                else
-                {
-                    break;
-                }
-            case LuaValueType.Integer:
-                if (t == typeof(double))
-                {
-                    var v = (double)integer;
-                    result = Unsafe.As<double, T>(ref v);
-                    return true;
-                }
-                else if (t == typeof(float))
-                {
-                    var v = (float)integer;
-                    result = Unsafe.As<float, T>(ref v);
-                    return true;
-                }
-                else if (t == typeof(byte))
-                {
-                    var v = (byte)integer;
-                    result = Unsafe.As<byte, T>(ref v);
-                    return true;
-                }
-                else if (t == typeof(sbyte))
-                {
-                    var v = (sbyte)integer;
-                    result = Unsafe.As<sbyte, T>(ref v);
-                    return true;
-                }
-                else if (t == typeof(short))
-                {
-                    var v = (short)integer;
-                    result = Unsafe.As<short, T>(ref v);
-                    return true;
-                }
-                else if (t == typeof(ushort))
-                {
-                    var v = (ushort)integer;
-                    result = Unsafe.As<ushort, T>(ref v);
-                    return true;
-                }
-                else if (t == typeof(int))
-                {
-                    var v = (int)integer;
-                    result = Unsafe.As<int, T>(ref v);
-                    return true;
-                }
-                else if (t == typeof(long))
-                {
-                    var v = integer;
-                    result = Unsafe.As<long, T>(ref v);
-                    return true;
-                }
-                else if (t == typeof(uint))
-                {
-                    var v = (uint)integer;
-                    result = Unsafe.As<uint, T>(ref v);
-                    return true;
-                }
-                else if (t == typeof(ulong))
-                {
-                    var v = (ulong)integer;
-                    result = Unsafe.As<ulong, T>(ref v);
-                    return true;
-                }
-                else if (t == typeof(Fixed64))
-                {
-                    var v = (Fixed64)integer;
-                    result = Unsafe.As<Fixed64, T>(ref v);
-                    return true;
-                }
-                else if (t == typeof(object))
-                {
-                    result = (T)(object)integer;
-                    return true;
-                }
-                else
-                {
-                    break;
-                }
-            case LuaValueType.Boolean:
-                if (t == typeof(bool))
-                {
-                    var v = value != 0;
-                    result = Unsafe.As<bool, T>(ref v);
-                    return true;
-                }
-                else if (t == typeof(object))
-                {
-                    result = (T)(object)value;
-                    return true;
-                }
-                else
-                {
-                    break;
-                }
-            case LuaValueType.String:
-                if (t == typeof(string))
-                {
-                    var v = referenceValue!;
-                    result = Unsafe.As<object, T>(ref v);
-                    return true;
-                }
-                else if (t == typeof(double))
-                {
-                    result = default!;
-                    return TryParseToDouble(out Unsafe.As<T, double>(ref result));
-                }
-                else if (t == typeof(object))
-                {
-                    result = (T)referenceValue!;
-                    return true;
-                }
-                else
-                {
-                    break;
-                }
-            case LuaValueType.Function:
-                if (t == typeof(LuaFunction) || t.IsSubclassOf(typeof(LuaFunction)))
-                {
-                    var v = referenceValue!;
-                    result = Unsafe.As<object, T>(ref v);
-                    return true;
-                }
-                else if (t == typeof(object))
-                {
-                    result = (T)referenceValue!;
-                    return true;
-                }
-                else
-                {
-                    break;
-                }
-            case LuaValueType.Thread:
-                if (t == typeof(LuaState))
-                {
-                    var v = referenceValue!;
-                    result = Unsafe.As<object, T>(ref v);
-                    return true;
-                }
-                else if (t == typeof(object))
-                {
-                    result = (T)referenceValue!;
-                    return true;
-                }
-                else
-                {
-                    break;
-                }
-            case LuaValueType.LightUserData:
-            {
-                if (referenceValue is T tValue)
-                {
-                    result = tValue;
-                    return true;
-                }
-
-                break;
-            }
-            case LuaValueType.UserData:
-                if (t == typeof(ILuaUserData) || typeof(ILuaUserData).IsAssignableFrom(t))
-                {
-                    if (referenceValue is T tValue)
-                    {
-                        result = tValue;
-                        return true;
-                    }
-
-                    break;
-                }
-                else if (t == typeof(object))
-                {
-                    result = (T)referenceValue!;
-                    return true;
-                }
-                else
-                {
-                    break;
-                }
-            case LuaValueType.UserData2:
-                if (t == typeof(object))
-                {
-                    result = (T)(referenceValue as UserDataObject)?.Value!;
-                    return true;
-                }
-                else if ((referenceValue as UserDataObject)?.Value?.GetType().IsAssignableTo(t) == true)
-                {
-                    if ((referenceValue as UserDataObject)?.Value is T tValue)
-                    {
-                        result = tValue;
-                        return true;
-                    }
-
-                    break;
-                }
-                else
-                {
-                    break;
-                }
-            case LuaValueType.Table:
-                if (t == typeof(LuaTable))
-                {
-                    var v = referenceValue!;
-                    result = Unsafe.As<object, T>(ref v);
-                    return true;
-                }
-                else if (t == typeof(object))
-                {
-                    result = (T)referenceValue!;
-                    return true;
-                }
-                else
-                {
-                    break;
-                }
-            case LuaValueType.Fixed64:
-                if (t == typeof(Fixed64))
-                {
-                    var v = f64Value;
-                    result = Unsafe.As<Fixed64, T>(ref v);
-                    return true;
-                }
-                else if (t == typeof(double))
-                {
-                    var v = (double)f64Value;
-                    result = Unsafe.As<double, T>(ref v);
-                    return true;
-                }
-                else if (t == typeof(object))
-                {
-                    result = (T)(object)f64Value;
-                    return true;
-                }
-                else
-                {
-                    break;
-                }
-            case LuaValueType.Fixed64Vector3:
-                if (t == typeof(Vector3d))
-                {
-                    var v = f64Vec3Value;
-                    result = Unsafe.As<Vector3d, T>(ref v);
-                    return true;
-                }
-                else if (t == typeof(object))
-                {
-                    result = (T)(object)f64Vec3Value;
-                    return true;
-                }
-                else
-                {
-                    break;
-                }
-            case LuaValueType.Fixed64Angle:
-                if (t == typeof(f64AngleSingle))
-                {
-                    var v = f64AngleValue;
-                    result = Unsafe.As<f64AngleSingle, T>(ref v);
-                    return true;
-                }
-                else if (t == typeof(object))
-                {
-                    result = (T)(object)f64AngleValue;
-                    return true;
-                }
-                else
-                {
-                    break;
-                }
-            case LuaValueType.Fixed64Euler:
-                if (t == typeof(f64Euler))
-                {
-                    var v = f64EulerValue;
-                    result = Unsafe.As<f64Euler, T>(ref v);
-                    return true;
-                }
-                else if (t == typeof(object))
-                {
-                    result = (T)(object)f64EulerValue;
-                    return true;
-                }
-                else
-                {
-                    break;
-                }
-        }
-
-        result = default!;
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool ReturnDefault<T>([MaybeNullWhen(false)] out T result)
+    {
+        result = default;
         return false;
     }
 
@@ -543,119 +492,119 @@ public readonly struct LuaValue : IEquatable<LuaValue>
     {
         if (Type == LuaValueType.Boolean)
         {
-            result = value != 0;
+            result = ReadAsBool();
             return true;
         }
 
-        result = default!;
+        result = false;
         return false;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal bool TryReadNumber(out double result)
     {
-        if (Type == LuaValueType.Number)
+        switch (Type)
         {
-            result = value;
-            return true;
-        }
+            case LuaValueType.Number:
+                result = ReadAsDouble();
+                return true;
 
-        if (Type == LuaValueType.Integer)
-        {
-            result = integer;
-            return true;
-        }
+            case LuaValueType.Integer:
+                result = ReadAsInt64();
+                return true;
 
-        result = default!;
-        return false;
+            default:
+                result = 0;
+                return false;
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal bool TryReadInteger(out long result)
     {
-        if (Type == LuaValueType.Integer)
+        switch (Type)
         {
-            result = integer;
-            return true;
-        }
+            case LuaValueType.Integer:
+                result = ReadAsInt64();
+                return true;
 
-        if (Type == LuaValueType.Number && MathEx.IsInteger(value))
-        {
-            result = (long)value;
-            return true;
-        }
+            case LuaValueType.Number:
+                double value = ReadAsDouble();
+                if (MathEx.IsInteger(value))
+                {
+                    result = (long) value;
+                    return true;
+                }
+                goto default;
 
-        result = default;
-        return false;
+            default:
+                result = 0;
+                return false;
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal bool TryReadTable(out LuaTable result)
+    internal bool TryReadTable([MaybeNullWhen(false)] out LuaTable result)
     {
         if (Type == LuaValueType.Table)
         {
-            var v = referenceValue!;
-            result = Unsafe.As<object, LuaTable>(ref v);
+            result = Unsafe.As<LuaTable>(referenceValue!);
             return true;
         }
 
-        result = default!;
+        result = null;
         return false;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal bool TryReadFunction(out LuaFunction result)
+    internal bool TryReadFunction([MaybeNullWhen(false)] out LuaFunction result)
     {
         if (Type == LuaValueType.Function)
         {
-            var v = referenceValue!;
-            result = Unsafe.As<object, LuaFunction>(ref v);
+            result = Unsafe.As<LuaFunction>(referenceValue!);
             return true;
         }
 
-        result = default!;
+        result = null;
         return false;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal bool TryReadString(out string result)
+    internal bool TryReadString([MaybeNullWhen(false)] out string result)
     {
         if (Type == LuaValueType.String)
         {
-            var v = referenceValue!;
-            result = Unsafe.As<object, string>(ref v);
+            result = ReadAsString();
             return true;
         }
 
-        result = default!;
+        result = null;
         return false;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal bool TryReadFixed64(out Fixed64 result)
     {
-        if (Type == LuaValueType.Fixed64)
+        switch (Type)
         {
-            result = f64Value;
-            return true;
-        }
+            case LuaValueType.Fixed64:
+                result = ReadAsFixed64();
+                return true;
 
-        // Convert Number → Fixed64 (lossy by design)
-        if (Type == LuaValueType.Number)
-        {
-            result = (Fixed64)value;
-            return true;
-        }
+            // Convert Number → Fixed64 (lossy by design)
+            case LuaValueType.Number:
+                result = (Fixed64) ReadAsDouble();
+                return true;
 
-        // Convert Integer → Fixed64
-        if (Type == LuaValueType.Integer)
-        {
-            result = (Fixed64)integer;
-            return true;
-        }
+            // Convert Integer → Fixed64
+            case LuaValueType.Integer:
+                result = (Fixed64) ReadAsInt64();
+                return true;
 
-        result = default;
-        return false;
+            default:
+                result = default;
+                return false;
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -663,7 +612,7 @@ public readonly struct LuaValue : IEquatable<LuaValue>
     {
         if (Type == LuaValueType.Fixed64Vector3)
         {
-            result = f64Vec3Value;
+            result = ReadAsF64Vector3();
             return true;
         }
 
@@ -676,7 +625,7 @@ public readonly struct LuaValue : IEquatable<LuaValue>
     {
         if (Type == LuaValueType.Fixed64Angle)
         {
-            result = f64AngleValue;
+            result = ReadAsF64Angle();
             return true;
         }
 
@@ -689,7 +638,7 @@ public readonly struct LuaValue : IEquatable<LuaValue>
     {
         if (Type == LuaValueType.Fixed64Euler)
         {
-            result = f64EulerValue;
+            result = ReadAsF64Euler();
             return true;
         }
 
@@ -700,120 +649,45 @@ public readonly struct LuaValue : IEquatable<LuaValue>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal bool TryReadDouble(out double result)
     {
-        if (Type == LuaValueType.Number)
+        switch (Type)
         {
-            result = value;
-            return true;
+            case LuaValueType.Number:
+                result = ReadAsDouble();
+                return true;
+
+            case LuaValueType.Integer:
+                result = ReadAsInt64();
+                return true;
+
+            // Fixed64 → double coercion (lossy)
+            case LuaValueType.Fixed64:
+                result = (double) ReadAsFixed64();
+                return true;
+
+            default:
+                return TryParseToDouble(out result);
         }
-
-        if (Type == LuaValueType.Integer)
-        {
-            result = integer;
-            return true;
-        }
-
-        // Fixed64 → double coercion (lossy)
-        if (Type == LuaValueType.Fixed64)
-        {
-            result = (double)f64Value;
-            return true;
-        }
-
-        return TryParseToDouble(out result);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static bool TryReadOrSetDouble(ref LuaValue luaValue, out double result)
-    {
-        if (luaValue.Type == LuaValueType.Number)
-        {
-            result = luaValue.value;
-            return true;
-        }
-
-        if (luaValue.Type == LuaValueType.Integer)
-        {
-            result = luaValue.integer;
-            return true;
-        }
-
-        // Fixed64 → double coercion (lossy)
-        if (luaValue.Type == LuaValueType.Fixed64)
-        {
-            result = (double)luaValue.f64Value;
-            return true;
-        }
-
-        if (luaValue.TryParseToDouble(out result))
-        {
-            luaValue = result;
-            return true;
-        }
-
-        return false;
-    }
+    internal string ReadAsString() => Unsafe.As<string>(referenceValue!);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal double UnsafeReadDouble()
-    {
-        return value;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal long UnsafeReadLong()
-    {
-        return integer;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal string UnsafeReadString()
-    {
-        return Unsafe.As<string>(referenceValue!);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal object UnsafeReadObject()
-    {
-        return Unsafe.As<object>(referenceValue!);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal Fixed64 UnsafeReadFixed64()
-    {
-        return f64Value;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal Vector3d UnsafeReadFixed64Vector3()
-    {
-        return f64Vec3Value;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal f64AngleSingle UnsafeReadFixed64Angle()
-    {
-        return f64AngleValue;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal f64Euler UnsafeReadFixed64Euler()
-    {
-        return f64EulerValue;
-    }
+    internal object ReadAsObject() => referenceValue!;
 
     bool TryParseToDouble(out double result)
     {
         if (Type != LuaValueType.String)
         {
-            result = default!;
+            result = 0;
             return false;
         }
 
-        var str = Unsafe.As<string>(referenceValue!);
+        var str = ReadAsString();
         var span = str.AsSpan().Trim();
         if (span.Length == 0)
         {
-            result = default!;
+            result = 0;
             return false;
         }
 
@@ -832,121 +706,76 @@ public readonly struct LuaValue : IEquatable<LuaValue>
 
         if (span.Length > 2 && span[0] is '0' && span[1] is 'x' or 'X')
         {
-            // TODO: optimize
-            try
-            {
-                var d = HexConverter.ToDouble(span) * sign;
-                result = d;
-                return true;
-            }
-            catch (FormatException)
-            {
-                result = default!;
-                return false;
-            }
+            return TryParseHexToDouble(span, sign, out result);
         }
-        else
+
+        return double.TryParse(
+            str,
+            NumberStyles.Float,
+            CultureInfo.InvariantCulture,
+            out result
+        );
+    }
+
+    private static bool TryParseHexToDouble(ReadOnlySpan<char> span, int sign, out double result)
+    {
+        // TODO: optimize
+        try
         {
-            return double.TryParse(
-                str,
-                NumberStyles.Float,
-                CultureInfo.InvariantCulture,
-                out result
-            );
+            var d = HexConverter.ToDouble(span) * sign;
+            result = d;
+            return true;
+        }
+        catch (FormatException)
+        {
+            result = 0;
+            return false;
         }
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public T Read<T>()
     {
-        if (!TryRead<T>(out var result))
-        {
-            throw new InvalidOperationException(
-                $"Cannot convert LuaValueType.{Type} to {typeof(T).FullName}."
-            );
-        }
-
-        return result;
+        return TryRead<T>(out var result) ? result : ThrowInvalidConversion<T>(Type);
     }
 
+    [return: NotNullIfNotNull(nameof(@default))]
     public T? ReadOrDefault<T>(T? @default = default)
     {
-        if (!TryRead<T>(out var result))
-        {
-            return @default;
-        }
-
-        return result;
+        return TryRead<T>(out T? result) ? result : @default;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal T UnsafeRead<T>()
     {
-        switch (Type)
+        return Type switch
         {
-            case LuaValueType.Boolean:
-            {
-                var v = value != 0;
-                return Unsafe.As<bool, T>(ref v);
-            }
-            case LuaValueType.Number:
-            {
-                var v = value;
-                return Unsafe.As<double, T>(ref v);
-            }
-            case LuaValueType.Fixed64:
-            {
-                var v = f64Value;
-                return Unsafe.As<Fixed64, T>(ref v);
-            }
-            case LuaValueType.Fixed64Vector3:
-            {
-                var v = f64Vec3Value;
-                return Unsafe.As<Vector3d, T>(ref v);
-            }
-            case LuaValueType.Fixed64Angle:
-            {
-                var v = f64AngleValue;
-                return Unsafe.As<f64AngleSingle, T>(ref v);
-            }
-            case LuaValueType.Fixed64Euler:
-            {
-                var v = f64EulerValue;
-                return Unsafe.As<f64Euler, T>(ref v);
-            }
-            case LuaValueType.String:
-            case LuaValueType.Thread:
-            case LuaValueType.Function:
-            case LuaValueType.Table:
-            case LuaValueType.LightUserData:
-            case LuaValueType.UserData:
-            {
-                var v = referenceValue!;
-                return Unsafe.As<object, T>(ref v);
-            }
-            case LuaValueType.UserData2:
-            {
-                var v = (referenceValue as UserDataObject)?.Value!;
-                return Unsafe.As<object, T>(ref v);
-            }
-        }
-
-        return default!;
+            LuaValueType.Boolean => (T) (object) ReadAsBool(),
+            LuaValueType.Number => (T) (object) ReadAsDouble(),
+            LuaValueType.Fixed64 => (T) (object) ReadAsFixed64(),
+            LuaValueType.Fixed64Vector3 => (T) (object) ReadAsF64Vector3(),
+            LuaValueType.Fixed64Angle => (T) (object) ReadAsF64Angle(),
+            LuaValueType.Fixed64Euler => (T) (object) ReadAsF64Euler(),
+            LuaValueType.String or
+                LuaValueType.Thread or
+                LuaValueType.Function or
+                LuaValueType.Table or
+                LuaValueType.LightUserData or
+                LuaValueType.UserData => (T) referenceValue!,
+            LuaValueType.UserData2 => (T) ReadAsUserData2().Value!, // TODO: this violates nullability
+            _ => default!,
+        };
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool ToBoolean()
     {
-        if (Type == LuaValueType.Boolean)
+        return Type switch
         {
-            return value != 0;
-        }
-
-        if (Type is LuaValueType.Nil)
-        {
-            return false;
-        }
-
-        return true;
+            LuaValueType.Boolean => ReadAsBool(),
+            LuaValueType.Nil => false,
+            _ => true,
+        };
     }
 
     public static LuaValue FromObject<T>(T obj)
@@ -971,164 +800,127 @@ public readonly struct LuaValue : IEquatable<LuaValue>
             Vector3d vec3Value => vec3Value,
             f64AngleSingle angleValue => new LuaValue(angleValue),
             f64Euler eulerValue => new LuaValue(eulerValue),
-            _ => new(obj),
+            _ => NewLightUserData(obj),
         };
     }
 
     public static LuaValue FromUserData(ILuaUserData? userData)
     {
-        if (userData is null)
-        {
-            return Nil;
-        }
-
-        return new(userData);
+        return userData is null ? Nil : new(userData);
     }
 
     public static LuaValue FromUserData(object? userData, LuaTable metatable)
     {
-        if (userData is null)
-        {
-            return Nil;
-        }
+        return userData is null ? Nil : NewUserData(userData, metatable);
+    }
 
-        return new(userData, metatable);
+    private static LuaValue NewUserData(object? userData, LuaTable metatable)
+    {
+        UserDataObject value = new()
+        {
+            Value = userData,
+            Metatable = metatable,
+        };
+        return new LuaValue(LuaValueType.UserData2, value);
     }
 
     public static LuaValue FromLightUserData(object? userData)
     {
-        if (userData is null)
-        {
-            return Nil;
-        }
-
-        return new(userData);
+        return userData is null ? Nil : NewLightUserData(userData);
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    LuaValue(object obj)
+    private static LuaValue NewLightUserData(object? userData)
     {
-        Unsafe.SkipInit(out valueUnion);
-        Type = LuaValueType.LightUserData;
-        referenceValue = obj;
-    }
-    
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    LuaValue(object obj, LuaTable metatable)
-    {
-        Unsafe.SkipInit(out valueUnion);
-        Type = LuaValueType.UserData2;
-        referenceValue = new UserDataObject { Value = obj, Metatable = metatable };
+        return new LuaValue(LuaValueType.LightUserData, userData);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public LuaValue(bool value)
+    public LuaValue(bool value) : this(LuaValueType.Boolean, value ? 1.0 : 0.0, null)
     {
-        Unsafe.SkipInit(out valueUnion);
-        Type = LuaValueType.Boolean;
-        Unsafe.As<ValueUnion, long>(ref valueUnion) = value ? 1 : 0;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public LuaValue(int value)
+    public LuaValue(int value) : this((long) value)
     {
-        Unsafe.SkipInit(out valueUnion);
-        Type = LuaValueType.Integer;
-        Unsafe.As<ValueUnion, long>(ref valueUnion) = value;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public LuaValue(double value)
+    public LuaValue(double value) : this(LuaValueType.Number, value, null)
     {
-        Unsafe.SkipInit(out valueUnion);
-        Type = LuaValueType.Number;
-        Unsafe.As<ValueUnion, double>(ref valueUnion) = value;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public LuaValue(string value)
+    public LuaValue(string value) : this(LuaValueType.String, value)
     {
-        Unsafe.SkipInit(out valueUnion);
-        Type = LuaValueType.String;
-        referenceValue = value;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public LuaValue(LuaFunction value)
+    public LuaValue(LuaFunction value) : this(LuaValueType.Function, value)
     {
-        Unsafe.SkipInit(out valueUnion);
-        Type = LuaValueType.Function;
-        referenceValue = value;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public LuaValue(LuaTable value)
+    public LuaValue(LuaTable value) : this(LuaValueType.Table, value)
     {
-        Unsafe.SkipInit(out valueUnion);
-        Type = LuaValueType.Table;
-        referenceValue = value;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public LuaValue(LuaState value)
+    public LuaValue(LuaState value) : this(LuaValueType.Thread, value)
     {
-        Unsafe.SkipInit(out valueUnion);
-        Type = LuaValueType.Thread;
-        referenceValue = value;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public LuaValue(ILuaUserData value)
+    public LuaValue(ILuaUserData value) : this(LuaValueType.UserData, value)
     {
-        Unsafe.SkipInit(out valueUnion);
-        Type = LuaValueType.UserData;
-        referenceValue = value;
     }
+
+    // TODO: expose ValueUnion and move these constructors to dedicated project
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public LuaValue(Fixed64 value)
     {
-        Unsafe.SkipInit(out referenceValue);
         Type = LuaValueType.Fixed64;
-        Unsafe.As<ValueUnion, Fixed64>(ref valueUnion) = value;
+        referenceValue = null;
+        Unsafe.SkipInit(out valueUnion);
+        MemoryMarshal.Write(valueUnion, value);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public LuaValue(Vector3d value)
     {
-        Unsafe.SkipInit(out referenceValue);
         Type = LuaValueType.Fixed64Vector3;
-        Unsafe.As<ValueUnion, Vector3d>(ref valueUnion) = value;
+        referenceValue = null;
+        Unsafe.SkipInit(out valueUnion);
+        MemoryMarshal.Write(valueUnion, value);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public LuaValue(f64AngleSingle value)
     {
-        Unsafe.SkipInit(out referenceValue);
         Type = LuaValueType.Fixed64Angle;
-        Unsafe.As<ValueUnion, f64AngleSingle>(ref valueUnion) = value;
+        referenceValue = null;
+        Unsafe.SkipInit(out valueUnion);
+        MemoryMarshal.Write(valueUnion, value);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public LuaValue(f64Euler value)
     {
-        Unsafe.SkipInit(out referenceValue);
         Type = LuaValueType.Fixed64Euler;
-        Unsafe.As<ValueUnion, f64Euler>(ref valueUnion) = value;
+        referenceValue = null;
+        Unsafe.SkipInit(out valueUnion);
+        MemoryMarshal.Write(valueUnion, value);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public LuaValue(long value)
+    public LuaValue(long value) : this(LuaValueType.Integer, value, null)
     {
-        Unsafe.SkipInit(out referenceValue);
-        Type = LuaValueType.Integer;
-        Unsafe.As<ValueUnion, long>(ref valueUnion) = value;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static implicit operator LuaValue(int value)
     {
-        return new((long)value);
+        return new((long) value);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1239,80 +1031,68 @@ public readonly struct LuaValue : IEquatable<LuaValue>
         return Type switch
         {
             LuaValueType.Nil => 0,
-            LuaValueType.Boolean or LuaValueType.Number => value.GetHashCode(),
-            LuaValueType.Integer => ((double)integer).GetHashCode(),
-            LuaValueType.Fixed64 => f64Value.GetHashCode(),
-            LuaValueType.Fixed64Vector3 => f64Vec3Value.GetHashCode(),
-            LuaValueType.Fixed64Angle => f64AngleValue.GetHashCode(),
-            LuaValueType.Fixed64Euler => f64EulerValue.GetHashCode(),
-            LuaValueType.String => Unsafe.As<string>(referenceValue)!.GetHashCode(),
+            LuaValueType.Boolean or LuaValueType.Number => ReadAsDouble().GetHashCode(),
+            LuaValueType.Integer => ((double) ReadAsInt64()).GetHashCode(),
+            LuaValueType.Fixed64 => ReadAsFixed64().GetHashCode(),
+            LuaValueType.Fixed64Vector3 => ReadAsF64Vector3().GetHashCode(),
+            LuaValueType.Fixed64Angle => ReadAsF64Angle().GetHashCode(),
+            LuaValueType.Fixed64Euler => ReadAsF64Euler().GetHashCode(),
+            LuaValueType.String => ReadAsString().GetHashCode(),
             _ => referenceValue!.GetHashCode(),
         };
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool Equals(LuaValue other)
+    private bool SameTypeEquals(in LuaValue other)
     {
-        if (other.Type == Type)
+        Debug.Assert(Type == other.Type);
+        return Type switch
         {
-            return Type switch
-            {
-                LuaValueType.Nil => true,
-                LuaValueType.Boolean or LuaValueType.Number => other.value == value,
-                LuaValueType.Integer => other.integer == integer,
-                LuaValueType.Fixed64 => other.f64Value == f64Value,
-                LuaValueType.Fixed64Vector3 => other.f64Vec3Value == f64Vec3Value,
-                LuaValueType.Fixed64Angle => other.f64AngleValue == f64AngleValue,
-                LuaValueType.Fixed64Euler => other.f64EulerValue == f64EulerValue,
-                LuaValueType.String => Unsafe.As<string>(other.referenceValue)
-                    == Unsafe.As<string>(referenceValue),
-                _ => other.referenceValue == referenceValue,
-            };
-        }
+            LuaValueType.Boolean or LuaValueType.Number => other.ReadAsDouble() == ReadAsDouble(),
+            LuaValueType.Integer => other.ReadAsInt64() == ReadAsInt64(),
+            LuaValueType.Fixed64 => other.ReadAsFixed64() == ReadAsFixed64(),
+            LuaValueType.Fixed64Vector3 => other.ReadAsF64Vector3() == ReadAsF64Vector3(),
+            LuaValueType.Fixed64Angle => other.ReadAsF64Angle() == ReadAsF64Angle(),
+            LuaValueType.Fixed64Euler => other.ReadAsF64Euler() == ReadAsF64Euler(),
+            LuaValueType.String => other.ReadAsString() == ReadAsString(),
+            _ => other.referenceValue == referenceValue,
+        };
+    }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal bool NumberEquals(in LuaValue other)
+    {
         // Cross-type numeric equality: Integer(1) == Number(1.0).
-        if (
-            Type is LuaValueType.Integer or LuaValueType.Number
-            && other.Type is LuaValueType.Integer or LuaValueType.Number
-        )
+        if (Type is LuaValueType.Integer or LuaValueType.Number &&
+            other.Type is LuaValueType.Integer or LuaValueType.Number)
         {
-            return (Type == LuaValueType.Integer ? (double)integer : value)
-                == (other.Type == LuaValueType.Integer ? (double)other.integer : other.value);
+            double left = ReadAsNumber();
+            double right = other.ReadAsNumber();
+            return left == right;
         }
-
         return false;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool EqualsForDict(LuaValue other)
+    public bool Equals(in LuaValue other)
     {
         if (other.Type == Type)
         {
-            return Type switch
-            {
-                LuaValueType.Boolean or LuaValueType.Number => other.value == value,
-                LuaValueType.Integer => other.integer == integer,
-                LuaValueType.Fixed64 => other.f64Value == f64Value,
-                LuaValueType.Fixed64Vector3 => other.f64Vec3Value == f64Vec3Value,
-                LuaValueType.Fixed64Angle => other.f64AngleValue == f64AngleValue,
-                LuaValueType.Fixed64Euler => other.f64EulerValue == f64EulerValue,
-                LuaValueType.String => Unsafe.As<string>(other.referenceValue)
-                    == Unsafe.As<string>(referenceValue),
-                _ => other.referenceValue == referenceValue,
-            };
+            return Type == LuaValueType.Nil || SameTypeEquals(other);
         }
+        return NumberEquals(other);
+    }
 
-        // Cross-type numeric equality: Integer(1) == Number(1.0).
-        if (
-            Type is LuaValueType.Integer or LuaValueType.Number
-            && other.Type is LuaValueType.Integer or LuaValueType.Number
-        )
+    bool IEquatable<LuaValue>.Equals(LuaValue other) => Equals(other);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool EqualsForDict(in LuaValue other)
+    {
+        if (other.Type == Type)
         {
-            return (Type == LuaValueType.Integer ? (double)integer : value)
-                == (other.Type == LuaValueType.Integer ? (double)other.integer : other.value);
+            // TODO: handle nil?
+            return SameTypeEquals(other);
         }
-
-        return false;
+        return NumberEquals(other);
     }
 
     public override bool Equals(object? obj)
@@ -1321,36 +1101,37 @@ public readonly struct LuaValue : IEquatable<LuaValue>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool operator ==(LuaValue a, LuaValue b)
+    public static bool operator ==(in LuaValue a, in LuaValue b)
     {
         return a.Equals(b);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool operator !=(LuaValue a, LuaValue b)
+    public static bool operator !=(in LuaValue a, in LuaValue b)
     {
         return !a.Equals(b);
     }
 
-    public override string? ToString()
+    public override string? ToString() => ToString(null, CultureInfo.InvariantCulture);
+
+    public string? ToString(string? format, IFormatProvider? formatProvider)
     {
         return Type switch
         {
             LuaValueType.Nil => "nil",
-            LuaValueType.Boolean => Read<bool>() ? "true" : "false",
-            LuaValueType.String => Read<string>(),
-            LuaValueType.Number => Read<double>().ToString(CultureInfo.InvariantCulture),
-            LuaValueType.Integer => integer.ToString(CultureInfo.InvariantCulture),
-            LuaValueType.Fixed64 => f64Value.ToString(),
-            LuaValueType.Fixed64Vector3 => f64Vec3Value.ToString(),
-            LuaValueType.Fixed64Angle => f64AngleValue.ToString(),
-            LuaValueType.Fixed64Euler => f64EulerValue.ToString(),
+            LuaValueType.Boolean => ReadAsBool() ? "true" : "false",
+            LuaValueType.String => ReadAsString(),
+            LuaValueType.Number => ReadAsDouble().ToString(format, formatProvider),
+            LuaValueType.Integer => ReadAsInt64().ToString(format, formatProvider),
+            LuaValueType.Fixed64 => ReadAsFixed64().ToString(),
+            LuaValueType.Fixed64Vector3 => ReadAsF64Vector3().ToString(),
+            LuaValueType.Fixed64Angle => ReadAsF64Angle().ToString(),
+            LuaValueType.Fixed64Euler => ReadAsF64Euler().ToString(),
             LuaValueType.Function => $"function: {referenceValue!.GetHashCode()}",
             LuaValueType.Thread => $"thread: {referenceValue!.GetHashCode()}",
             LuaValueType.Table => $"table: {referenceValue!.GetHashCode()}",
-            LuaValueType.LightUserData => $"userdata: {referenceValue!.GetHashCode()}",
-            LuaValueType.UserData => $"userdata: {referenceValue!.GetHashCode()}",
-            LuaValueType.UserData2 => $"userdata: {(referenceValue as UserDataObject)?.Value!.GetHashCode()}",
+            LuaValueType.LightUserData or LuaValueType.UserData => $"userdata: {referenceValue!.GetHashCode()}",
+            LuaValueType.UserData2 => $"userdata: {ReadAsUserData2().Value!.GetHashCode()}",
             _ => "",
         };
     }
@@ -1431,7 +1212,7 @@ public readonly struct LuaValue : IEquatable<LuaValue>
             result = LuaValueType.Fixed64Euler;
             return true;
         }
-        else if (type == typeof(LuaFunction) || type.IsSubclassOf(typeof(LuaFunction)))
+        else if (type.IsAssignableTo(typeof(LuaFunction)))
         {
             result = LuaValueType.Function;
             return true;
@@ -1446,7 +1227,7 @@ public readonly struct LuaValue : IEquatable<LuaValue>
             result = LuaValueType.Thread;
             return true;
         }
-        else if (type == typeof(ILuaUserData) || type.IsAssignableFrom(typeof(ILuaUserData)))
+        else if (type.IsAssignableTo(typeof(ILuaUserData)))
         {
             result = LuaValueType.UserData;
             return true;
@@ -1458,8 +1239,7 @@ public readonly struct LuaValue : IEquatable<LuaValue>
 
     internal ValueTask<int> CallToStringAsync(
         LuaFunctionExecutionContext context,
-        CancellationToken cancellationToken
-    )
+        CancellationToken cancellationToken)
     {
         if (this.TryGetMetamethod(context.GlobalState, Metamethods.ToString, out var metamethod))
         {
@@ -1478,5 +1258,13 @@ public readonly struct LuaValue : IEquatable<LuaValue>
             context.State.Stack.Push(ToString());
             return default;
         }
+    }
+
+    [DoesNotReturn]
+    static T ThrowInvalidConversion<T>(LuaValueType type)
+    {
+        throw new InvalidOperationException(
+            $"Cannot convert LuaValueType.{type} to {typeof(T).FullName}."
+        );
     }
 }

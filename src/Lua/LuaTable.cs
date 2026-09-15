@@ -41,7 +41,7 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
         {
             if (key.Type is LuaValueType.String)
             {
-                return stringDictionary.TryGetValue(key.UnsafeReadString(), out var sv) ? sv : LuaValue.Nil;
+                return stringDictionary.TryGetValue(key.ReadAsString(), out var sv) ? sv : LuaValue.Nil;
             }
 
             if (key.Type is LuaValueType.Nil)
@@ -70,7 +70,7 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
         {
             if (key.Type is LuaValueType.String)
             {
-                stringDictionary.Insert(key.UnsafeReadString(), value);
+                stringDictionary.Insert(key.ReadAsString(), value);
                 return;
             }
 
@@ -190,7 +190,7 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
     {
         if (key.Type is LuaValueType.String)
         {
-            return stringDictionary.TryGetValue(key.UnsafeReadString(), out value)
+            return stringDictionary.TryGetValue(key.ReadAsString(), out value)
                 && value.Type is not LuaValueType.Nil;
         }
 
@@ -223,7 +223,7 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
     {
         if (key.Type is LuaValueType.String)
         {
-            return ref stringDictionary.FindValue(key.UnsafeReadString(), out _);
+            return ref stringDictionary.FindValue(key.ReadAsString(), out _);
         }
 
         if (key.Type is LuaValueType.Nil)
@@ -305,7 +305,7 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
     {
         if (key.Type is LuaValueType.String)
         {
-            if (stringDictionary.TryGetNext(key.UnsafeReadString(), out pair, out var found))
+            if (stringDictionary.TryGetNext(key.ReadAsString(), out pair, out var found))
             {
                 return true;
             }

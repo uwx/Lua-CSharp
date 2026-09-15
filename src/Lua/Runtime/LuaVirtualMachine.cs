@@ -731,8 +731,8 @@ public static partial class LuaVirtualMachine
                         {
                             Unsafe.Add(ref stackHead, iA) = ArithmeticOperation(
                                 opCode,
-                                vb.UnsafeReadDouble(),
-                                vc.UnsafeReadDouble()
+                                vb.ReadAsDouble(),
+                                vc.ReadAsDouble()
                             );
                             stack.NotifyTop(iA + frameBase + 1);
                             continue;
@@ -745,8 +745,8 @@ public static partial class LuaVirtualMachine
                         // long.MinValue // -1 would overflow, so both fall through too.
                         if (vb.Type == LuaValueType.Integer && vc.Type == LuaValueType.Integer)
                         {
-                            var a = vb.UnsafeReadLong();
-                            var b = vc.UnsafeReadLong();
+                            var a = vb.ReadAsInt64();
+                            var b = vc.ReadAsInt64();
                             var isIntegerPath =
                                 opCode is OpCode.Add or OpCode.Sub or OpCode.Mul
                                 || (
@@ -781,8 +781,8 @@ public static partial class LuaVirtualMachine
                         {
                             Unsafe.Add(ref stackHead, iA) = Fixed64ArithmeticOperation(
                                 opCode,
-                                vb.UnsafeReadFixed64(),
-                                vc.UnsafeReadFixed64()
+                                vb.ReadAsFixed64(),
+                                vc.ReadAsFixed64()
                             );
                             stack.NotifyTop(iA + frameBase + 1);
                             continue;
@@ -793,8 +793,8 @@ public static partial class LuaVirtualMachine
                             && vb.Type == LuaValueType.Fixed64Vector3
                             && vc.Type == LuaValueType.Fixed64Vector3)
                         {
-                            var vecA = vb.UnsafeReadFixed64Vector3();
-                            var vecB = vc.UnsafeReadFixed64Vector3();
+                            var vecA = vb.ReadAsF64Vector3();
+                            var vecB = vc.ReadAsF64Vector3();
                             Unsafe.Add(ref stackHead, iA) = opCode == OpCode.Add ? vecA + vecB : vecA - vecB;
                             stack.NotifyTop(iA + frameBase + 1);
                             continue;
@@ -805,8 +805,8 @@ public static partial class LuaVirtualMachine
                             && vb.Type == LuaValueType.Fixed64Vector3
                             && vc.Type == LuaValueType.Fixed64)
                         {
-                            var vec = vb.UnsafeReadFixed64Vector3();
-                            var scalar = vc.UnsafeReadFixed64();
+                            var vec = vb.ReadAsF64Vector3();
+                            var scalar = vc.ReadAsFixed64();
                             Unsafe.Add(ref stackHead, iA) = opCode == OpCode.Mul ? vec * scalar : vec / scalar;
                             stack.NotifyTop(iA + frameBase + 1);
                             continue;
@@ -817,8 +817,8 @@ public static partial class LuaVirtualMachine
                             && vb.Type == LuaValueType.Fixed64
                             && vc.Type == LuaValueType.Fixed64Vector3)
                         {
-                            var scalar = vb.UnsafeReadFixed64();
-                            var vec = vc.UnsafeReadFixed64Vector3();
+                            var scalar = vb.ReadAsFixed64();
+                            var vec = vc.ReadAsF64Vector3();
                             Unsafe.Add(ref stackHead, iA) = scalar * vec;
                             stack.NotifyTop(iA + frameBase + 1);
                             continue;
@@ -829,8 +829,8 @@ public static partial class LuaVirtualMachine
                             && vb.Type == LuaValueType.Fixed64Vector3
                             && vc.Type == LuaValueType.Fixed64Vector3)
                         {
-                            var vecA = vb.UnsafeReadFixed64Vector3();
-                            var vecB = vc.UnsafeReadFixed64Vector3();
+                            var vecA = vb.ReadAsF64Vector3();
+                            var vecB = vc.ReadAsF64Vector3();
                             Unsafe.Add(ref stackHead, iA) = opCode == OpCode.Mul ? vecA * vecB : vecA / vecB;
                             stack.NotifyTop(iA + frameBase + 1);
                             continue;
@@ -841,8 +841,8 @@ public static partial class LuaVirtualMachine
                             && vb.Type == LuaValueType.Fixed64Euler
                             && vc.Type == LuaValueType.Fixed64Euler)
                         {
-                            var a = vb.UnsafeReadFixed64Euler();
-                            var b = vc.UnsafeReadFixed64Euler();
+                            var a = vb.ReadAsF64Euler();
+                            var b = vc.ReadAsF64Euler();
                             Unsafe.Add(ref stackHead, iA) = opCode == OpCode.Add ? a + b : a - b;
                             stack.NotifyTop(iA + frameBase + 1);
                             continue;
@@ -853,8 +853,8 @@ public static partial class LuaVirtualMachine
                             && vb.Type == LuaValueType.Fixed64Euler
                             && vc.Type == LuaValueType.Fixed64Angle)
                         {
-                            var euler = vb.UnsafeReadFixed64Euler();
-                            var scalar = vc.UnsafeReadFixed64Angle();
+                            var euler = vb.ReadAsF64Euler();
+                            var scalar = vc.ReadAsF64Angle();
                             Unsafe.Add(ref stackHead, iA) = opCode == OpCode.Mul ? euler * scalar : euler / scalar;
                             stack.NotifyTop(iA + frameBase + 1);
                             continue;
@@ -865,8 +865,8 @@ public static partial class LuaVirtualMachine
                             && vb.Type == LuaValueType.Fixed64Angle
                             && vc.Type == LuaValueType.Fixed64Euler)
                         {
-                            var scalar = vb.UnsafeReadFixed64Angle();
-                            var euler = vc.UnsafeReadFixed64Euler();
+                            var scalar = vb.ReadAsF64Angle();
+                            var euler = vc.ReadAsF64Euler();
                             Unsafe.Add(ref stackHead, iA) = scalar * euler;
                             stack.NotifyTop(iA + frameBase + 1);
                             continue;
@@ -879,8 +879,8 @@ public static partial class LuaVirtualMachine
                             && vc.Type == LuaValueType.Fixed64Angle
                         )
                         {
-                            var a = vb.UnsafeReadFixed64Angle();
-                            var b = vc.UnsafeReadFixed64Angle();
+                            var a = vb.ReadAsF64Angle();
+                            var b = vc.ReadAsF64Angle();
                             Unsafe.Add(ref stackHead, iA) = opCode switch
                             {
                                 OpCode.Add => (LuaValue)(a + b),
@@ -930,7 +930,7 @@ public static partial class LuaVirtualMachine
                         if (vb.Type == LuaValueType.Integer)
                         {
                             ra1 = iA + frameBase + 1;
-                            Unsafe.Add(ref stackHead, iA) = -vb.UnsafeReadLong();
+                            Unsafe.Add(ref stackHead, iA) = -vb.ReadAsInt64();
                             stack.NotifyTop(ra1);
                             continue;
                         }
@@ -939,7 +939,7 @@ public static partial class LuaVirtualMachine
                         if (vb.Type == LuaValueType.Fixed64)
                         {
                             ra1 = iA + frameBase + 1;
-                            Unsafe.Add(ref stackHead, iA) = -vb.UnsafeReadFixed64();
+                            Unsafe.Add(ref stackHead, iA) = -vb.ReadAsFixed64();
                             stack.NotifyTop(ra1);
                             continue;
                         }
@@ -948,7 +948,7 @@ public static partial class LuaVirtualMachine
                         if (vb.Type == LuaValueType.Fixed64Vector3)
                         {
                             ra1 = iA + frameBase + 1;
-                            Unsafe.Add(ref stackHead, iA) = -vb.UnsafeReadFixed64Vector3();
+                            Unsafe.Add(ref stackHead, iA) = -vb.ReadAsF64Vector3();
                             stack.NotifyTop(ra1);
                             continue;
                         }
@@ -957,7 +957,7 @@ public static partial class LuaVirtualMachine
                         if (vb.Type == LuaValueType.Fixed64Euler)
                         {
                             ra1 = iA + frameBase + 1;
-                            Unsafe.Add(ref stackHead, iA) = -vb.UnsafeReadFixed64Euler();
+                            Unsafe.Add(ref stackHead, iA) = -vb.ReadAsF64Euler();
                             stack.NotifyTop(ra1);
                             continue;
                         }
@@ -966,7 +966,7 @@ public static partial class LuaVirtualMachine
                         if (vb.Type == LuaValueType.Fixed64Angle)
                         {
                             ra1 = iA + frameBase + 1;
-                            Unsafe.Add(ref stackHead, iA) = -vb.UnsafeReadFixed64Angle();
+                            Unsafe.Add(ref stackHead, iA) = -vb.ReadAsF64Angle();
                             stack.NotifyTop(ra1);
                             continue;
                         }
@@ -1114,8 +1114,8 @@ public static partial class LuaVirtualMachine
                         if (vb.Type == LuaValueType.Integer && vc.Type == LuaValueType.Integer)
                         {
                             var compareResult = opCode == OpCode.Lt
-                                ? vb.UnsafeReadLong() < vc.UnsafeReadLong()
-                                : vb.UnsafeReadLong() <= vc.UnsafeReadLong();
+                                ? vb.ReadAsInt64() < vc.ReadAsInt64()
+                                : vb.ReadAsInt64() <= vc.ReadAsInt64();
                             if (compareResult != (iA == 1))
                             {
                                 context.Pc++;
@@ -1278,9 +1278,9 @@ public static partial class LuaVirtualMachine
                         // type, so an Integer index implies Integer limit and step.
                         if (indexRef.Type == LuaValueType.Integer)
                         {
-                            var intLimit = Unsafe.Add(ref indexRef, 1).UnsafeReadLong();
-                            var intStep = Unsafe.Add(ref indexRef, 2).UnsafeReadLong();
-                            var intIndex = indexRef.UnsafeReadLong() + intStep;
+                            var intLimit = Unsafe.Add(ref indexRef, 1).ReadAsInt64();
+                            var intStep = Unsafe.Add(ref indexRef, 2).ReadAsInt64();
+                            var intIndex = indexRef.ReadAsInt64() + intStep;
 
                             if (intStep >= 0 ? intIndex <= intLimit : intLimit <= intIndex)
                             {
@@ -1296,9 +1296,9 @@ public static partial class LuaVirtualMachine
                             continue;
                         }
 
-                        var limit = Unsafe.Add(ref indexRef, 1).UnsafeReadDouble();
-                        var step = Unsafe.Add(ref indexRef, 2).UnsafeReadDouble();
-                        var index = indexRef.UnsafeReadDouble() + step;
+                        var limit = Unsafe.Add(ref indexRef, 1).ReadAsDouble();
+                        var step = Unsafe.Add(ref indexRef, 2).ReadAsDouble();
+                        var index = indexRef.ReadAsDouble() + step;
 
                         if (step >= 0 ? index <= limit : limit <= index)
                         {
@@ -1326,8 +1326,8 @@ public static partial class LuaVirtualMachine
                         )
                         {
                             indexRef =
-                                indexRef.UnsafeReadLong()
-                                - Unsafe.Add(ref indexRef, 2).UnsafeReadLong();
+                                indexRef.ReadAsInt64()
+                                - Unsafe.Add(ref indexRef, 2).ReadAsInt64();
                             stack.NotifyTop(iA + frameBase + 1);
                             context.Pc += instruction.SBx;
                             continue;
@@ -1342,13 +1342,13 @@ public static partial class LuaVirtualMachine
                             return true;
                         }
 
-                        if (!LuaValue.TryReadOrSetDouble(ref Unsafe.Add(ref indexRef, 1), out var limitValue))
+                        if (!Unsafe.Add(ref indexRef, 1).TryReadDouble(out var limitValue))
                         {
                             ThrowLuaRuntimeException(context, "'for' limit must be a number");
                             return true;
                         }
 
-                        if (!LuaValue.TryReadOrSetDouble(ref Unsafe.Add(ref indexRef, 2), out step))
+                        if (!Unsafe.Add(ref indexRef, 2).TryReadDouble(out step))
                         {
                             ThrowLuaRuntimeException(context, "'for' step must be a number");
                             return true;
@@ -1567,7 +1567,7 @@ public static partial class LuaVirtualMachine
             {
                 await ExecuteBinaryOperationMetaMethod(top - 2, lhs, rhs, context, OpCode.Concat);
             }
-            else if (rhs.UnsafeReadString().Length == 0)
+            else if (rhs.ReadAsString().Length == 0)
             {
                 ToString(ref lhs);
             }
@@ -1577,7 +1577,7 @@ public static partial class LuaVirtualMachine
             }
             else
             {
-                var tl = rhs.UnsafeReadString().Length;
+                var tl = rhs.ReadAsString().Length;
 
                 var i = 1;
                 for (; i < total; i++)
@@ -1588,7 +1588,7 @@ public static partial class LuaVirtualMachine
                         break;
                     }
 
-                    tl += v.UnsafeReadString().Length;
+                    tl += v.ReadAsString().Length;
                 }
 
                 n = i;
@@ -1600,7 +1600,7 @@ public static partial class LuaVirtualMachine
                         var (stack, index) = pair;
                         foreach (var v in stack.AsSpan().Slice(index))
                         {
-                            var s = v.UnsafeReadString();
+                            var s = v.ReadAsString();
                             if (s.Length == 0)
                             {
                                 continue;
@@ -1663,7 +1663,7 @@ public static partial class LuaVirtualMachine
                 );
                 stack.Get(top - 2) = value;
             }
-            else if (rhs.UnsafeReadString().Length == 0)
+            else if (rhs.ReadAsString().Length == 0)
             {
                 ToString(ref lhs);
             }
@@ -1673,7 +1673,7 @@ public static partial class LuaVirtualMachine
             }
             else
             {
-                var tl = rhs.UnsafeReadString().Length;
+                var tl = rhs.ReadAsString().Length;
 
                 var i = 1;
                 for (; i < total; i++)
@@ -1684,7 +1684,7 @@ public static partial class LuaVirtualMachine
                         break;
                     }
 
-                    tl += v.UnsafeReadString().Length;
+                    tl += v.ReadAsString().Length;
                 }
 
                 n = i;
@@ -1696,7 +1696,7 @@ public static partial class LuaVirtualMachine
                         var (stack, index) = pair;
                         foreach (var v in stack.AsSpan().Slice(index))
                         {
-                            var s = v.UnsafeReadString();
+                            var s = v.ReadAsString();
                             if (s.Length == 0)
                             {
                                 continue;
@@ -2251,14 +2251,14 @@ public static partial class LuaVirtualMachine
         if (
             control.Type == LuaValueType.String
             && ReferenceEquals(table, context.NextIteratorTable)
-            && table.SlotStillHolds(context.NextIteratorSlot, control.UnsafeReadString())
+            && table.SlotStillHolds(context.NextIteratorSlot, control.ReadAsString())
         )
         {
             hasPair = table.TryNextFromSlot(context.NextIteratorSlot, out pair, out slot);
         }
         else if (control.Type == LuaValueType.String)
         {
-            hasPair = table.TryGetNextFromString(control.UnsafeReadString(), out pair, out slot);
+            hasPair = table.TryGetNextFromString(control.ReadAsString(), out pair, out slot);
         }
         else
         {
