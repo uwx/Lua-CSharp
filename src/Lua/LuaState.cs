@@ -510,6 +510,7 @@ public class LuaState : IDisposable
     {
         var previous = IsSyncExecution;
         IsSyncExecution = true;
+        var startTimestamp = System.Diagnostics.Stopwatch.GetTimestamp();
         try
         {
             var task = factory();
@@ -523,6 +524,7 @@ public class LuaState : IDisposable
         finally
         {
             IsSyncExecution = previous;
+            LuaCallDiagnostics.Record(System.Diagnostics.Stopwatch.GetTimestamp() - startTimestamp);
         }
 
         static void ThrowDidNotCompleteSynchronously()

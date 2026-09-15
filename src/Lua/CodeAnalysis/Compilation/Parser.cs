@@ -1546,6 +1546,9 @@ class Parser : IPoolNode<Parser>, IDisposable
         var name = CheckName();
         Function.MakeLocalVariable(name);
         Function.AdjustLocalVariables(1);
+        // The register is assigned by the Closure instruction *after* the closure has
+        // captured its upvalues, so a recursive self-reference must go through a cell.
+        Function.MarkLocalWritten(Function.ActiveVariableCount - 1);
         Function.LocalVariable(Body(false, Scanner.LineNumber, name: name).Info).StartPc = Function
             .Proto
             .CodeList

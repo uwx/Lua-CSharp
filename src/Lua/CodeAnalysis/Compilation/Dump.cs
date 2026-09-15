@@ -286,7 +286,9 @@ unsafe ref struct DumpState(IBufferWriter<byte> writer, bool reversedEndian)
         WriteInt(upValues.Length);
         foreach (var u in upValues)
         {
-            WriteBool(u.IsLocal);
+            // Bit 0 is luac's `instack` flag; bit 1 marks a by-value capture (an extension:
+            // standard dumps never set it, so they load as by-reference).
+            WriteByte((byte)((u.IsLocal ? 1 : 0) | (u.ByValue ? 2 : 0)));
             WriteByte((byte)u.Index);
         }
     }
@@ -556,9 +558,14 @@ unsafe ref struct UndumpState(
         var upValues = new UpValueDesc[count];
         for (var i = 0; i < count; i++)
         {
-            var isLocal = ReadBool();
+            var flags = ReadByte();
             var index = ReadByte();
-            upValues[i] = new() { IsLocal = isLocal, Index = index };
+            upValues[i] = new()
+            {
+                IsLocal = (flags & 1) != 0,
+                ByValue = (flags & 2) != 0,
+                Index = index,
+            };
         }
 
         return upValues;

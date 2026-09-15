@@ -27,6 +27,22 @@ class Function : IPoolNode<Function>
     /// </summary>
     public FastListCore<ConstBinding> ConstBindings;
 
+    /// <summary>
+    /// Captures of this function's locals by nested closures. The compiler is single-pass,
+    /// so whether a local is ever reassigned is only known once this function has been fully
+    /// compiled; <see cref="FinalizeCaptures"/> then flips the matching
+    /// <see cref="UpValueDesc.ByValue"/> flags.
+    /// </summary>
+    public FastListCore<LocalCapture> LocalCaptures;
+
+    public struct LocalCapture
+    {
+        /// <summary>Index into <see cref="PrototypeBuilder.LocalVariablesList"/> of the captured local.</summary>
+        public int LocalIndex;
+        public PrototypeBuilder Child;
+        public int UpValueIndex;
+    }
+
     static LinkedPool<Function> pool;
 
     ref Function? IPoolNode<Function>.NextNode => ref Previous;
@@ -48,6 +64,7 @@ class Function : IPoolNode<Function>
         Previous = null;
         ConstantLookup.Clear();
         ConstBindings.Clear();
+        LocalCaptures.Clear();
         JumpPc = NoJump;
         Proto = null!;
         LastTarget = 0;
@@ -133,6 +150,7 @@ class Function : IPoolNode<Function>
         P.Function.LeaveBlock();
         Assert(P.Function.Block == null);
         var f = P.Function;
+        f.FinalizeCaptures();
         P.Function = f.Previous;
         f.Release();
         return e;
@@ -149,10 +167,73 @@ class Function : IPoolNode<Function>
         P.Function = f.Previous;
         f.Release();
 
-        // Drop the now-unreferenced child prototype so it is not materialized.
+        // Drop the now-unreferenced child prototype so it is not materialized. Its capture
+        // records must go too: the pooled builder may be reused, and FinalizeCaptures would
+        // otherwise patch whatever function ends up owning it.
         var proto = P.Function.Proto.PrototypeList[P.Function.Proto.PrototypeList.Length - 1];
         P.Function.Proto.PrototypeList.Pop();
+        ref var captures = ref P.Function.LocalCaptures;
+        var keep = 0;
+        for (var i = 0; i < captures.Length; i++)
+        {
+            if (captures[i].Child != proto)
+            {
+                captures[keep++] = captures[i];
+            }
+        }
+
+        captures.Shrink(keep);
         proto.Release();
+    }
+
+    /// <summary>
+    /// Marks every capture of a local of this function that was never reassigned as
+    /// by-value. Must run after the whole body (and so every nested function) is compiled.
+    /// </summary>
+    public void FinalizeCaptures()
+    {
+        for (var i = 0; i < LocalCaptures.Length; i++)
+        {
+            var capture = LocalCaptures[i];
+            if (!Proto.LocalWrittenList[capture.LocalIndex])
+            {
+                capture.Child.UpValuesList[capture.UpValueIndex].ByValue = true;
+            }
+        }
+
+        LocalCaptures.Clear();
+    }
+
+    /// <summary>Records an assignment to the local at active index <paramref name="index"/>.</summary>
+    public void MarkLocalWritten(int index)
+    {
+        Proto.LocalWrittenList[P.ActiveVariables[FirstLocal + index]] = true;
+    }
+
+    /// <summary>
+    /// Records an assignment through the upvalue at <paramref name="index"/>: the local it
+    /// resolves to (possibly several functions up) can no longer be captured by value.
+    /// </summary>
+    public void MarkUpValueWritten(int index)
+    {
+        var f = this;
+        while (true)
+        {
+            var upValue = f.Proto.UpValuesList[index];
+            if (upValue.IsLocal)
+            {
+                f.Previous?.MarkLocalWritten(upValue.Index);
+                return;
+            }
+
+            if (f.Previous == null)
+            {
+                return;
+            }
+
+            index = upValue.Index;
+            f = f.Previous;
+        }
     }
 
     public void EnterBlock(bool isLoop)
@@ -300,6 +381,7 @@ class Function : IPoolNode<Function>
     {
         var r = Proto.LocalVariablesList.Length;
         Proto.LocalVariablesList.Add(new() { Name = name });
+        Proto.LocalWrittenList.Add(false);
         P.CheckLimit(
             P.ActiveVariables.Length + 1 - FirstLocal,
             MaxLocalVariables,
@@ -1266,10 +1348,12 @@ class Function : IPoolNode<Function>
         switch (v.Kind)
         {
             case Kind.Local:
+                MarkLocalWritten(v.Info);
                 FreeExpression(e);
                 ExpressionToRegister(e, v.Info);
                 return;
             case Kind.UpValue:
+                MarkUpValueWritten(v.Info);
                 e = ExpressionToAnyRegister(e);
                 EncodeABC(OpCode.SetUpVal, e.Info, v.Info, 0);
                 break;
@@ -1832,7 +1916,23 @@ class Function : IPoolNode<Function>
                 Index = e.Info,
             }
         );
-        return Proto.UpValuesList.Length - 1;
+        var index = Proto.UpValuesList.Length - 1;
+
+        // `e` was resolved in the enclosing function, so `e.Info` is one of its active
+        // locals. (The main chunk's `_ENV` has no enclosing function.)
+        if (e.Kind == Kind.Local && Previous != null)
+        {
+            Previous.LocalCaptures.Add(
+                new()
+                {
+                    LocalIndex = P.ActiveVariables[Previous.FirstLocal + e.Info],
+                    Child = Proto,
+                    UpValueIndex = index,
+                }
+            );
+        }
+
+        return index;
     }
 
     public static (ExprDesc, bool) SingleVariableHelper(Function? f, string name, bool b)
@@ -2053,6 +2153,7 @@ class Function : IPoolNode<Function>
         ReturnNone();
         LeaveBlock();
         Assert(Block == null);
+        FinalizeCaptures();
         return Previous!;
     }
 }

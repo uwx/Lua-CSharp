@@ -6,7 +6,7 @@ namespace Lua.Runtime;
 
 public sealed class LuaClosure : LuaFunction
 {
-    FastListCore<UpValue> upValues;
+    FastListCore<UpValueSlot> upValues;
 
     public LuaClosure(LuaState state, Prototype proto, LuaTable? environment = null)
         : base(
@@ -17,15 +17,15 @@ public sealed class LuaClosure : LuaFunction
         Proto = proto;
         if (environment != null)
         {
-            upValues = new FastListCore<UpValue>(1);
-            upValues.Add(UpValue.Closed(environment));
+            upValues = new FastListCore<UpValueSlot>(1);
+            upValues.Add(UpValueSlot.FromCell(UpValue.Closed(environment)));
             return;
         }
 
         if (state.CallStackFrameCount == 0)
         {
-            upValues = new FastListCore<UpValue>(1);
-            upValues.Add(state.GlobalState.EnvUpValue);
+            upValues = new FastListCore<UpValueSlot>(1);
+            upValues.Add(UpValueSlot.FromCell(state.GlobalState.EnvUpValue));
             return;
         }
 
@@ -34,7 +34,7 @@ public sealed class LuaClosure : LuaFunction
 
         // Size the list exactly: the default Add path would allocate an 8-slot array even
         // for a closure that captures a single local.
-        upValues = new FastListCore<UpValue>(upValueCount);
+        upValues = new FastListCore<UpValueSlot>(upValueCount);
 
         // add upvalues
         for (var i = 0; i < upValueCount; i++)
@@ -52,9 +52,9 @@ public sealed class LuaClosure : LuaFunction
 
     public Prototype Proto { get; }
 
-    public ReadOnlySpan<UpValue> UpValues => upValues.AsSpan();
+    public ReadOnlySpan<UpValueSlot> UpValues => upValues.AsSpan();
 
-    internal Span<UpValue> GetUpValuesSpan()
+    internal Span<UpValueSlot> GetUpValuesSpan()
     {
         return upValues.AsSpan();
     }
@@ -68,7 +68,7 @@ public sealed class LuaClosure : LuaFunction
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal ref readonly LuaValue GetUpValueRef(int index)
     {
-        return ref upValues[index].GetValueRef();
+        return ref UpValueSlot.GetValueRef(ref upValues[index]);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -84,16 +84,19 @@ public sealed class LuaClosure : LuaFunction
             return;
         }
 
+        // A cell rather than an inline value: nested closures capture `_ENV` through this
+        // slot and must keep seeing the parent's environment if it is reassigned later.
+        var slot = UpValueSlot.FromCell(UpValue.Closed(environment));
         if (upValues.Length == 0)
         {
-            upValues.Add(UpValue.Closed(environment));
+            upValues.Add(slot);
             return;
         }
 
-        upValues[0] = UpValue.Closed(environment);
+        upValues[0] = slot;
     }
 
-    static UpValue GetUpValueFromDescription(
+    static UpValueSlot GetUpValueFromDescription(
         LuaGlobalState globalState,
         LuaState state,
         UpValueDesc description,
@@ -104,15 +107,23 @@ public sealed class LuaClosure : LuaFunction
         {
             if (description is { Index: 0, Name: "_ENV" })
             {
-                return globalState.EnvUpValue;
+                return UpValueSlot.FromCell(globalState.EnvUpValue);
             }
 
-            return state.GetOrAddUpValue(baseIndex + description.Index);
+            var registerIndex = baseIndex + description.Index;
+            if (description.ByValue)
+            {
+                // Never reassigned after this point: snapshot it instead of opening a cell.
+                return UpValueSlot.Inline(state.Stack.UnsafeGet(registerIndex));
+            }
+
+            return UpValueSlot.FromCell(state.GetOrAddUpValue(registerIndex));
         }
 
         if (state.GetCurrentFrame().Function is LuaClosure parentClosure)
         {
-            return parentClosure.UpValues[description.Index];
+            // Copying the parent's slot shares its cell, or copies its (immutable) value.
+            return parentClosure.upValues[description.Index];
         }
 
         throw new();

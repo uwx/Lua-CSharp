@@ -25,6 +25,13 @@ class PrototypeBuilder : IPoolNode<PrototypeBuilder>
 
     public ReadOnlySpan<LocalVariable> LocalVariables => LocalVariablesList.AsSpan();
 
+    /// <summary>
+    /// Parallel to <see cref="LocalVariablesList"/>: true once the local is assigned anywhere
+    /// after its declaration (including from nested functions). Drives by-value capture, see
+    /// <see cref="UpValueDesc.ByValue"/>.
+    /// </summary>
+    internal FastListCore<bool> LocalWrittenList;
+
     internal FastListCore<UpValueDesc> UpValuesList;
 
     public ReadOnlySpan<UpValueDesc> UpValues => UpValuesList.AsSpan();
@@ -72,6 +79,7 @@ class PrototypeBuilder : IPoolNode<PrototypeBuilder>
         PrototypeList.Clear();
         LineInfoList.Clear();
         LocalVariablesList.Clear();
+        LocalWrittenList.Clear();
         UpValuesList.Clear();
         LineDefined = 0;
         LastLineDefined = 0;

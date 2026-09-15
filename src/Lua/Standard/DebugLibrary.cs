@@ -264,7 +264,9 @@ public sealed class DebugLibrary
         }
 
         {
-            var upValues = closure.UpValues;
+            // Mutable span: a by-value slot stores the value inline, so writing through the
+            // read-only view would only update a copy.
+            var upValues = closure.GetUpValuesSpan();
             var descriptions = closure.Proto.UpValues;
             if (index < 0 || index >= descriptions.Length)
             {
@@ -431,7 +433,9 @@ public sealed class DebugLibrary
             return new(context.Return(LuaValue.Nil));
         }
 
-        return new(context.Return(LuaValue.FromObject(upValues[n1 - 1])));
+        // A by-value slot has no identity of its own; give it a cell so repeated calls
+        // (and upvaluejoin) agree on one.
+        return new(context.Return(LuaValue.FromObject(upValues[n1 - 1].EnsureCell())));
     }
 
     public ValueTask<int> UpValueJoin(
@@ -461,6 +465,8 @@ public sealed class DebugLibrary
             context.ThrowBadArgument(3, "invalid upvalue index");
         }
 
+        // Joining must share: promote a by-value source to a cell before copying the slot.
+        upValues2[n2 - 1].EnsureCell();
         upValues1[n1 - 1] = upValues2[n2 - 1];
         return new(0);
     }

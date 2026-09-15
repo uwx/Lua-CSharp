@@ -27,7 +27,16 @@ public enum LuaValueType : byte
     Fixed64Vector3,
     Fixed64Angle,
     Fixed64Euler,
-    UserData2 // this is like userdata but the type is wrapped so you don't need to make your type implement ILuaUserData, useful for e.g making userdatas out of standard library objects
+    UserData2, // this is like userdata but the type is wrapped so you don't need to make your type implement ILuaUserData, useful for e.g making userdatas out of standard library objects
+    
+    // Ugly hacks to save allocation size on UpValue and UpValueSlot
+    // Internal type for open upvalues. Not to be used directly except by UpValue.
+    // integer = registerIndex, referenceValue = LuaStack
+    UpValue,
+    
+    // Internal type for UpValueSlot containing an UpValue
+    // referenceValue = UpValue
+    UpValueCell
 }
 
 internal class UserDataObject : ILuaUserData
@@ -36,24 +45,79 @@ internal class UserDataObject : ILuaUserData
     public LuaTable? Metatable { get; set; }
 }
 
-[StructLayout(LayoutKind.Explicit, Size = 40)]
+[InlineArray(24)]
+internal struct ValueUnion
+{
+    private byte _b;
+}
+
+[StructLayout(LayoutKind.Auto)]
 public readonly struct LuaValue : IEquatable<LuaValue>
 {
-    public static readonly LuaValue Nil = default;
+    public static LuaValue Nil
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => default;
+    }
 
-    [FieldOffset(0)] public readonly LuaValueType Type;
-    [FieldOffset(8)] internal readonly object? referenceValue;
-    [FieldOffset(16)] readonly double value;
-    [FieldOffset(16)] readonly long integer;
-    [FieldOffset(16)] readonly Fixed64 f64Value;
-    [FieldOffset(16)] internal readonly Vector3d f64Vec3Value;
-    [FieldOffset(16)] readonly f64AngleSingle f64AngleValue;
-    [FieldOffset(16)] readonly f64Euler f64EulerValue;
+    public readonly LuaValueType Type;
+    internal readonly object? referenceValue;
+    internal readonly ValueUnion valueUnion;
+    
+    internal double value
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => Unsafe.As<ValueUnion, double>(ref Unsafe.AsRef(in valueUnion));
+    }
+
+    internal long integer
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => Unsafe.As<ValueUnion, long>(ref Unsafe.AsRef(in valueUnion));
+    }
+
+    internal Fixed64 f64Value
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => Unsafe.As<ValueUnion, Fixed64>(ref Unsafe.AsRef(in valueUnion));
+    }
+
+    internal Vector3d f64Vec3Value
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => Unsafe.As<ValueUnion, Vector3d>(ref Unsafe.AsRef(in valueUnion));
+    }
+
+    internal f64AngleSingle f64AngleValue
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => Unsafe.As<ValueUnion, f64AngleSingle>(ref Unsafe.AsRef(in valueUnion));
+    }
+
+    internal f64Euler f64EulerValue
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => Unsafe.As<ValueUnion, f64Euler>(ref Unsafe.AsRef(in valueUnion));
+    }
 
     internal LuaValue(LuaValueType type, double value, object? referenceValue)
     {
         Type = type;
-        this.value = value;
+        Unsafe.As<ValueUnion, double>(ref valueUnion) = value;
+        this.referenceValue = referenceValue;
+    }
+    
+    internal LuaValue(LuaValueType type, long value, object? referenceValue)
+    {
+        Type = type;
+        Unsafe.As<ValueUnion, long>(ref valueUnion) = value;
+        this.referenceValue = referenceValue;
+    }
+
+    internal LuaValue(LuaValueType type, object? referenceValue)
+    {
+        Type = type;
+        Unsafe.SkipInit(out valueUnion);
         this.referenceValue = referenceValue;
     }
 
@@ -944,6 +1008,7 @@ public readonly struct LuaValue : IEquatable<LuaValue>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     LuaValue(object obj)
     {
+        Unsafe.SkipInit(out valueUnion);
         Type = LuaValueType.LightUserData;
         referenceValue = obj;
     }
@@ -951,6 +1016,7 @@ public readonly struct LuaValue : IEquatable<LuaValue>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     LuaValue(object obj, LuaTable metatable)
     {
+        Unsafe.SkipInit(out valueUnion);
         Type = LuaValueType.UserData2;
         referenceValue = new UserDataObject { Value = obj, Metatable = metatable };
     }
@@ -958,27 +1024,31 @@ public readonly struct LuaValue : IEquatable<LuaValue>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public LuaValue(bool value)
     {
+        Unsafe.SkipInit(out valueUnion);
         Type = LuaValueType.Boolean;
-        this.value = value ? 1 : 0;
+        Unsafe.As<ValueUnion, long>(ref valueUnion) = value ? 1 : 0;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public LuaValue(int value)
     {
-        Type = LuaValueType.Number;
-        this.value = value;
+        Unsafe.SkipInit(out valueUnion);
+        Type = LuaValueType.Integer;
+        Unsafe.As<ValueUnion, long>(ref valueUnion) = value;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public LuaValue(double value)
     {
+        Unsafe.SkipInit(out valueUnion);
         Type = LuaValueType.Number;
-        this.value = value;
+        Unsafe.As<ValueUnion, double>(ref valueUnion) = value;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public LuaValue(string value)
     {
+        Unsafe.SkipInit(out valueUnion);
         Type = LuaValueType.String;
         referenceValue = value;
     }
@@ -986,6 +1056,7 @@ public readonly struct LuaValue : IEquatable<LuaValue>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public LuaValue(LuaFunction value)
     {
+        Unsafe.SkipInit(out valueUnion);
         Type = LuaValueType.Function;
         referenceValue = value;
     }
@@ -993,6 +1064,7 @@ public readonly struct LuaValue : IEquatable<LuaValue>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public LuaValue(LuaTable value)
     {
+        Unsafe.SkipInit(out valueUnion);
         Type = LuaValueType.Table;
         referenceValue = value;
     }
@@ -1000,6 +1072,7 @@ public readonly struct LuaValue : IEquatable<LuaValue>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public LuaValue(LuaState value)
     {
+        Unsafe.SkipInit(out valueUnion);
         Type = LuaValueType.Thread;
         referenceValue = value;
     }
@@ -1007,6 +1080,7 @@ public readonly struct LuaValue : IEquatable<LuaValue>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public LuaValue(ILuaUserData value)
     {
+        Unsafe.SkipInit(out valueUnion);
         Type = LuaValueType.UserData;
         referenceValue = value;
     }
@@ -1014,36 +1088,41 @@ public readonly struct LuaValue : IEquatable<LuaValue>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public LuaValue(Fixed64 value)
     {
+        Unsafe.SkipInit(out referenceValue);
         Type = LuaValueType.Fixed64;
-        f64Value = value;
+        Unsafe.As<ValueUnion, Fixed64>(ref valueUnion) = value;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public LuaValue(Vector3d value)
     {
+        Unsafe.SkipInit(out referenceValue);
         Type = LuaValueType.Fixed64Vector3;
-        f64Vec3Value = value;
+        Unsafe.As<ValueUnion, Vector3d>(ref valueUnion) = value;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public LuaValue(f64AngleSingle value)
     {
+        Unsafe.SkipInit(out referenceValue);
         Type = LuaValueType.Fixed64Angle;
-        f64AngleValue = value;
+        Unsafe.As<ValueUnion, f64AngleSingle>(ref valueUnion) = value;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public LuaValue(f64Euler value)
     {
+        Unsafe.SkipInit(out referenceValue);
         Type = LuaValueType.Fixed64Euler;
-        f64EulerValue = value;
+        Unsafe.As<ValueUnion, f64Euler>(ref valueUnion) = value;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public LuaValue(long value)
     {
+        Unsafe.SkipInit(out referenceValue);
         Type = LuaValueType.Integer;
-        integer = value;
+        Unsafe.As<ValueUnion, long>(ref valueUnion) = value;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1253,7 +1332,7 @@ public readonly struct LuaValue : IEquatable<LuaValue>
         return !a.Equals(b);
     }
 
-    public override string ToString()
+    public override string? ToString()
     {
         return Type switch
         {
