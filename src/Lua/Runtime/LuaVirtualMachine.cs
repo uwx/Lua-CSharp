@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using FixedMathSharp;
@@ -271,6 +272,41 @@ public static partial class LuaVirtualMachine
             return true;
         }
 
+        /// <summary>
+        /// Drives this closure's instruction dispatch.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Threading invariant that every opcode handler must uphold.</b> Handlers do not await
+        /// their own pending work; they park it in <see cref="Task"/> and return <c>false</c>, and
+        /// this loop awaits it. That means a handler's task is already live -- and can already be
+        /// running its continuation on a thread-pool thread -- while the dispatching thread is
+        /// still unwinding out of <see cref="MoveNext"/> and has not yet reached
+        /// <c>await Task</c>. Two threads are genuinely executing against one
+        /// <see cref="LuaState"/> for the width of that window. This is not hypothetical: a
+        /// re-entrancy guard over <c>MoveNext</c> and the resume block below observes it several
+        /// times per full test-suite run, always in the same shape (the dispatching thread inside
+        /// <c>MoveNext</c>, a thread-pool thread inside a nested closure's resume block).
+        /// </para>
+        /// <para>
+        /// What makes that safe is an invariant, not a lock: <b>once a handler has created its
+        /// task, it must not touch anything the task can also touch</b> -- not
+        /// <see cref="LuaState.Stack"/>, not the call stack, and not the fields of this context.
+        /// Every handler therefore finishes its stack and frame bookkeeping and writes
+        /// <see cref="PostOperation"/> *before* the call that produces the task, and afterwards
+        /// writes only <see cref="Task"/> (which no task ever reads) and its own locals.
+        /// </para>
+        /// <para>
+        /// <see cref="Concat(VirtualMachineExecutionContext)"/> is the one handler where this is
+        /// delicate, because its pending task is an async helper that closes over *this* context
+        /// and keeps writing to it rather than running against a nested context of its own. It
+        /// used to write <c>PostOperation = None</c> after starting that task, which raced the
+        /// helper's own <c>DontPop</c> write; when the dispatching thread won, the resume code
+        /// below popped a frame belonging to the caller and collapsed the call stack. Adding a
+        /// handler that awaits or mutates shared state after creating its task would reintroduce
+        /// the same class of bug, silently and rarely.
+        /// </para>
+        /// </remarks>
         [AsyncMethodBuilder(typeof(LightAsyncValueTaskMethodBuilder<>))]
         public async ValueTask<int> ExecuteClosureAsyncImpl()
         {
@@ -288,6 +324,22 @@ public static partial class LuaVirtualMachine
 
                     await Task;
                     Task = default;
+
+                    // A Concat that suspended can only have suspended inside its metamethod call,
+                    // and Concat(context, target, total) sets DontPop unconditionally before it
+                    // completes -- so by the time this resume runs (which is ordered after that
+                    // completion), DontPop is the only value that can legitimately be here, and
+                    // seeing None means that write was raced away by the dispatcher. That is the
+                    // bug documented on Concat(VirtualMachineExecutionContext); this assert is
+                    // what catches it coming back. Nop is excluded because the per-instruction
+                    // hook legitimately suspends with Nop while Instruction is still the Concat.
+                    Debug.Assert(
+                        Instruction.OpCode != OpCode.Concat
+                            || PostOperation != PostOperationType.None,
+                        "Concat resumed with PostOperation == None: the helper's DontPop was "
+                            + "overwritten, and the frame pop below will collapse the call stack."
+                    );
+
                     ref readonly var frame = ref State.GetCurrentFrame();
                     CurrentReturnFrameBase = frame.ReturnBase;
                     var variableArgumentCount = frame.VariableArgumentCount;
@@ -1890,6 +1942,27 @@ public static partial class LuaVirtualMachine
         var c = instruction.C;
         stack.SetTop(context.FrameBase + c + 1);
         var a = instruction.A;
+
+        // Reset PostOperation *before* starting the task below, never after.
+        //
+        // Every opcode handler parks its pending work in context.Task and returns to
+        // ExecuteClosureAsyncImpl, which is what awaits it -- so from the moment that task exists,
+        // a thread-pool thread may already be running its continuation while this thread is still
+        // unwinding out of MoveNext. For every other opcode that is harmless, because the task
+        // runs against its own nested execution context and never touches this one. Concat is the
+        // exception: its task is an async helper that closes over *this* context and writes
+        // PostOperation = DontPop to it before completing, telling the resume code that the
+        // metamethod call already popped its own frame.
+        //
+        // Writing None here after the task has started therefore races that DontPop, and when
+        // this thread wins, the resume code takes the "pop a frame" branch it was told to skip and
+        // collapses the call stack -- surfacing as debug.getinfo(2) == nil inside a metamethod, or
+        // as an ArgumentOutOfRangeException out of PopOnTopCallStackFrames. Hoisting the write
+        // above the call makes it happen strictly before a second thread can exist. It costs
+        // nothing: on the synchronously-completing path the helper's own DontPop still lands
+        // afterwards, exactly as it did when this line sat below the early return.
+        context.PostOperation = PostOperationType.None;
+
         var task = Concat(context, context.FrameBase + a, c - b + 1);
         if (task.IsCompleted)
         {
@@ -1897,10 +1970,25 @@ public static partial class LuaVirtualMachine
             return true;
         }
 
+#if DEBUG
+        // Test seam for ConcatDispatchRaceTests. Sits at the *top* of the window described above
+        // -- the task exists and may already be running elsewhere, and this thread has not yet
+        // done its remaining bookkeeping -- so a test can stall here and make the ordering
+        // requirement deterministic instead of waiting on a once-per-few-dozen-suite-runs flake.
+        // Keep it above every remaining write, or a handler that reintroduced a post-task write
+        // would slip past it. Debug-only, and only on the suspending-concat path, so Release
+        // dispatch is untouched.
+        ConcatSuspendedHookForTests?.Invoke();
+#endif
+
         context.Task = task;
-        context.PostOperation = PostOperationType.None;
+
         return false;
     }
+
+#if DEBUG
+    internal static Action? ConcatSuspendedHookForTests;
+#endif
 
     [AsyncMethodBuilder(typeof(LightAsyncValueTaskMethodBuilder<>))]
     static async ValueTask<int> Concat(
@@ -1986,6 +2074,21 @@ public static partial class LuaVirtualMachine
             stack.PopUntil(top - (n - 1));
         } while (total > 1);
 
+        // This opcode's own dispatcher (Concat(VirtualMachineExecutionContext), the sync
+        // wrapper) never pushes a frame of its own -- any frame push/pop that happened while
+        // this loop ran was the metamethod call above, and it already popped its own frame (see
+        // ExecuteBinaryOperationMetaMethod's finally). So the caller awaiting this task --
+        // ExecuteClosureAsyncImpl's own resume code, which unconditionally pops a frame unless
+        // told not to -- must always be told DontPop here, unconditionally, once this loop has
+        // gone through even one metamethod call. Restated here rather than left to
+        // ExecuteBinaryOperationMetaMethod's own write because this is a do-while over several
+        // operands ("a..b..c"): a later iteration that concatenates plain strings does not go
+        // through a metamethod at all, so the last write before this task completes has to be
+        // this one. (It is unconditional, not guarded on "did a metamethod run", because on the
+        // purely synchronous path the caller never reads PostOperation -- Concat()'s
+        // task.IsCompleted branch returns straight into the dispatch loop, and every suspension
+        // site sets PostOperation itself before suspending.)
+        context.PostOperation = PostOperationType.DontPop;
         stack.Get(target) = stack.AsSpan()[^1];
 
         return 1;

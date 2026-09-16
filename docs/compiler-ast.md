@@ -163,10 +163,11 @@ table.
 ### Constant propagation
 
 The compiler already does a narrow, well-tested version of this: `const x = <literal>` is
-inlined at its uses. The mechanism is `Function.TryGetConstLiteral` (`Function.cs:360`) driven by
-the const-binding records the resolution pass keeps, and it is consulted inside
-`SingleVariableHelper` — i.e. it is part of *name resolution*, and it inlines to a `Kind.Number`
-/`Kind.String`-style descriptor rather than to an AST node.
+inlined at its uses, but only for `Nil`/`True`/`False`/`Number` initializers -- **never strings**.
+`CaptureConstLiteral`'s own doc says why: "strings are left alone because a constant index is
+only valid inside the prototype that created it." The mechanism is `Function.TryGetConstLiteral`
+(`Function.cs:360`) driven by the const-binding records the resolution pass keeps, and it is
+consulted inside `SingleVariableHelper` — i.e. it is part of *name resolution*.
 
 Generalizing it means extending `TryFoldToConstant`'s reach from literal nodes to names that
 resolve to constants. **The hazard is resolution, not folding.** The only authoritative way to
@@ -176,16 +177,27 @@ resolve a name is `SingleVariableHelper`, which:
 - can *raise* Luau's "local undefined because a `continue` jumped over it in a repeat condition"
   diagnostic (`Function.cs:2143`).
 
-So a speculative "would this name fold?" check has to either tolerate being re-run identically
-later (idempotent for upvalue creation, and a throw is a throw), or be restructured so it is
-asked only after the resolution that was going to happen anyway. This is exactly why Milestone 4
-shipped literals only and deferred const-named fields to M4b rather than guessing.
+In practice neither turns out to be a blocker: `SingleVariableHelper` is idempotent by name for
+upvalue creation (a repeat call hits `findUpValue`'s existing-entry check rather than adding a
+second one), and the diagnostic — gated on `RepeatConditionMinLevel >= 0`, which is only true
+inside the narrow window `EmitRepeatStatement` opens around a `repeat`'s `until` condition — fires
+identically whether it's asked speculatively or from the real emission path. So a speculative
+"would this name fold?" check is safe to call and discard.
 
-The measured upper bound: a pure-AST count of constructors that would fuse today but for a
-bare-name field is **37 tables / 107 name-valued fields** across the real 35-file corpus, against
-the 131 fusions DupTable already gets. Material enough to be worth a follow-up increment if the
-resolution can be made safe — and it is an upper bound, because a bare name may be a local or a
-global and fold to nothing.
+**This was tried, as Milestone 4's table-literal case (M4b), and measured to have zero payoff.**
+A pure-AST upper bound ("would fuse today but for a bare-name field") counted 37 tables / 107
+fields across the 35-file corpus — but a second, resolution-based measurement (using the real
+`SingleVariableHelper` call, exactly as described above) found that **every one of those 37**
+tables is blocked by either a plain (non-const) local read or a `const` **string**, neither of
+which resolution can turn into a literal — the string case can't, by the compiler's own design
+described above. The real count is 0 tables, 0 fields. M4b was therefore not implemented; see the
+compiler-rewrite plan's Milestone 4 status for both measurements. The general lesson survives even
+though the table-literal case didn't pay off: a pure-AST upper bound for this kind of check is not
+close enough to the real number to decide on, because it can't see through to what
+`CaptureConstLiteral` actually captures. A future attempt at general constant propagation should
+measure with real resolution from the start, and should expect strings to need a different
+mechanism (a per-prototype constant reference the fused site can share, since a raw constant pool
+index isn't portable across prototypes) if they are ever to be included.
 
 ### Dead-branch elimination on statically-known conditions
 
