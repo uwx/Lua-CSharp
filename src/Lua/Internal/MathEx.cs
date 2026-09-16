@@ -22,13 +22,15 @@ static class MathEx
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static unsafe bool IsFinite(double d)
     {
-#if NET6_0_OR_GREATER
+#if NET8_0_OR_GREATER
+        return double.IsFinite(d);
+#elif NET6_0_OR_GREATER
         var bits = BitConverter.DoubleToUInt64Bits(d);
+        return (~bits & PositiveInfinityBits) != 0;
 #else
         ulong bits = BitCast<double, ulong>(d);
-#endif
-
         return (~bits & PositiveInfinityBits) != 0;
+#endif
     }
 
 #if !NET6_0_OR_GREATER

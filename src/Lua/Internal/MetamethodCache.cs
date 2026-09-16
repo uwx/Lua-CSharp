@@ -38,7 +38,7 @@ static class MetamethodCache
             return false;
         }
 
-        return IsMetamethodKey(key.UnsafeReadString());
+        return IsMetamethodKey(key.ReadAsString());
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -27,7 +27,7 @@ public sealed class UpValue
     public int RegisterIndex
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => (int)value.integer;
+        get => (int)value.ReadAsInt64();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

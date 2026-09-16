@@ -35,14 +35,14 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
     const int MaxArraySize = 1 << 24;
     const int MaxDistance = 1 << 12;
 
-    public LuaValue this[LuaValue key]
+    public LuaValue this[in LuaValue key]
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
             if (key.Type is LuaValueType.String)
             {
-                return stringDictionary.TryGetValue(key.UnsafeReadString(), out var sv) ? sv : LuaValue.Nil;
+                return stringDictionary.TryGetValue(key.ReadAsString(), out var sv) ? sv : LuaValue.Nil;
             }
 
             if (key.Type is LuaValueType.Nil)
@@ -71,7 +71,7 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
         {
             if (key.Type is LuaValueType.String)
             {
-                stringDictionary.Insert(key.UnsafeReadString(), value);
+                stringDictionary.Insert(key.ReadAsString(), value);
                 return;
             }
 
@@ -187,11 +187,11 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryGetValue(LuaValue key, out LuaValue value)
+    public bool TryGetValue(in LuaValue key, out LuaValue value)
     {
         if (key.Type is LuaValueType.String)
         {
-            return stringDictionary.TryGetValue(key.UnsafeReadString(), out value)
+            return stringDictionary.TryGetValue(key.ReadAsString(), out value)
                 && value.Type is not LuaValueType.Nil;
         }
 
@@ -220,11 +220,11 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal ref LuaValue FindValue(LuaValue key)
+    internal ref LuaValue FindValue(in LuaValue key)
     {
         if (key.Type is LuaValueType.String)
         {
-            return ref stringDictionary.FindValue(key.UnsafeReadString(), out _);
+            return ref stringDictionary.FindValue(key.ReadAsString(), out _);
         }
 
         if (key.Type is LuaValueType.Nil)
@@ -248,7 +248,7 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
         return ref dictionary.FindValue(key, out _);
     }
 
-    public bool ContainsKey(LuaValue key)
+    public bool ContainsKey(in LuaValue key)
     {
         return TryGetValue(key, out _);
     }
@@ -268,7 +268,7 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
         return value;
     }
 
-    public void Insert(int index, LuaValue value)
+    public void Insert(int index, in LuaValue value)
     {
         if (index <= 0 || index > array.Length + 1)
         {
@@ -302,11 +302,11 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
     /// Lua `next` semantics. Iteration order is array part, then string keys, then
     /// everything else.
     /// </summary>
-    public bool TryGetNext(LuaValue key, out KeyValuePair<LuaValue, LuaValue> pair)
+    public bool TryGetNext(in LuaValue key, out KeyValuePair<LuaValue, LuaValue> pair)
     {
         if (key.Type is LuaValueType.String)
         {
-            if (stringDictionary.TryGetNext(key.UnsafeReadString(), out pair, out var found))
+            if (stringDictionary.TryGetNext(key.ReadAsString(), out pair, out var found))
             {
                 return true;
             }
@@ -488,15 +488,16 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    static bool TryGetInteger(LuaValue value, out int integer)
+    static bool TryGetInteger(in LuaValue value, out int integer)
     {
         if (value.TryReadNumber(out var num) && MathEx.IsInteger(num))
         {
+            // TODO: saturate? or return long?
             integer = (int)num;
             return true;
         }
 
-        integer = default;
+        integer = 0;
         return false;
     }
 

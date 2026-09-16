@@ -71,6 +71,8 @@ public static class HexConverter
 
         var value = intPart.Length == 0 ? 0 : long.Parse(intPart, NumberStyles.AllowHexSpecifier);
 
+        // TODO: optimize pows by using simple shifts
+        
         var decimalValue = 0.0;
         for (var i = 0; i < decimalPart.Length; i++)
         {

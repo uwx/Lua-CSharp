@@ -248,7 +248,7 @@ public static class OpenLibsExtensions
             }
             mt[Metamethods.Index] = new LuaFunction("__index", (context, ct) =>
             {
-                var self = context.GetArgument(0).UnsafeReadFixed64();
+                var self = context.GetArgument(0).ReadAsFixed64();
                 var field = context.GetArgument<string>(1);
                 if (field == "raw")
                 {
@@ -268,7 +268,7 @@ public static class OpenLibsExtensions
             }
             mt[Metamethods.Index] = new LuaFunction("__index", (context, ct) =>
             {
-                var self = context.GetArgument(0).UnsafeReadFixed64Vector3();
+                var self = context.GetArgument(0).ReadAsF64Vector3();
                 var field = context.GetArgument<string>(1);
                 return field switch
                 {
@@ -290,7 +290,7 @@ public static class OpenLibsExtensions
             }
             mt[Metamethods.Index] = new LuaFunction("__index", (context, ct) =>
             {
-                var self = context.GetArgument(0).UnsafeReadFixed64Angle();
+                var self = context.GetArgument(0).ReadAsF64Angle();
                 var field = context.GetArgument<string>(1);
                 return field switch
                 {
@@ -311,7 +311,7 @@ public static class OpenLibsExtensions
             }
             mt[Metamethods.Index] = new LuaFunction("__index", (context, ct) =>
             {
-                var self = context.GetArgument(0).UnsafeReadFixed64Euler();
+                var self = context.GetArgument(0).ReadAsF64Euler();
                 var field = context.GetArgument<string>(1);
                 return field switch
                 {

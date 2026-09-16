@@ -103,26 +103,19 @@ sealed class LuaValueDictionary
     {
         get
         {
-            var entries = _entries;
-            if (entries is null)
-            {
-                return 0;
-            }
-
             var live = 0;
-            for (var i = 0; i < _count; i++)
+            foreach (ref var entry in _entries.AsSpan(0, _count))
             {
-                if (entries[i].value.Type is not LuaValueType.Nil)
+                if (entry.value.Type is not LuaValueType.Nil)
                 {
                     live++;
                 }
             }
-
             return live;
         }
     }
 
-    public LuaValue this[LuaValue key]
+    public LuaValue this[in LuaValue key]
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
@@ -132,7 +125,6 @@ sealed class LuaValueDictionary
             {
                 return value;
             }
-
             return default;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -152,31 +144,24 @@ sealed class LuaValueDictionary
 
         _count = 0;
         _last = 0;
-        Array.Clear(_entries, 0, count);
+        _entries.AsSpan(0, count).Clear();
         _buckets.AsSpan().Fill(EmptyBucket);
     }
 
-    public bool ContainsKey(LuaValue key)
+    public bool ContainsKey(in LuaValue key)
     {
         return !Unsafe.IsNullRef(ref FindValue(key, out _));
     }
 
-    public bool ContainsValue(LuaValue value)
+    public bool ContainsValue(in LuaValue value)
     {
-        var entries = _entries;
-        if (entries is null)
+        foreach (ref var entry in _entries.AsSpan(0, _count))
         {
-            return false;
-        }
-
-        for (var i = 0; i < _count; i++)
-        {
-            if (entries[i].value.Equals(value))
+            if (entry.value.Equals(value))
             {
                 return true;
             }
         }
-
         return false;
     }
 
@@ -188,7 +173,7 @@ sealed class LuaValueDictionary
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static uint ComputeHash(in LuaValue key)
     {
-        return (uint)key.GetHashCode();
+        return (uint) key.GetHashCode();
     }
 
     /// <summary>
@@ -198,42 +183,27 @@ sealed class LuaValueDictionary
     /// <see cref="LuaValue.GetHashCode"/> hashes an Integer as its double value.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    static bool KeyEquals(in LuaValue stored, in LuaValue key)
+    private static bool KeyEquals(in LuaValue stored, in LuaValue key)
     {
-        var storedType = stored.Type;
-        var keyType = key.Type;
-
-        if (storedType == keyType)
+        // TODO: why not LuaValue.Equals?
+        if (stored.Type == key.Type)
         {
-            return storedType switch
-            {
-                LuaValueType.String => stored.UnsafeReadString() == key.UnsafeReadString(),
-                LuaValueType.Number or LuaValueType.Boolean => stored.UnsafeReadDouble()
-                    == key.UnsafeReadDouble(),
-                LuaValueType.Integer => stored.UnsafeReadLong() == key.UnsafeReadLong(),
-                _ => stored.UnsafeReadObject() == key.UnsafeReadObject(),
-            };
+            return SameTypeKeyEquals(stored, key);
         }
+        return stored.NumberEquals(key);
+    }
 
-        // Integer <-> Number keys are numerically equal.
-        if (
-            storedType is LuaValueType.Integer or LuaValueType.Number
-            && keyType is LuaValueType.Integer or LuaValueType.Number
-        )
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool SameTypeKeyEquals(in LuaValue stored, in LuaValue key)
+    {
+        // TODO: why not LuaValue.SameTypeEquals?
+        return stored.Type switch
         {
-            return (
-                    storedType == LuaValueType.Integer
-                        ? (double)stored.UnsafeReadLong()
-                        : stored.UnsafeReadDouble()
-                )
-                == (
-                    keyType == LuaValueType.Integer
-                        ? (double)key.UnsafeReadLong()
-                        : key.UnsafeReadDouble()
-                );
-        }
-
-        return false;
+            LuaValueType.String => stored.ReadAsString() == key.ReadAsString(),
+            LuaValueType.Number or LuaValueType.Boolean => stored.ReadAsDouble() == key.ReadAsDouble(),
+            LuaValueType.Integer => stored.ReadAsInt64() == key.ReadAsInt64(),
+            _ => stored.ReadAsObject() == key.ReadAsObject(),
+        };
     }
 
     /// <summary>
@@ -242,7 +212,7 @@ sealed class LuaValueDictionary
     /// <see cref="Unsafe.NullRef{T}"/> and sets <paramref name="index"/> to -1.
     /// </summary>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    internal ref LuaValue FindValue(LuaValue key, out int index)
+    internal ref LuaValue FindValue(in LuaValue key, out int index)
     {
         index = -1;
 
@@ -254,13 +224,13 @@ sealed class LuaValueDictionary
 
         Debug.Assert(_entries != null, "expected entries to be != null");
 
-        var mask = (uint)(_length - 1);
+        var mask = (uint) (_length - 1);
         var hash = ComputeHash(key);
         var signature = hash & ~mask;
         var entries = _entries;
 
         var head = buckets[hash & mask];
-        if ((uint)head == Inactive)
+        if ((uint) head == Inactive)
         {
             return ref Unsafe.NullRef<LuaValue>();
         }
@@ -269,25 +239,25 @@ sealed class LuaValueDictionary
         // slot when the signatures match, and something strictly above the mask when they
         // do not -- so a signature mismatch costs no entries[] access at all. Because both
         // signatures are mask-aligned, the filter is exact rather than probabilistic.
-        var slot = (uint)head ^ signature;
+        var slot = (uint) head ^ signature;
         if (slot <= mask && KeyEquals(entries[slot].key, key))
         {
-            index = (int)slot;
+            index = (int) slot;
             return ref entries[slot].value;
         }
 
         // Software pipelining: pull the next link out before testing this node so the CPU
         // can start the next load while this comparison is still in flight.
-        var next = (uint)(head >> 32);
+        var next = (uint) (head >> 32);
         while (next != Inactive)
         {
             var node = buckets[next];
-            next = (uint)(node >> 32);
+            next = (uint) (node >> 32);
 
-            slot = (uint)node ^ signature;
+            slot = (uint) node ^ signature;
             if (slot <= mask && KeyEquals(entries[slot].key, key))
             {
-                index = (int)slot;
+                index = (int) slot;
                 return ref entries[slot].value;
             }
         }
@@ -306,7 +276,7 @@ sealed class LuaValueDictionary
         // bucket array at 2 -- a single bucket would give every signature the same home
         // index.
         var length = 2;
-        while ((long)length * LoadFactorNumerator < (long)capacity * LoadFactorDenominator)
+        while ((long) length * LoadFactorNumerator < (long) capacity * LoadFactorDenominator)
         {
             length *= 2;
         }
@@ -325,7 +295,7 @@ sealed class LuaValueDictionary
         _entries = entries;
     }
 
-    void Insert(LuaValue key, LuaValue value)
+    void Insert(in LuaValue key, in LuaValue value)
     {
         if (MetamethodCache.IsMetamethodKey(key))
         {
@@ -342,7 +312,7 @@ sealed class LuaValueDictionary
             Resize();
         }
 
-        var mask = (uint)(_length - 1);
+        var mask = (uint) (_length - 1);
         var hash = ComputeHash(key);
         var main = hash & mask;
         var signature = hash & ~mask;
@@ -352,11 +322,11 @@ sealed class LuaValueDictionary
         Debug.Assert(buckets != null && entries != null, "expected arrays to be non-null");
 
         var head = buckets[main];
-        var packed = (uint)head;
+        var packed = (uint) head;
 
         if (packed != Inactive)
         {
-            var occupant = (int)(packed & mask);
+            var occupant = (int) (packed & mask);
 
             // Test for an existing entry first. An update is the common case, and a hit here
             // means the occupant's home index is necessarily `main`, so the owner check below
@@ -381,11 +351,11 @@ sealed class LuaValueDictionary
 
         if (packed == Inactive)
         {
-            var slot = (uint)_count++;
+            var slot = (uint) _count++;
             ref var entry = ref entries[slot];
             entry.key = key;
             entry.value = value;
-            buckets[main] = ((ulong)Inactive << 32) | signature | slot;
+            buckets[main] = ((ulong) Inactive << 32) | signature | slot;
             _version++;
             return;
         }
@@ -393,11 +363,11 @@ sealed class LuaValueDictionary
         // Walk the chain looking for the key, remembering the tail so a new entry can be
         // appended to it.
         var tail = main;
-        var next = (uint)(head >> 32);
+        var next = (uint) (head >> 32);
         while (next != Inactive)
         {
             var node = buckets[next];
-            var slot = (uint)node ^ signature;
+            var slot = (uint) node ^ signature;
             if (slot <= mask && KeyEquals(entries[slot].key, key))
             {
                 entries[slot].value = value;
@@ -405,17 +375,17 @@ sealed class LuaValueDictionary
             }
 
             tail = next;
-            next = (uint)(node >> 32);
+            next = (uint) (node >> 32);
         }
 
         var newBucket = FindEmptyBucket(buckets, main, 1);
-        buckets[tail] = (buckets[tail] & LowWordMask) | ((ulong)newBucket << 32);
+        buckets[tail] = (buckets[tail] & LowWordMask) | ((ulong) newBucket << 32);
 
-        var newSlot = (uint)_count++;
+        var newSlot = (uint) _count++;
         ref var newEntry = ref entries[newSlot];
         newEntry.key = key;
         newEntry.value = value;
-        buckets[newBucket] = ((ulong)Inactive << 32) | signature | newSlot;
+        buckets[newBucket] = ((ulong) Inactive << 32) | signature | newSlot;
         _version++;
     }
 
@@ -434,7 +404,7 @@ sealed class LuaValueDictionary
 
         var oldEntries = _entries!;
         var newEntries = new Entry[newMaxCount];
-        Array.Copy(oldEntries, newEntries, _count);
+        oldEntries.AsSpan(0, _count).CopyTo(newEntries);
 
         _length = newLength;
         _maxCount = newMaxCount;
@@ -443,14 +413,14 @@ sealed class LuaValueDictionary
         _last = 0;
 
         // Slots are preserved, so the iteration order is preserved too.
-        var mask = (uint)(newLength - 1);
+        var mask = (uint) (newLength - 1);
         for (var i = 0; i < _count; i++)
         {
-            PlaceExistingEntry(newBuckets, newEntries, mask, (uint)i);
+            PlaceExistingEntry(newBuckets, newEntries, mask, (uint) i);
         }
     }
 
-    public bool Remove(LuaValue key)
+    public bool Remove(in LuaValue key)
     {
         var buckets = _buckets;
         if (buckets is null)
@@ -460,19 +430,19 @@ sealed class LuaValueDictionary
 
         Debug.Assert(_entries != null, "entries should be non-null");
 
-        var mask = (uint)(_length - 1);
+        var mask = (uint) (_length - 1);
         var hash = ComputeHash(key);
         var main = hash & mask;
         var signature = hash & ~mask;
         var entries = _entries;
 
         var head = buckets[main];
-        if ((uint)head == Inactive)
+        if ((uint) head == Inactive)
         {
             return false;
         }
 
-        var slot = (uint)head ^ signature;
+        var slot = (uint) head ^ signature;
         if (slot <= mask && KeyEquals(entries[slot].key, key))
         {
             EraseBucket(buckets, main, main);
@@ -480,11 +450,11 @@ sealed class LuaValueDictionary
             return true;
         }
 
-        var next = (uint)(head >> 32);
+        var next = (uint) (head >> 32);
         while (next != Inactive)
         {
             var node = buckets[next];
-            var nodeSlot = (uint)node ^ signature;
+            var nodeSlot = (uint) node ^ signature;
             if (nodeSlot <= mask && KeyEquals(entries[nodeSlot].key, key))
             {
                 EraseBucket(buckets, next, main);
@@ -492,14 +462,14 @@ sealed class LuaValueDictionary
                 return true;
             }
 
-            next = (uint)(node >> 32);
+            next = (uint) (node >> 32);
         }
 
         return false;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryGetValue(LuaValue key, out LuaValue value)
+    public bool TryGetValue(in LuaValue key, out LuaValue value)
     {
         ref var valRef = ref FindValue(key, out _);
         if (!Unsafe.IsNullRef(ref valRef))
@@ -513,7 +483,7 @@ sealed class LuaValueDictionary
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryGetNext(LuaValue key, out KeyValuePair<LuaValue, LuaValue> pair)
+    public bool TryGetNext(in LuaValue key, out KeyValuePair<LuaValue, LuaValue> pair)
     {
         ref var valRef = ref FindValue(key, out var index);
         if (Unsafe.IsNullRef(ref valRef))
@@ -528,17 +498,14 @@ sealed class LuaValueDictionary
     /// <summary>First non-nil entry at or after <paramref name="index"/>.</summary>
     bool TryGetFirstFrom(int index, out KeyValuePair<LuaValue, LuaValue> pair)
     {
-        var entries = _entries;
-        while ((uint)index < (uint)_count)
+        var entries = _entries.AsSpan(index, _count - index);
+        foreach (ref var entry in entries)
         {
-            ref var entry = ref entries![index];
             if (entry.value.Type is not LuaValueType.Nil)
             {
                 pair = new(entry.key, entry.value);
                 return true;
             }
-
-            index++;
         }
 
         pair = default;
@@ -558,7 +525,7 @@ sealed class LuaValueDictionary
         var main = hash & mask;
         var signature = hash & ~mask;
 
-        var packed = (uint)buckets[main];
+        var packed = (uint) buckets[main];
         if (packed != Inactive)
         {
             var occupant = packed & mask;
@@ -572,21 +539,21 @@ sealed class LuaValueDictionary
 
         if (packed == Inactive)
         {
-            buckets[main] = ((ulong)Inactive << 32) | signature | slot;
+            buckets[main] = ((ulong) Inactive << 32) | signature | slot;
             return;
         }
 
         var tail = main;
-        var next = (uint)(buckets[main] >> 32);
+        var next = (uint) (buckets[main] >> 32);
         while (next != Inactive)
         {
             tail = next;
-            next = (uint)(buckets[next] >> 32);
+            next = (uint) (buckets[next] >> 32);
         }
 
         var newBucket = FindEmptyBucket(buckets, main, 1);
-        buckets[tail] = (buckets[tail] & LowWordMask) | ((ulong)newBucket << 32);
-        buckets[newBucket] = ((ulong)Inactive << 32) | signature | slot;
+        buckets[tail] = (buckets[tail] & LowWordMask) | ((ulong) newBucket << 32);
+        buckets[newBucket] = ((ulong) Inactive << 32) | signature | slot;
     }
 
     /// <summary>
@@ -597,7 +564,7 @@ sealed class LuaValueDictionary
     {
         var main = ComputeHash(key) & mask;
 
-        var packed = (uint)buckets[main];
+        var packed = (uint) buckets[main];
         // An empty bucket's packed word is Inactive, whose low bits happen to equal the
         // mask -- hence the explicit emptiness test rather than comparing slots alone.
         if (packed != Inactive && (packed & mask) == targetSlot)
@@ -605,16 +572,16 @@ sealed class LuaValueDictionary
             return main;
         }
 
-        var next = (uint)(buckets[main] >> 32);
+        var next = (uint) (buckets[main] >> 32);
         while (next != Inactive)
         {
-            packed = (uint)buckets[next];
+            packed = (uint) buckets[next];
             if (packed != Inactive && (packed & mask) == targetSlot)
             {
                 return next;
             }
 
-            next = (uint)(buckets[next] >> 32);
+            next = (uint) (buckets[next] >> 32);
         }
 
         ThrowHelper.ThrowInvalidOperationException_MapStateCorrupted();
@@ -628,7 +595,7 @@ sealed class LuaValueDictionary
     /// </summary>
     static void EraseBucket(ulong[] buckets, uint bucket, uint main)
     {
-        var next = (uint)(buckets[bucket] >> 32);
+        var next = (uint) (buckets[bucket] >> 32);
 
         if (bucket == main)
         {
@@ -644,7 +611,7 @@ sealed class LuaValueDictionary
         }
 
         var prev = FindPrevBucket(buckets, main, bucket);
-        buckets[prev] = (buckets[prev] & LowWordMask) | ((ulong)next << 32);
+        buckets[prev] = (buckets[prev] & LowWordMask) | ((ulong) next << 32);
         buckets[bucket] = EmptyBucket;
     }
 
@@ -657,8 +624,8 @@ sealed class LuaValueDictionary
     {
         var entries = _entries!;
         var buckets = _buckets!;
-        var mask = (uint)(_length - 1);
-        var lastSlot = (uint)--_count;
+        var mask = (uint) (_length - 1);
+        var lastSlot = (uint) --_count;
 
         if (slot == lastSlot)
         {
@@ -672,7 +639,7 @@ sealed class LuaValueDictionary
 
         var movedBucket = FindBucketForSlot(buckets, mask, moved.key, lastSlot);
         var node = buckets[movedBucket];
-        buckets[movedBucket] = (node & HighWordMask) | ((uint)node & ~mask) | slot;
+        buckets[movedBucket] = (node & HighWordMask) | ((uint) node & ~mask) | slot;
     }
 
     /// <summary>
@@ -684,7 +651,7 @@ sealed class LuaValueDictionary
     void KickoutBucket(ulong[] buckets, uint owner, uint bucket)
     {
         var victim = buckets[bucket];
-        var next = (uint)(victim >> 32);
+        var next = (uint) (victim >> 32);
 
         // Search near the victim's own continuation so the relocated node stays close to
         // the chain it is about to join.
@@ -692,7 +659,7 @@ sealed class LuaValueDictionary
         var prev = FindPrevBucket(buckets, owner, bucket);
 
         buckets[newBucket] = victim;
-        buckets[prev] = (buckets[prev] & LowWordMask) | ((ulong)newBucket << 32);
+        buckets[prev] = (buckets[prev] & LowWordMask) | ((ulong) newBucket << 32);
         buckets[bucket] = EmptyBucket;
     }
 
@@ -701,7 +668,7 @@ sealed class LuaValueDictionary
         var current = main;
         while (true)
         {
-            var next = (uint)(buckets[current] >> 32);
+            var next = (uint) (buckets[current] >> 32);
             if (next == Inactive)
             {
                 ThrowHelper.ThrowInvalidOperationException_MapStateCorrupted();
@@ -725,7 +692,7 @@ sealed class LuaValueDictionary
     /// </summary>
     uint FindEmptyBucket(ulong[] buckets, uint index, uint cint)
     {
-        var mask = (uint)(_length - 1);
+        var mask = (uint) (_length - 1);
         var baseIndex = index & mask;
 
         var bucket = (baseIndex + 1) & mask;
@@ -761,7 +728,7 @@ sealed class LuaValueDictionary
         }
 
         var last = _last;
-        var stride = (uint)(_length >> 1);
+        var stride = (uint) (_length >> 1);
         while (true)
         {
             last = (last + 1) & mask;
@@ -807,12 +774,13 @@ sealed class LuaValueDictionary
             ThrowHelper.ThrowInvalidOperationException_InvalidOperation_EnumFailedVersion();
         }
 
-        var entries = dictionary._entries;
-        while ((uint)index < (uint)dictionary._count)
+        var entries = dictionary._entries.AsSpan(index, dictionary._count - index);
+        for (int i = 0; i < entries.Length; i++)
         {
-            ref var entry = ref entries![index++];
+            ref var entry = ref entries[i];
             if (entry.value.Type is not LuaValueType.Nil)
             {
+                index += i + 1;
                 current = new(entry.key, entry.value);
                 return true;
             }

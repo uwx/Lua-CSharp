@@ -16,7 +16,7 @@ public class AsyncTests
             "assert_with_wait",
             async (context, ct) =>
             {
-                await Task.Delay(1, ct);
+                await Task.Yield();
                 var arg0 = context.GetArgument(0);
 
                 if (!arg0.ToBoolean())
