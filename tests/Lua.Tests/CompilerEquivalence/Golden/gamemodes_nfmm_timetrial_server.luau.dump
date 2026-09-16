@@ -1,0 +1,74 @@
+proto ? params=0 vararg=True maxstack=2 linedefined=0-0
+constants:
+  [0] OnStartRace
+  [1] OnClientEvent
+upvalues:
+  [0] _ENV local=True index=0 byvalue=False
+locals:
+code:
+  0: [line 5] CLOSURE 0 0
+  1: [line 3] SETTABUP 0 -1 0
+  2: [line 17] CLOSURE 0 1
+  3: [line 7] SETTABUP 0 -2 0
+  4: [line 19] NEWTABLE 0 0 2
+  5: [line 20] GETTABUP 1 0 -1
+  6: [line 20] SETTABLE 0 -1 1
+  7: [line 21] GETTABUP 1 0 -2
+  8: [line 21] SETTABLE 0 -2 1
+  9: [line 22] RETURN 0 2
+  10: [line 22] RETURN 0 1
+child 0:
+  proto OnStartRace params=0 vararg=False maxstack=4 linedefined=3-5
+  constants:
+    [0] SGM
+    [1] broadcastEvent
+    [2] started
+    [3] serverTime
+    [4] 0
+  upvalues:
+    [0] _ENV local=False index=0 byvalue=False
+  locals:
+  code:
+    0: [line 4] GETTABUP 0 0 -1
+    1: [line 4] SELF 0 0 -2
+    2: [line 4] LOADK 2 2
+    3: [line 4] NEWTABLE 3 0 1
+    4: [line 4] SETTABLE 3 -4 -5
+    5: [line 4] CALL 0 4 1
+    6: [line 5] RETURN 0 1
+child 1:
+  proto OnClientEvent params=3 vararg=False maxstack=8 linedefined=7-17
+  constants:
+    [0] finished
+    [1] SGM
+    [2] finishRace
+    [3] playerId
+    [4] players
+    [5] 1
+    [6] id
+    [7] position
+    [8] 0
+    [9] true
+  upvalues:
+    [0] _ENV local=False index=0 byvalue=False
+  locals:
+    [0] playerId pc=0-16
+    [1] type pc=0-16
+    [2] payload pc=0-16
+  code:
+    0: [line 8] JMPIFNEK 1 14
+    1: [line 8] EXTRAARG 0
+    2: [line 9] GETTABUP 3 0 -2
+    3: [line 9] SELF 3 3 -3
+    4: [line 9] NEWTABLE 5 1 0
+    5: [line 10] NEWTABLE 6 0 3
+    6: [line 11] GETIMPORT 7 0 -2
+    7: [line 11] EXTRAARG 4
+    8: [line 11] GETTABLE 7 7 -6
+    9: [line 11] GETTABLE 7 7 -7
+    10: [line 11] SETTABLE 6 -4 7
+    11: [line 12] SETTABLE 6 -8 -9
+    12: [line 13] SETTABLE 6 -1 -10
+    13: [line 15] SETLIST 5 1 1
+    14: [line 9] CALL 3 3 1
+    15: [line 17] RETURN 0 1

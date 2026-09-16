@@ -64,6 +64,8 @@ public partial struct Instruction(uint value)
         "LOADBUILTIN",
         "JMPIFEQK",
         "JMPIFNEK",
+        "GETIMPORT",
+        "DUPTABLE",
     ];
 
     /*
@@ -509,6 +511,12 @@ func createAx(op opCode, a int) instruction { return instruction(op)<<posOp | in
         // "was the previous instruction a controlling test" lookback must not treat this as one.
         OpMode(0, 0, OpArgR, OpArgN, IAsBx), // opJmpIfEqK
         OpMode(0, 0, OpArgR, OpArgN, IAsBx), // opJmpIfNeK
+        // Same operand modes as opGetTableUp (R/W is UpValue[B] here, not R(B)), which it is a
+        // fused superset of -- see OpCode.GetImport.
+        OpMode(0, 1, OpArgU, OpArgK, IABC), // opGetImport
+        // Same operand modes as opNewTable: B and C are unused (the template already carries the
+        // array/hash sizes NewTable's B/C were hints for).
+        OpMode(0, 1, OpArgU, OpArgU, IABC), // opDupTable
     ];
 
     /// <summary>

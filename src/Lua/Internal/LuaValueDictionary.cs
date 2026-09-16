@@ -92,7 +92,44 @@ sealed class LuaValueDictionary
         }
     }
 
+    /// <summary>
+    /// Compiler-rewrite plan Milestone 4: an independent copy, for
+    /// <see cref="LuaTable.CloneTemplate"/>. See
+    /// <see cref="LuaStringDictionary.Clone"/> -- the reasoning is identical.
+    /// </summary>
+    public LuaValueDictionary Clone()
+    {
+        return new(0)
+        {
+            _buckets = _buckets == null ? null : (ulong[])_buckets.Clone(),
+            _entries = _entries == null ? null : (Entry[])_entries.Clone(),
+            _count = _count,
+            _version = _version,
+            _length = _length,
+            _maxCount = _maxCount,
+            _last = _last,
+        };
+    }
+
     public int Count => _count;
+
+    /// <summary>
+    /// Copies every entry in insertion order, including nil-valued ("dead") ones, which
+    /// <see cref="MoveNext"/> deliberately skips. See
+    /// <see cref="LuaStringDictionary.CopyAllEntriesTo"/> -- the reasoning is identical.
+    /// </summary>
+    internal void CopyAllEntriesTo(List<KeyValuePair<LuaValue, LuaValue>> destination)
+    {
+        if (_entries is null)
+        {
+            return;
+        }
+
+        foreach (ref var entry in _entries.AsSpan(0, _count))
+        {
+            destination.Add(new(entry.key, entry.value));
+        }
+    }
 
     /// <summary>
     /// Number of entries whose value is not nil. Assigning nil keeps the entry (so a

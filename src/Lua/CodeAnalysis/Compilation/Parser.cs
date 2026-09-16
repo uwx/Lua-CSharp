@@ -1,6 +1,7 @@
 ﻿using System.Buffers;
 using System.Globalization;
 using System.Runtime.CompilerServices;
+using Lua.CodeAnalysis.Compilation.Ast;
 using Lua.Internal;
 using Lua.Runtime;
 using static System.Diagnostics.Debug;
@@ -42,11 +43,22 @@ class Parser : IPoolNode<Parser>, IDisposable
     // anonymous function's prototype can be named after its variable.
     internal string? PendingFunctionName;
 
+    /// <summary>
+    /// True while <see cref="Ast.AstParser"/> runs: the first pass of the two-pass compiler does
+    /// scope/name resolution only and produces an AST, never bytecode (its
+    /// <see cref="PrototypeBuilder"/> is discarded -- <see cref="Ast.CodeGenerator.Generate"/>
+    /// builds its own). Anything that *emits* or *patches* instruction PCs must therefore be
+    /// skipped, or it writes into a code list nobody reads and whose jump-list invariants don't
+    /// hold (a jump list's <c>A</c> is a linked-list next-pointer until patched, so patching it
+    /// out of order trips <see cref="Function.PatchClose"/>'s close-level assert).
+    /// </summary>
+    internal bool ResolutionOnly;
+
     Parser? nextNode;
 
     static LinkedPool<Parser> pool;
 
-    static readonly (int Left, int Right)[] priority =
+    internal static readonly (int Left, int Right)[] priority =
     [
         (6, 6),
         (6, 6),
@@ -82,7 +94,7 @@ class Parser : IPoolNode<Parser>, IDisposable
 
     ref Parser? IPoolNode<Parser>.NextNode => ref nextNode;
 
-    static Parser Get(Scanner scanner)
+    internal static Parser Get(Scanner scanner)
     {
         if (!pool.TryPop(out var parser))
         {
@@ -110,6 +122,7 @@ class Parser : IPoolNode<Parser>, IDisposable
         RepeatConditionMinLevel = -1;
         RepeatConditionLine = 0;
         PendingFunctionName = null;
+        ResolutionOnly = false;
         pool.TryPush(this);
     }
 
@@ -2013,30 +2026,18 @@ class Parser : IPoolNode<Parser>, IDisposable
         Function = Function.CloseMainFunction();
     }
 
+    /// <summary>
+    /// Entry point for the two-pass compiler: <see cref="AstParser.ParseToAst"/> builds a
+    /// retained AST (doing all scope/name resolution), then <see cref="CodeGenerator.Generate"/>
+    /// walks it to produce the actual <see cref="Prototype"/>. This replaced the original
+    /// single-pass streaming implementation (see the compiler-rewrite plan) once Milestone 2's
+    /// equivalence testing (35 real corpus files + 21 snippets, structural byte-for-byte match)
+    /// and the full existing behavioral suite gave enough confidence to cut production over.
+    /// </summary>
     public static Prototype Parse(LuaState l, TextReader r, string name)
     {
-        using var internPool = new StringInternPool(4);
-        using var p = Get(
-            new()
-            {
-                R = r,
-                Current = InitialState,
-                LineNumber = 1,
-                LastLine = 1,
-                LookAheadToken = new(0, TkEos),
-                LookAheadToken2 = new(0, TkEos),
-                L = l,
-                Source = name,
-                Buffer = new(r.Length),
-                StringPool = internPool,
-            }
-        );
-        var f = Function.Get(p, PrototypeBuilder.Get(name));
-        p.Function = f;
-        f.Proto.IsVarArg = true;
-        f.Proto.LineDefined = 0;
-        p.MainFunction();
-        return f.Proto.CreatePrototypeAndRelease();
+        var body = AstParser.ParseToAst(l, r, name);
+        return CodeGenerator.Generate(l, body, name);
     }
 
     public static void Dump(

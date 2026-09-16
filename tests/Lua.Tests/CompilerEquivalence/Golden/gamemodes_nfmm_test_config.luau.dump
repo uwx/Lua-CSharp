@@ -1,0 +1,20 @@
+proto ? params=0 vararg=True maxstack=3 linedefined=0-0
+constants:
+  [0] DefineGamemodeConfig
+  [1] name
+  [2] TestName
+  [3] description
+  [4] A test gamemode.
+  [5] properties
+upvalues:
+  [0] _ENV local=True index=0 byvalue=False
+locals:
+code:
+  0: [line 1] GETTABUP 0 0 -1
+  1: [line 1] NEWTABLE 1 0 3
+  2: [line 2] SETTABLE 1 -2 -3
+  3: [line 3] SETTABLE 1 -4 -5
+  4: [line 4] NEWTABLE 2 0 0
+  5: [line 4] SETTABLE 1 -6 2
+  6: [line 1] CALL 0 2 1
+  7: [line 5] RETURN 0 1

@@ -489,6 +489,21 @@ public static partial class LuaVirtualMachine
                         }
 
                         return true;
+                    case OpCode.GetImport:
+                        if (OpGetImport(context, stack, frameBase, ref constHead, ref instructionsHead, instruction, out doRestart))
+                        {
+                            if (doRestart)
+                            {
+                                goto Restart;
+                            }
+
+                            continue;
+                        }
+
+                        return true;
+                    case OpCode.DupTable:
+                        OpDupTable(context, stack, iA, frameBase, ref instructionsHead);
+                        continue;
                     case OpCode.SetTabUp:
                     case OpCode.SetTable:
                         if (OpSetTable(context, stack, frameBase, ref constHead, instruction, opCode, iA, out doRestart))
@@ -1224,6 +1239,69 @@ public static partial class LuaVirtualMachine
         return false;
     }
 
+    /// <summary>
+    /// Fused two-level import read, <c>R(A) := UpValue[B][RK(C)][Kst(extra)]</c> -- the
+    /// <c>math.floor</c> / <c>M.nested.x</c> shape (see <see cref="OpCode.GetImport"/>).
+    ///
+    /// Fast-path-only, per the compiler-rewrite plan's Milestone 3 decision. Both levels are done
+    /// as raw table reads -- the very same <c>TryReadTable</c>/<c>TryGetValue</c> pair
+    /// <see cref="OpGetTable"/> uses, so this cannot succeed anywhere the unfused pair would have
+    /// taken its own fast path, nor fail where it would have. On any miss it *rewrites itself in
+    /// place* back into that pair (level 1's destination, level 2's table, and level 2's
+    /// destination are all register A, so the rewrite is exact) and restarts at the same pc, which
+    /// hands the rest of the work to the existing, proven machinery:
+    /// <see cref="GetTableValueSlowPath"/>, <c>__index</c> chains, <see cref="CallGetTableFunc"/>'s
+    /// restart/frame handling, <c>PostOperation</c>, and -- because the rewritten instructions are
+    /// a real GetTabUp and a real GetTable -- the upvalue-vs-stack-register distinction in
+    /// <c>ThrowInvalidOperationForNoIndex</c> and the exact "attempt to index" error text.
+    ///
+    /// The rewrite is permanent for this instruction, but permanently correct: the rewritten pair
+    /// is literally the unfused compilation of the same expression, so a transient miss (say,
+    /// <c>_ENV.math</c> being a proxy on the first iteration and a plain table later) costs speed
+    /// and never behavior.
+    /// </summary>
+    private static bool OpGetImport(VirtualMachineExecutionContext context, LuaStack stack, int frameBase,
+        ref LuaValue constHead, ref Instruction instructionsHead, Instruction instruction, out bool doRestart)
+    {
+        Markers.GetImport();
+        doRestart = false;
+
+        // Same pc-capture discipline as OpJmpIf: instruction.SBx-style pc-relative math aside,
+        // consuming the trailing ExtraArg below advances context.Pc, and the deopt needs this
+        // instruction's own pc to rewrite and re-execute it.
+        var importPc = context.Pc;
+        var key2Index = Unsafe.Add(ref instructionsHead, ++context.Pc).Ax;
+
+        ref var stackHead = ref stack.FastGet(frameBase);
+        ref readonly var vc = ref RKC(ref stackHead, ref constHead, instruction);
+        ref readonly var vb = ref context.LuaClosure.GetUpValueRef(instruction.B);
+
+        if (
+            vb.TryReadTable(out var level1Table)
+            && level1Table.TryGetValue(vc, out var level1)
+            && level1.TryReadTable(out var level2Table)
+            && level2Table.TryGetValue(Unsafe.Add(ref constHead, key2Index), out var result)
+        )
+        {
+            stack.GetWithNotifyTop(instruction.A + frameBase) = result;
+            return true;
+        }
+
+        // Deopt: back to the ordinary two-step lookup, in place. key2Index is guaranteed to fit an
+        // RK operand by the compiler (Function.GetImport asserts it), so this is always encodable
+        // in the two words this instruction already occupies.
+        Unsafe.Add(ref instructionsHead, importPc) =
+            Instruction.CreateABC(OpCode.GetTabUp, instruction.A, instruction.B, instruction.C);
+        Unsafe.Add(ref instructionsHead, importPc + 1) =
+            Instruction.CreateABC(OpCode.GetTable, instruction.A, instruction.A, Instruction.AsConstant(key2Index));
+
+        // Re-execute this same pc. The dispatcher fetches with a pre-increment
+        // (`Unsafe.Add(ref instructionsHead, ++context.Pc)`), so aiming one below does that.
+        context.Pc = importPc - 1;
+        doRestart = true;
+        return true;
+    }
+
     private static void OpMove(LuaStack stack, int frameBase, int iA, Instruction instruction)
     {
         Markers.Move();
@@ -1378,6 +1456,26 @@ public static partial class LuaVirtualMachine
             instruction.B,
             instruction.C
         );
+        return;
+    }
+
+    /// <summary>
+    /// Compiler-rewrite plan Milestone 4: R(A) := a fresh copy of the all-constant table template
+    /// named by the trailing ExtraArg. See <see cref="OpCode.DupTable"/> for why sharing the
+    /// template across executions is safe, and <c>LuaTable.CloneTemplate</c> for what a copy is.
+    /// </summary>
+    private static void OpDupTable(VirtualMachineExecutionContext context, LuaStack stack, int iA,
+        int frameBase, ref Instruction instructionsHead)
+    {
+        Markers.DupTable();
+        // Consumes the trailing ExtraArg word with the same convention LoadKX and OpGetImport use,
+        // leaving context.Pc *on* that word: the dispatcher fetches with a pre-increment
+        // (`Unsafe.Add(ref instructionsHead, ++context.Pc)`, line 441), so the next iteration steps
+        // over it correctly and nothing else can observe it.
+        var templateIndex = Unsafe.Add(ref instructionsHead, ++context.Pc).Ax;
+        stack.GetWithNotifyTop(iA + frameBase) = context
+            .Prototype.Templates[templateIndex]
+            .CloneTemplate();
         return;
     }
 

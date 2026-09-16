@@ -1,0 +1,198 @@
+proto ? params=0 vararg=True maxstack=6 linedefined=0-0
+constants:
+  [0] 3
+  [1] OnBegin
+  [2] OnReset
+  [3] OnGameTick
+  [4] OnServerEvent
+upvalues:
+  [0] _ENV local=True index=0 byvalue=False
+locals:
+  [0] countdown pc=1-12
+  [1] OnBegin pc=2-12
+  [2] OnReset pc=3-12
+  [3] OnGameTick pc=4-12
+  [4] OnServerEvent pc=5-12
+code:
+  0: [line 4] LOADK 0 0
+  1: [line 11] CLOSURE 1 0
+  2: [line 20] CLOSURE 2 1
+  3: [line 39] CLOSURE 3 2
+  4: [line 43] CLOSURE 4 3
+  5: [line 45] NEWTABLE 5 0 4
+  6: [line 46] SETTABLE 5 -2 1
+  7: [line 47] SETTABLE 5 -3 2
+  8: [line 48] SETTABLE 5 -4 3
+  9: [line 49] SETTABLE 5 -5 4
+  10: [line 50] RETURN 5 2
+  11: [line 50] RETURN 0 1
+child 0:
+  proto OnBegin params=0 vararg=False maxstack=2 linedefined=6-11
+  constants:
+    [0] GM
+    [1] hudState
+    [2] totalLaps
+    [3] stage
+    [4] nlaps
+    [5] lap
+    [6] 1
+    [7] position
+    [8] totalRacers
+    [9] players
+  upvalues:
+    [0] _ENV local=False index=0 byvalue=False
+  locals:
+  code:
+    0: [line 7] GETIMPORT 0 0 -1
+    1: [line 7] EXTRAARG 1
+    2: [line 7] GETIMPORT 1 0 -1
+    3: [line 7] EXTRAARG 3
+    4: [line 7] GETTABLE 1 1 -5
+    5: [line 7] SETTABLE 0 -3 1
+    6: [line 8] GETIMPORT 0 0 -1
+    7: [line 8] EXTRAARG 1
+    8: [line 8] SETTABLE 0 -6 -7
+    9: [line 9] GETIMPORT 0 0 -1
+    10: [line 9] EXTRAARG 1
+    11: [line 9] SETTABLE 0 -8 -7
+    12: [line 10] GETIMPORT 0 0 -1
+    13: [line 10] EXTRAARG 1
+    14: [line 10] GETIMPORT 1 0 -1
+    15: [line 10] EXTRAARG 9
+    16: [line 10] LEN 1 1
+    17: [line 10] SETTABLE 0 -9 1
+    18: [line 11] RETURN 0 1
+child 1:
+  proto OnReset params=0 vararg=False maxstack=6 linedefined=13-20
+  constants:
+    [0] 3
+    [1] GM
+    [2] createCar
+    [3] 0
+    [4] fixed64
+    [5] currentCheckpoint
+    [6] currentLap
+    [7] hudState
+    [8] lap
+    [9] 1
+    [10] totalLaps
+    [11] stage
+    [12] nlaps
+  upvalues:
+    [0] countdown local=True index=0 byvalue=False
+    [1] _ENV local=False index=0 byvalue=False
+  locals:
+    [0] car pc=12-24
+  code:
+    0: [line 14] LOADK 0 0
+    1: [line 14] SETUPVAL 0 0
+    2: [line 15] GETTABUP 0 1 -2
+    3: [line 15] SELF 0 0 -3
+    4: [line 15] LOADK 2 3
+    5: [line 15] GETTABUP 3 1 -5
+    6: [line 15] LOADK 4 3
+    7: [line 15] CALL 3 2 2
+    8: [line 15] GETTABUP 4 1 -5
+    9: [line 15] LOADK 5 3
+    10: [line 15] CALL 4 2 0
+    11: [line 15] CALL 0 0 2
+    12: [line 16] SETTABLE 0 -6 -4
+    13: [line 17] SETTABLE 0 -7 -4
+    14: [line 18] GETIMPORT 1 1 -2
+    15: [line 18] EXTRAARG 7
+    16: [line 18] SETTABLE 1 -9 -10
+    17: [line 19] GETIMPORT 1 1 -2
+    18: [line 19] EXTRAARG 7
+    19: [line 19] GETIMPORT 2 1 -2
+    20: [line 19] EXTRAARG 11
+    21: [line 19] GETTABLE 2 2 -13
+    22: [line 19] SETTABLE 1 -11 2
+    23: [line 20] RETURN 0 1
+child 2:
+  proto OnGameTick params=0 vararg=False maxstack=3 linedefined=22-39
+  constants:
+    [0] 0
+    [1] 1
+    [2] GM
+    [3] hudState
+    [4] countdownTimer
+    [5] physics
+    [6] gameTick
+    [7] handleFixHoops
+    [8] players
+    [9] car
+    [10] handleCheckPoint
+    [11] calculatePositions
+    [12] nil
+    [13] lap
+    [14] currentLap
+    [15] position
+    [16] placement
+  upvalues:
+    [0] countdown local=True index=0 byvalue=False
+    [1] _ENV local=False index=0 byvalue=False
+  locals:
+    [0] player pc=35-53
+  code:
+    0: [line 23] GETUPVAL 0 0
+    1: [line 23] LT 0 -1 0
+    2: [line 23] JMP 0 8
+    3: [line 24] GETUPVAL 0 0
+    4: [line 24] SUB 0 0 -2
+    5: [line 24] SETUPVAL 0 0
+    6: [line 25] GETIMPORT 0 1 -3
+    7: [line 25] EXTRAARG 3
+    8: [line 25] GETUPVAL 1 0
+    9: [line 25] SETTABLE 0 -5 1
+    10: [line 26] RETURN 0 1
+    11: [line 29] GETIMPORT 0 1 -3
+    12: [line 29] EXTRAARG 5
+    13: [line 29] SELF 0 0 -7
+    14: [line 29] CALL 0 2 1
+    15: [line 30] GETTABUP 0 1 -3
+    16: [line 30] SELF 0 0 -8
+    17: [line 30] GETIMPORT 2 1 -3
+    18: [line 30] EXTRAARG 8
+    19: [line 30] GETTABLE 2 2 -2
+    20: [line 30] GETTABLE 2 2 -10
+    21: [line 30] CALL 0 3 1
+    22: [line 31] GETTABUP 0 1 -3
+    23: [line 31] SELF 0 0 -11
+    24: [line 31] GETIMPORT 2 1 -3
+    25: [line 31] EXTRAARG 8
+    26: [line 31] GETTABLE 2 2 -2
+    27: [line 31] GETTABLE 2 2 -10
+    28: [line 31] CALL 0 3 1
+    29: [line 32] GETTABUP 0 1 -3
+    30: [line 32] SELF 0 0 -12
+    31: [line 32] CALL 0 2 1
+    32: [line 34] GETIMPORT 0 1 -3
+    33: [line 34] EXTRAARG 8
+    34: [line 34] GETTABLE 0 0 -2
+    35: [line 35] JMPIFEQK 0 16
+    36: [line 35] EXTRAARG 12
+    37: [line 35] GETTABLE 1 0 -10
+    38: [line 35] JMPIFEQK 1 13
+    39: [line 35] EXTRAARG 12
+    40: [line 36] GETIMPORT 1 1 -3
+    41: [line 36] EXTRAARG 3
+    42: [line 36] GETTABLE 2 0 -10
+    43: [line 36] GETTABLE 2 2 -15
+    44: [line 36] ADD 2 2 -2
+    45: [line 36] SETTABLE 1 -14 2
+    46: [line 37] GETIMPORT 1 1 -3
+    47: [line 37] EXTRAARG 3
+    48: [line 37] GETTABLE 2 0 -10
+    49: [line 37] GETTABLE 2 2 -17
+    50: [line 37] ADD 2 2 -2
+    51: [line 37] SETTABLE 1 -16 2
+    52: [line 39] RETURN 0 1
+child 3:
+  proto OnServerEvent params=2 vararg=False maxstack=2 linedefined=41-43
+  constants:
+  upvalues:
+  locals:
+    [0] type pc=0-1
+    [1] payload pc=0-1
+  code:
+    0: [line 43] RETURN 0 1

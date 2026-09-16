@@ -1,0 +1,1359 @@
+proto ? params=0 vararg=True maxstack=43 linedefined=0-0
+constants:
+  [0] 0
+  [1] 1
+  [2] 2
+  [3] onChange
+  [4] nil
+  [5] setmetatable
+  [6] __mode
+  [7] k
+  [8] debug
+  [9] setOnChange
+  [10] list
+  [11] setPendingRootName
+  [12] setStyledName
+  [13] styledName
+  [14] ownerName
+  [15] createSignal
+  [16] createMemo
+  [17] createEffect
+  [18] createRoot
+  [19] batch
+  [20] untrack
+  [21] onCleanup
+  [22] onMount
+  [23] getOwner
+  [24] runWithOwner
+  [25] setScheduler
+  [26] flushSync
+upvalues:
+  [0] _ENV local=True index=0 byvalue=False
+locals:
+  [0] Sx pc=1-77
+  [1] STALE pc=2-77
+  [2] PENDING pc=3-77
+  [3] CLEAN pc=4-77
+  [4] Owner pc=5-77
+  [5] Listener pc=5-77
+  [6] batching pc=6-77
+  [7] Flushing pc=7-77
+  [8] Scheduled pc=8-77
+  [9] Scheduler pc=9-77
+  [10] PendingEffects pc=10-77
+  [11] effectQueueLen pc=11-77
+  [12] PendingRootName pc=12-77
+  [13] DebugHooks pc=14-77
+  [14] LiveNodes pc=15-77
+  [15] StyledNames pc=20-77
+  [16] registerLive pc=21-77
+  [17] unregisterLive pc=22-77
+  [18] updateEffect pc=23-77
+  [19] updateMemo pc=23-77
+  [20] disposeComputation pc=23-77
+  [21] trackRead pc=24-77
+  [22] untrackSource pc=25-77
+  [23] cleanNode pc=26-77
+  [24] queueEffect pc=29-77
+  [25] markStale pc=30-77
+  [26] flushEffects pc=35-77
+  [27] scheduleFlush pc=36-77
+  [28] createSignal pc=37-77
+  [29] createComputation pc=38-77
+  [30] createMemo pc=39-77
+  [31] createEffect pc=40-77
+  [32] createRoot pc=41-77
+  [33] batch pc=42-77
+  [34] untrack pc=43-77
+  [35] onCleanup pc=44-77
+  [36] onMount pc=45-77
+  [37] getOwner pc=46-77
+  [38] runWithOwner pc=47-77
+  [39] setScheduler pc=48-77
+  [40] flushSync pc=49-77
+code:
+  0: [line 20] NEWTABLE 0 0 0
+  1: [line 23] LOADK 1 0
+  2: [line 24] LOADK 2 1
+  3: [line 25] LOADK 3 2
+  4: [line 52] LOADNIL 4 1
+  5: [line 54] LOADK 6 0
+  6: [line 55] LOADBOOL 7 0 0
+  7: [line 56] LOADBOOL 8 0 0
+  8: [line 57] LOADNIL 9 0
+  9: [line 58] NEWTABLE 10 0 0
+  10: [line 59] LOADK 11 0
+  11: [line 60] LOADNIL 12 0
+  12: [line 65] NEWTABLE 13 0 1
+  13: [line 66] SETTABLE 13 -4 -5
+  14: [line 68] NEWTABLE 14 0 0
+  15: [line 69] GETTABUP 15 0 -6
+  16: [line 69] NEWTABLE 16 0 0
+  17: [line 69] NEWTABLE 17 0 1
+  18: [line 69] SETTABLE 17 -7 -8
+  19: [line 69] CALL 15 3 2
+  20: [line 73] CLOSURE 16 0
+  21: [line 84] CLOSURE 17 1
+  22: [line 87] LOADNIL 18 2
+  23: [line 116] CLOSURE 21 2
+  24: [line 134] CLOSURE 22 3
+  25: [line 162] CLOSURE 23 4
+  26: [line 182] CLOSURE 24 5
+  27: [line 182] MOVE 20 24
+  28: [line 189] CLOSURE 24 6
+  29: [line 207] CLOSURE 25 7
+  30: [line 225] CLOSURE 26 8
+  31: [line 225] MOVE 19 26
+  32: [line 239] CLOSURE 26 9
+  33: [line 239] MOVE 18 26
+  34: [line 262] CLOSURE 26 10
+  35: [line 282] CLOSURE 27 11
+  36: [line 319] CLOSURE 28 12
+  37: [line 342] CLOSURE 29 13
+  38: [line 355] CLOSURE 30 14
+  39: [line 363] CLOSURE 31 15
+  40: [line 397] CLOSURE 32 16
+  41: [line 410] CLOSURE 33 17
+  42: [line 421] CLOSURE 34 18
+  43: [line 430] CLOSURE 35 19
+  44: [line 447] CLOSURE 36 20
+  45: [line 451] CLOSURE 37 21
+  46: [line 463] CLOSURE 38 22
+  47: [line 467] CLOSURE 39 23
+  48: [line 471] CLOSURE 40 24
+  49: [line 473] NEWTABLE 41 0 6
+  50: [line 476] CLOSURE 42 25
+  51: [line 476] SETTABLE 41 -10 42
+  52: [line 485] CLOSURE 42 26
+  53: [line 485] SETTABLE 41 -11 42
+  54: [line 489] CLOSURE 42 27
+  55: [line 489] SETTABLE 41 -12 42
+  56: [line 494] CLOSURE 42 28
+  57: [line 494] SETTABLE 41 -13 42
+  58: [line 497] CLOSURE 42 29
+  59: [line 497] SETTABLE 41 -14 42
+  60: [line 509] CLOSURE 42 30
+  61: [line 509] SETTABLE 41 -15 42
+  62: [line 510] SETTABLE 0 -9 41
+  63: [line 512] SETTABLE 0 -16 28
+  64: [line 513] SETTABLE 0 -17 30
+  65: [line 514] SETTABLE 0 -18 31
+  66: [line 515] SETTABLE 0 -19 32
+  67: [line 516] SETTABLE 0 -20 33
+  68: [line 517] SETTABLE 0 -21 34
+  69: [line 518] SETTABLE 0 -22 35
+  70: [line 519] SETTABLE 0 -23 36
+  71: [line 520] SETTABLE 0 -24 37
+  72: [line 521] SETTABLE 0 -25 38
+  73: [line 522] SETTABLE 0 -26 39
+  74: [line 523] SETTABLE 0 -27 40
+  75: [line 525] RETURN 0 2
+  76: [line 525] RETURN 0 1
+child 0:
+  proto registerLive params=2 vararg=False maxstack=4 linedefined=71-73
+  constants:
+    [0] 1
+    [1] node
+    [2] kind
+  upvalues:
+    [0] LiveNodes local=True index=14 byvalue=True
+  locals:
+    [0] node pc=0-8
+    [1] kind pc=0-8
+  code:
+    0: [line 72] GETUPVAL 2 0
+    1: [line 72] LEN 2 2
+    2: [line 72] ADD 2 2 -1
+    3: [line 72] NEWTABLE 3 0 2
+    4: [line 72] SETTABLE 3 -2 0
+    5: [line 72] SETTABLE 3 -3 1
+    6: [line 72] SETTABUP 0 2 3
+    7: [line 73] RETURN 0 1
+child 1:
+  proto unregisterLive params=1 vararg=False maxstack=7 linedefined=75-84
+  constants:
+    [0] 1
+    [1] node
+    [2] nil
+  upvalues:
+    [0] LiveNodes local=True index=14 byvalue=True
+  locals:
+    [0] node pc=0-22
+    [1] (for index) pc=4-21
+    [2] (for limit) pc=4-21
+    [3] (for step) pc=4-21
+    [4] i pc=5-20
+    [5] last pc=15-20
+  code:
+    0: [line 76] LOADK 1 0
+    1: [line 76] GETUPVAL 2 0
+    2: [line 76] LEN 2 2
+    3: [line 76] LOADK 3 0
+    4: [line 76] FORPREP 1 15
+    5: [line 77] GETTABUP 5 0 4
+    6: [line 77] TEST 5 0
+    7: [line 77] JMP 0 12
+    8: [line 77] GETTABUP 5 0 4
+    9: [line 77] GETTABLE 5 5 -2
+    10: [line 77] EQ 0 5 0
+    11: [line 77] JMP 0 8
+    12: [line 78] GETUPVAL 5 0
+    13: [line 78] LEN 5 5
+    14: [line 78] GETTABUP 5 0 5
+    15: [line 79] SETTABUP 0 4 5
+    16: [line 80] GETUPVAL 6 0
+    17: [line 80] LEN 6 6
+    18: [line 80] SETTABUP 0 6 -3
+    19: [line 81] JMP 0 1
+    20: [line 76] FORLOOP 1 -16
+    21: [line 84] RETURN 0 1
+child 2:
+  proto trackRead params=1 vararg=False maxstack=8 linedefined=95-116
+  constants:
+    [0] nil
+    [1] sources
+    [2] 1
+    [3] table
+    [4] insert
+    [5] observers
+  upvalues:
+    [0] Listener local=True index=5 byvalue=False
+    [1] _ENV local=False index=0 byvalue=False
+  locals:
+    [0] n pc=0-37
+    [1] comp pc=1-37
+    [2] sources pc=5-37
+    [3] (for index) pc=10-16
+    [4] (for limit) pc=10-16
+    [5] (for step) pc=10-16
+    [6] i pc=11-15
+  code:
+    0: [line 96] GETUPVAL 1 0
+    1: [line 97] JMPIFNEK 1 2
+    2: [line 97] EXTRAARG 0
+    3: [line 98] RETURN 0 1
+    4: [line 100] GETTABLE 2 1 -2
+    5: [line 101] TEST 2 0
+    6: [line 101] JMP 0 9
+    7: [line 102] LOADK 3 2
+    8: [line 102] LEN 4 2
+    9: [line 102] LOADK 5 2
+    10: [line 102] FORPREP 3 4
+    11: [line 103] GETTABLE 7 2 6
+    12: [line 103] EQ 0 7 0
+    13: [line 103] JMP 0 1
+    14: [line 104] RETURN 0 1
+    15: [line 102] FORLOOP 3 -5
+    16: [line 108] GETTABLE 3 1 -2
+    17: [line 108] JMPIFNEK 3 3
+    18: [line 108] EXTRAARG 0
+    19: [line 109] NEWTABLE 3 0 0
+    20: [line 109] SETTABLE 1 -2 3
+    21: [line 111] GETIMPORT 3 1 -4
+    22: [line 111] EXTRAARG 4
+    23: [line 111] GETTABLE 4 1 -2
+    24: [line 111] MOVE 5 0
+    25: [line 111] CALL 3 3 1
+    26: [line 112] GETTABLE 3 0 -6
+    27: [line 112] JMPIFNEK 3 3
+    28: [line 112] EXTRAARG 0
+    29: [line 113] NEWTABLE 3 0 0
+    30: [line 113] SETTABLE 0 -6 3
+    31: [line 115] GETIMPORT 3 1 -4
+    32: [line 115] EXTRAARG 4
+    33: [line 115] GETTABLE 4 0 -6
+    34: [line 115] MOVE 5 1
+    35: [line 115] CALL 3 3 1
+    36: [line 116] RETURN 0 1
+child 3:
+  proto untrackSource params=2 vararg=False maxstack=9 linedefined=122-134
+  constants:
+    [0] observers
+    [1] 1
+    [2] -1
+    [3] nil
+  upvalues:
+  locals:
+    [0] n pc=0-18
+    [1] comp pc=0-18
+    [2] obs pc=4-17
+    [3] last pc=5-17
+    [4] (for index) pc=8-17
+    [5] (for limit) pc=8-17
+    [6] (for step) pc=8-17
+    [7] i pc=9-16
+  code:
+    0: [line 123] GETTABLE 2 0 -1
+    1: [line 123] TEST 2 0
+    2: [line 123] JMP 0 14
+    3: [line 124] GETTABLE 2 0 -1
+    4: [line 125] LEN 3 2
+    5: [line 126] MOVE 4 3
+    6: [line 126] LOADK 5 1
+    7: [line 126] LOADK 6 2
+    8: [line 126] FORPREP 4 7
+    9: [line 127] GETTABLE 8 2 7
+    10: [line 127] EQ 0 8 1
+    11: [line 127] JMP 0 4
+    12: [line 128] GETTABLE 8 2 3
+    13: [line 128] SETTABLE 2 7 8
+    14: [line 129] SETTABLE 2 3 -4
+    15: [line 130] JMP 0 1
+    16: [line 126] FORLOOP 4 -8
+    17: [line 134] RETURN 0 1
+child 4:
+  proto cleanNode params=1 vararg=False maxstack=10 linedefined=138-162
+  constants:
+    [0] cleanups
+    [1] 1
+    [2] -1
+    [3] nil
+    [4] owned
+    [5] disposed
+    [6] true
+    [7] sources
+    [8] ipairs
+  upvalues:
+    [0] cleanNode local=True index=23 byvalue=False
+    [1] _ENV local=False index=0 byvalue=False
+    [2] untrackSource local=True index=22 byvalue=False
+  locals:
+    [0] node pc=0-43
+    [1] cleanups pc=4-12
+    [2] (for index) pc=7-11
+    [3] (for limit) pc=7-11
+    [4] (for step) pc=7-11
+    [5] i pc=8-10
+    [6] owned pc=16-27
+    [7] (for index) pc=19-26
+    [8] (for limit) pc=19-26
+    [9] (for step) pc=19-26
+    [10] i pc=20-25
+    [11] child pc=21-25
+    [12] sources pc=31-42
+    [13] (for generator) pc=34-41
+    [14] (for state) pc=34-41
+    [15] (for control) pc=34-41
+    [16] _ pc=35-39
+    [17] n pc=35-39
+  code:
+    0: [line 139] GETTABLE 1 0 -1
+    1: [line 139] TEST 1 0
+    2: [line 139] JMP 0 9
+    3: [line 140] GETTABLE 1 0 -1
+    4: [line 141] LEN 2 1
+    5: [line 141] LOADK 3 1
+    6: [line 141] LOADK 4 2
+    7: [line 141] FORPREP 2 2
+    8: [line 142] GETTABLE 6 1 5
+    9: [line 142] CALL 6 1 1
+    10: [line 141] FORLOOP 2 -3
+    11: [line 144] SETTABLE 0 -1 -4
+    12: [line 146] GETTABLE 1 0 -5
+    13: [line 146] TEST 1 0
+    14: [line 146] JMP 0 12
+    15: [line 147] GETTABLE 1 0 -5
+    16: [line 148] LOADK 2 1
+    17: [line 148] LEN 3 1
+    18: [line 148] LOADK 4 1
+    19: [line 148] FORPREP 2 5
+    20: [line 149] GETTABLE 6 1 5
+    21: [line 150] SETTABLE 6 -6 -7
+    22: [line 151] GETUPVAL 7 0
+    23: [line 151] MOVE 8 6
+    24: [line 151] CALL 7 2 1
+    25: [line 148] FORLOOP 2 -6
+    26: [line 153] SETTABLE 0 -5 -4
+    27: [line 155] GETTABLE 1 0 -8
+    28: [line 155] TEST 1 0
+    29: [line 155] JMP 0 12
+    30: [line 156] GETTABLE 1 0 -8
+    31: [line 157] GETTABUP 2 1 -9
+    32: [line 157] MOVE 3 1
+    33: [line 157] CALL 2 2 4
+    34: [line 157] JMP 0 4
+    35: [line 158] GETUPVAL 7 2
+    36: [line 158] MOVE 8 6
+    37: [line 158] MOVE 9 0
+    38: [line 158] CALL 7 3 1
+    39: [line 157] TFORCALL 2 2
+    40: [line 157] TFORLOOP 4 -6
+    41: [line 160] SETTABLE 0 -8 -4
+    42: [line 162] RETURN 0 1
+child 5:
+  proto ? params=1 vararg=False maxstack=8 linedefined=164-182
+  constants:
+    [0] disposed
+    [1] true
+    [2] owner
+    [3] owned
+    [4] 1
+    [5] nil
+  upvalues:
+    [0] unregisterLive local=True index=17 byvalue=False
+    [1] cleanNode local=True index=23 byvalue=False
+  locals:
+    [0] node pc=0-34
+    [1] owned pc=20-33
+    [2] last pc=21-33
+    [3] (for index) pc=24-33
+    [4] (for limit) pc=24-33
+    [5] (for step) pc=24-33
+    [6] i pc=25-32
+  code:
+    0: [line 165] GETTABLE 1 0 -1
+    1: [line 165] TEST 1 0
+    2: [line 165] JMP 0 1
+    3: [line 166] RETURN 0 1
+    4: [line 168] SETTABLE 0 -1 -2
+    5: [line 169] GETUPVAL 1 0
+    6: [line 169] MOVE 2 0
+    7: [line 169] CALL 1 2 1
+    8: [line 170] GETUPVAL 1 1
+    9: [line 170] MOVE 2 0
+    10: [line 170] CALL 1 2 1
+    11: [line 171] GETTABLE 1 0 -3
+    12: [line 171] TEST 1 0
+    13: [line 171] JMP 0 19
+    14: [line 171] GETTABLE 1 0 -3
+    15: [line 171] GETTABLE 1 1 -4
+    16: [line 171] TEST 1 0
+    17: [line 171] JMP 0 15
+    18: [line 172] GETTABLE 1 0 -3
+    19: [line 172] GETTABLE 1 1 -4
+    20: [line 173] LEN 2 1
+    21: [line 174] LOADK 3 4
+    22: [line 174] MOVE 4 2
+    23: [line 174] LOADK 5 4
+    24: [line 174] FORPREP 3 7
+    25: [line 175] GETTABLE 7 1 6
+    26: [line 175] EQ 0 7 0
+    27: [line 175] JMP 0 4
+    28: [line 176] GETTABLE 7 1 2
+    29: [line 176] SETTABLE 1 6 7
+    30: [line 177] SETTABLE 1 2 -6
+    31: [line 178] JMP 0 1
+    32: [line 174] FORLOOP 3 -8
+    33: [line 182] RETURN 0 1
+child 6:
+  proto queueEffect params=1 vararg=False maxstack=2 linedefined=186-189
+  constants:
+    [0] 1
+  upvalues:
+    [0] effectQueueLen local=True index=11 byvalue=False
+    [1] PendingEffects local=True index=10 byvalue=False
+  locals:
+    [0] node pc=0-6
+  code:
+    0: [line 187] GETUPVAL 1 0
+    1: [line 187] ADD 1 1 -1
+    2: [line 187] SETUPVAL 1 0
+    3: [line 188] GETUPVAL 1 0
+    4: [line 188] SETTABUP 1 1 0
+    5: [line 189] RETURN 0 1
+child 7:
+  proto markStale params=1 vararg=False maxstack=8 linedefined=193-207
+  constants:
+    [0] disposed
+    [1] state
+    [2] isEffect
+    [3] observers
+    [4] 1
+  upvalues:
+    [0] STALE local=True index=1 byvalue=True
+    [1] queueEffect local=True index=24 byvalue=False
+    [2] markStale local=True index=25 byvalue=False
+  locals:
+    [0] comp pc=0-29
+    [1] observers pc=20-28
+    [2] (for index) pc=23-28
+    [3] (for limit) pc=23-28
+    [4] (for step) pc=23-28
+    [5] i pc=24-27
+  code:
+    0: [line 194] GETTABLE 1 0 -1
+    1: [line 194] TEST 1 1
+    2: [line 194] JMP 0 4
+    3: [line 194] GETTABLE 1 0 -2
+    4: [line 194] GETUPVAL 2 0
+    5: [line 194] EQ 0 1 2
+    6: [line 194] JMP 0 1
+    7: [line 195] RETURN 0 1
+    8: [line 197] GETUPVAL 1 0
+    9: [line 197] SETTABLE 0 -2 1
+    10: [line 198] GETTABLE 1 0 -3
+    11: [line 198] TEST 1 0
+    12: [line 198] JMP 0 3
+    13: [line 199] GETUPVAL 1 1
+    14: [line 199] MOVE 2 0
+    15: [line 199] CALL 1 2 1
+    16: [line 201] GETTABLE 1 0 -4
+    17: [line 201] TEST 1 0
+    18: [line 201] JMP 0 9
+    19: [line 202] GETTABLE 1 0 -4
+    20: [line 203] LOADK 2 4
+    21: [line 203] LEN 3 1
+    22: [line 203] LOADK 4 4
+    23: [line 203] FORPREP 2 3
+    24: [line 204] GETUPVAL 6 2
+    25: [line 204] GETTABLE 7 1 5
+    26: [line 204] CALL 6 2 1
+    27: [line 203] FORLOOP 2 -4
+    28: [line 207] RETURN 0 1
+child 8:
+  proto ? params=1 vararg=False maxstack=7 linedefined=210-225
+  constants:
+    [0] state
+    [1] pcall
+    [2] fn
+    [3] value
+    [4] error
+  upvalues:
+    [0] STALE local=True index=1 byvalue=True
+    [1] cleanNode local=True index=23 byvalue=False
+    [2] Owner local=True index=4 byvalue=False
+    [3] Listener local=True index=5 byvalue=False
+    [4] _ENV local=False index=0 byvalue=False
+    [5] CLEAN local=True index=3 byvalue=True
+  locals:
+    [0] node pc=0-28
+    [1] prevOwner pc=10-28
+    [2] prevListener pc=10-28
+    [3] ok pc=16-28
+    [4] result pc=16-28
+  code:
+    0: [line 211] GETTABLE 1 0 -1
+    1: [line 211] GETUPVAL 2 0
+    2: [line 211] EQ 1 1 2
+    3: [line 211] JMP 0 1
+    4: [line 212] RETURN 0 1
+    5: [line 214] GETUPVAL 1 1
+    6: [line 214] MOVE 2 0
+    7: [line 214] CALL 1 2 1
+    8: [line 215] GETUPVAL 1 2
+    9: [line 215] GETUPVAL 2 3
+    10: [line 216] SETUPVAL 0 2
+    11: [line 217] SETUPVAL 0 3
+    12: [line 218] GETTABUP 3 4 -2
+    13: [line 218] GETTABLE 4 0 -3
+    14: [line 218] GETTABLE 5 0 -4
+    15: [line 218] CALL 3 3 3
+    16: [line 219] MOVE 5 1
+    17: [line 219] SETUPVAL 2 3
+    18: [line 219] SETUPVAL 5 2
+    19: [line 220] TEST 3 1
+    20: [line 220] JMP 0 3
+    21: [line 221] GETTABUP 5 4 -5
+    22: [line 221] MOVE 6 4
+    23: [line 221] CALL 5 2 1
+    24: [line 223] SETTABLE 0 -4 4
+    25: [line 224] GETUPVAL 5 5
+    26: [line 224] SETTABLE 0 -1 5
+    27: [line 225] RETURN 0 1
+child 9:
+  proto ? params=1 vararg=False maxstack=7 linedefined=228-239
+  constants:
+    [0] pcall
+    [1] fn
+    [2] value
+    [3] state
+    [4] error
+  upvalues:
+    [0] cleanNode local=True index=23 byvalue=False
+    [1] Owner local=True index=4 byvalue=False
+    [2] Listener local=True index=5 byvalue=False
+    [3] _ENV local=False index=0 byvalue=False
+    [4] CLEAN local=True index=3 byvalue=True
+  locals:
+    [0] node pc=0-22
+    [1] prevOwner pc=5-22
+    [2] prevListener pc=5-22
+    [3] ok pc=11-22
+    [4] result pc=11-22
+  code:
+    0: [line 229] GETUPVAL 1 0
+    1: [line 229] MOVE 2 0
+    2: [line 229] CALL 1 2 1
+    3: [line 230] GETUPVAL 1 1
+    4: [line 230] GETUPVAL 2 2
+    5: [line 231] SETUPVAL 0 1
+    6: [line 232] SETUPVAL 0 2
+    7: [line 233] GETTABUP 3 3 -1
+    8: [line 233] GETTABLE 4 0 -2
+    9: [line 233] GETTABLE 5 0 -3
+    10: [line 233] CALL 3 3 3
+    11: [line 234] MOVE 5 1
+    12: [line 234] SETUPVAL 2 2
+    13: [line 234] SETUPVAL 5 1
+    14: [line 235] GETUPVAL 5 4
+    15: [line 235] SETTABLE 0 -4 5
+    16: [line 236] TEST 3 1
+    17: [line 236] JMP 0 3
+    18: [line 237] GETTABUP 5 3 -5
+    19: [line 237] MOVE 6 4
+    20: [line 237] CALL 5 2 1
+    21: [line 239] RETURN 0 1
+child 10:
+  proto flushEffects params=0 vararg=False maxstack=10 linedefined=243-262
+  constants:
+    [0] 0
+    [1] 1
+    [2] 10000
+    [3] error
+    [4] Sx: effect cycle detected (too many update passes)
+    [5] nil
+    [6] state
+    [7] disposed
+  upvalues:
+    [0] effectQueueLen local=True index=11 byvalue=False
+    [1] _ENV local=False index=0 byvalue=False
+    [2] PendingEffects local=True index=10 byvalue=False
+    [3] STALE local=True index=1 byvalue=True
+    [4] updateEffect local=True index=18 byvalue=False
+  locals:
+    [0] guard pc=1-35
+    [1] q pc=11-33
+    [2] qlen pc=12-33
+    [3] (for index) pc=19-33
+    [4] (for limit) pc=19-33
+    [5] (for step) pc=19-33
+    [6] i pc=20-32
+    [7] node pc=21-32
+  code:
+    0: [line 244] LOADK 0 0
+    1: [line 245] GETUPVAL 1 0
+    2: [line 245] LT 0 -1 1
+    3: [line 245] JMP 0 30
+    4: [line 246] ADD 0 0 -2
+    5: [line 247] LT 0 -3 0
+    6: [line 247] JMP 0 3
+    7: [line 248] GETTABUP 1 1 -4
+    8: [line 248] LOADK 2 4
+    9: [line 248] CALL 1 2 1
+    10: [line 250] GETUPVAL 1 2
+    11: [line 251] GETUPVAL 2 0
+    12: [line 252] NEWTABLE 3 0 0
+    13: [line 252] SETUPVAL 3 2
+    14: [line 253] LOADK 3 0
+    15: [line 253] SETUPVAL 3 0
+    16: [line 254] LOADK 3 1
+    17: [line 254] MOVE 4 2
+    18: [line 254] LOADK 5 1
+    19: [line 254] FORPREP 3 12
+    20: [line 255] GETTABLE 7 1 6
+    21: [line 256] SETTABLE 1 6 -6
+    22: [line 257] GETTABLE 8 7 -7
+    23: [line 257] GETUPVAL 9 3
+    24: [line 257] EQ 0 8 9
+    25: [line 257] JMP 0 6
+    26: [line 257] GETTABLE 8 7 -8
+    27: [line 257] TEST 8 1
+    28: [line 257] JMP 0 3
+    29: [line 258] GETUPVAL 8 4
+    30: [line 258] MOVE 9 7
+    31: [line 258] CALL 8 2 1
+    32: [line 254] FORLOOP 3 -13
+    33: [line 254] JMP 0 -33
+    34: [line 262] RETURN 0 1
+child 11:
+  proto scheduleFlush params=0 vararg=False maxstack=2 linedefined=264-282
+  constants:
+    [0] 0
+    [1] nil
+  upvalues:
+    [0] batching local=True index=6 byvalue=False
+    [1] Flushing local=True index=7 byvalue=True
+    [2] Scheduler local=True index=9 byvalue=False
+    [3] Scheduled local=True index=8 byvalue=False
+    [4] flushEffects local=True index=26 byvalue=False
+  locals:
+  code:
+    0: [line 265] GETUPVAL 0 0
+    1: [line 265] LT 0 -1 0
+    2: [line 265] JMP 0 1
+    3: [line 266] RETURN 0 1
+    4: [line 268] GETUPVAL 0 1
+    5: [line 268] TEST 0 0
+    6: [line 268] JMP 0 1
+    7: [line 269] RETURN 0 1
+    8: [line 271] GETUPVAL 0 2
+    9: [line 271] JMPIFEQK 0 10
+    10: [line 271] EXTRAARG 1
+    11: [line 272] GETUPVAL 0 3
+    12: [line 272] TEST 0 1
+    13: [line 272] JMP 0 8
+    14: [line 273] LOADBOOL 0 1 0
+    15: [line 273] SETUPVAL 0 3
+    16: [line 274] GETUPVAL 0 2
+    17: [line 277] CLOSURE 1 0
+    18: [line 274] CALL 0 2 1
+    19: [line 277] JMP 0 2
+    20: [line 280] GETUPVAL 0 4
+    21: [line 280] CALL 0 1 1
+    22: [line 282] RETURN 0 1
+  child 0:
+    proto ? params=0 vararg=False maxstack=2 linedefined=274-277
+    constants:
+    upvalues:
+      [0] Scheduled local=False index=3 byvalue=False
+      [1] flushEffects local=False index=4 byvalue=False
+    locals:
+    code:
+      0: [line 275] LOADBOOL 0 0 0
+      1: [line 275] SETUPVAL 0 0
+      2: [line 276] GETUPVAL 0 1
+      3: [line 276] CALL 0 1 1
+      4: [line 277] RETURN 0 1
+child 12:
+  proto createSignal params=1 vararg=False maxstack=6 linedefined=290-319
+  constants:
+    [0] kind
+    [1] signal
+    [2] value
+    [3] observers
+    [4] nil
+    [5] owner
+  upvalues:
+    [0] Owner local=True index=4 byvalue=False
+    [1] registerLive local=True index=16 byvalue=False
+    [2] trackRead local=True index=21 byvalue=False
+    [3] markStale local=True index=25 byvalue=False
+    [4] scheduleFlush local=True index=27 byvalue=False
+    [5] DebugHooks local=True index=13 byvalue=True
+  locals:
+    [0] value pc=0-16
+    [1] s pc=6-16
+    [2] read pc=11-16
+    [3] write pc=12-16
+  code:
+    0: [line 291] NEWTABLE 1 0 4
+    1: [line 292] SETTABLE 1 -1 -2
+    2: [line 293] SETTABLE 1 -3 0
+    3: [line 294] SETTABLE 1 -4 -5
+    4: [line 295] GETUPVAL 2 0
+    5: [line 295] SETTABLE 1 -6 2
+    6: [line 297] GETUPVAL 2 1
+    7: [line 297] MOVE 3 1
+    8: [line 297] LOADK 4 1
+    9: [line 297] CALL 2 3 1
+    10: [line 301] CLOSURE 2 0
+    11: [line 317] CLOSURE 3 1
+    12: [line 318] MOVE 4 2
+    13: [line 318] MOVE 5 3
+    14: [line 318] RETURN 4 3
+    15: [line 319] RETURN 0 1
+  child 0:
+    proto read params=0 vararg=False maxstack=2 linedefined=298-301
+    constants:
+      [0] value
+    upvalues:
+      [0] trackRead local=False index=2 byvalue=False
+      [1] s local=True index=1 byvalue=True
+    locals:
+    code:
+      0: [line 299] GETUPVAL 0 0
+      1: [line 299] GETUPVAL 1 1
+      2: [line 299] CALL 0 2 1
+      3: [line 300] GETTABUP 0 1 -1
+      4: [line 300] RETURN 0 2
+      5: [line 301] RETURN 0 1
+  child 1:
+    proto write params=1 vararg=False maxstack=8 linedefined=302-317
+    constants:
+      [0] value
+      [1] observers
+      [2] 1
+      [3] onChange
+      [4] 0
+    upvalues:
+      [0] s local=True index=1 byvalue=True
+      [1] markStale local=False index=3 byvalue=False
+      [2] scheduleFlush local=False index=4 byvalue=False
+      [3] DebugHooks local=False index=5 byvalue=False
+    locals:
+      [0] newValue pc=0-33
+      [1] observers pc=9-17
+      [2] (for index) pc=12-17
+      [3] (for limit) pc=12-17
+      [4] (for step) pc=12-17
+      [5] i pc=13-16
+    code:
+      0: [line 303] GETTABUP 1 0 -1
+      1: [line 303] EQ 0 0 1
+      2: [line 303] JMP 0 1
+      3: [line 304] RETURN 0 1
+      4: [line 306] SETTABUP 0 -1 0
+      5: [line 307] GETTABUP 1 0 -2
+      6: [line 307] TEST 1 0
+      7: [line 307] JMP 0 9
+      8: [line 308] GETTABUP 1 0 -2
+      9: [line 309] LOADK 2 2
+      10: [line 309] LEN 3 1
+      11: [line 309] LOADK 4 2
+      12: [line 309] FORPREP 2 3
+      13: [line 310] GETUPVAL 6 1
+      14: [line 310] GETTABLE 7 1 5
+      15: [line 310] CALL 6 2 1
+      16: [line 309] FORLOOP 2 -4
+      17: [line 313] GETUPVAL 1 2
+      18: [line 313] CALL 1 1 1
+      19: [line 314] GETTABUP 1 3 -4
+      20: [line 314] TEST 1 0
+      21: [line 314] JMP 0 10
+      22: [line 314] GETTABUP 1 0 -2
+      23: [line 314] TEST 1 0
+      24: [line 314] JMP 0 7
+      25: [line 314] GETTABUP 1 0 -2
+      26: [line 314] LEN 1 1
+      27: [line 314] LT 0 -5 1
+      28: [line 314] JMP 0 3
+      29: [line 315] GETTABUP 1 3 -4
+      30: [line 315] GETUPVAL 2 0
+      31: [line 315] CALL 1 2 1
+      32: [line 317] RETURN 0 1
+child 13:
+  proto createComputation params=2 vararg=False maxstack=6 linedefined=321-342
+  constants:
+    [0] fn
+    [1] value
+    [2] nil
+    [3] state
+    [4] sources
+    [5] observers
+    [6] owned
+    [7] cleanups
+    [8] owner
+    [9] disposed
+    [10] false
+    [11] isEffect
+    [12] table
+    [13] insert
+    [14] computation
+  upvalues:
+    [0] STALE local=True index=1 byvalue=True
+    [1] Owner local=True index=4 byvalue=False
+    [2] _ENV local=False index=0 byvalue=False
+    [3] registerLive local=True index=16 byvalue=False
+  locals:
+    [0] fn pc=0-32
+    [1] isEffect pc=0-32
+    [2] node pc=13-32
+  code:
+    0: [line 322] NEWTABLE 2 0 10
+    1: [line 323] SETTABLE 2 -1 0
+    2: [line 324] SETTABLE 2 -2 -3
+    3: [line 325] GETUPVAL 3 0
+    4: [line 325] SETTABLE 2 -4 3
+    5: [line 326] SETTABLE 2 -5 -3
+    6: [line 327] SETTABLE 2 -6 -3
+    7: [line 328] SETTABLE 2 -7 -3
+    8: [line 329] SETTABLE 2 -8 -3
+    9: [line 330] GETUPVAL 3 1
+    10: [line 330] SETTABLE 2 -9 3
+    11: [line 331] SETTABLE 2 -10 -11
+    12: [line 332] SETTABLE 2 -12 1
+    13: [line 334] GETUPVAL 3 1
+    14: [line 334] TEST 3 0
+    15: [line 334] JMP 0 10
+    16: [line 335] GETTABUP 3 1 -7
+    17: [line 335] JMPIFNEK 3 3
+    18: [line 335] EXTRAARG 2
+    19: [line 336] NEWTABLE 3 0 0
+    20: [line 336] SETTABUP 1 -7 3
+    21: [line 338] GETIMPORT 3 2 -13
+    22: [line 338] EXTRAARG 13
+    23: [line 338] GETTABUP 4 1 -7
+    24: [line 338] MOVE 5 2
+    25: [line 338] CALL 3 3 1
+    26: [line 340] GETUPVAL 3 3
+    27: [line 340] MOVE 4 2
+    28: [line 340] LOADK 5 14
+    29: [line 340] CALL 3 3 1
+    30: [line 341] RETURN 2 2
+    31: [line 342] RETURN 0 1
+child 14:
+  proto createMemo params=2 vararg=False maxstack=5 linedefined=344-355
+  constants:
+    [0] value
+  upvalues:
+    [0] createComputation local=True index=29 byvalue=False
+    [1] CLEAN local=True index=3 byvalue=True
+    [2] updateMemo local=True index=19 byvalue=False
+    [3] trackRead local=True index=21 byvalue=False
+  locals:
+    [0] fn pc=0-8
+    [1] value pc=0-8
+    [2] node pc=4-8
+    [3] read pc=6-8
+  code:
+    0: [line 345] GETUPVAL 2 0
+    1: [line 345] MOVE 3 0
+    2: [line 345] LOADBOOL 4 0 0
+    3: [line 345] CALL 2 3 2
+    4: [line 346] SETTABLE 2 -1 1
+    5: [line 353] CLOSURE 3 0
+    6: [line 354] RETURN 3 2
+    7: [line 355] RETURN 0 1
+  child 0:
+    proto read params=0 vararg=False maxstack=2 linedefined=347-353
+    constants:
+      [0] state
+      [1] value
+    upvalues:
+      [0] node local=True index=2 byvalue=True
+      [1] CLEAN local=False index=1 byvalue=False
+      [2] updateMemo local=False index=2 byvalue=False
+      [3] trackRead local=False index=3 byvalue=False
+    locals:
+    code:
+      0: [line 348] GETTABUP 0 0 -1
+      1: [line 348] GETUPVAL 1 1
+      2: [line 348] EQ 1 0 1
+      3: [line 348] JMP 0 3
+      4: [line 349] GETUPVAL 0 2
+      5: [line 349] GETUPVAL 1 0
+      6: [line 349] CALL 0 2 1
+      7: [line 351] GETUPVAL 0 3
+      8: [line 351] GETUPVAL 1 0
+      9: [line 351] CALL 0 2 1
+      10: [line 352] GETTABUP 0 0 -2
+      11: [line 352] RETURN 0 2
+      12: [line 353] RETURN 0 1
+child 15:
+  proto createEffect params=1 vararg=False maxstack=4 linedefined=357-363
+  constants:
+  upvalues:
+    [0] createComputation local=True index=29 byvalue=False
+    [1] updateEffect local=True index=18 byvalue=False
+    [2] disposeComputation local=True index=20 byvalue=False
+  locals:
+    [0] fn pc=0-10
+    [1] node pc=4-10
+  code:
+    0: [line 358] GETUPVAL 1 0
+    1: [line 358] MOVE 2 0
+    2: [line 358] LOADBOOL 3 1 0
+    3: [line 358] CALL 1 3 2
+    4: [line 359] GETUPVAL 2 1
+    5: [line 359] MOVE 3 1
+    6: [line 359] CALL 2 2 1
+    7: [line 362] CLOSURE 2 0
+    8: [line 362] RETURN 2 2
+    9: [line 363] RETURN 0 1
+  child 0:
+    proto ? params=0 vararg=False maxstack=2 linedefined=360-362
+    constants:
+    upvalues:
+      [0] disposeComputation local=False index=2 byvalue=False
+      [1] node local=True index=1 byvalue=True
+    locals:
+    code:
+      0: [line 361] GETUPVAL 0 0
+      1: [line 361] GETUPVAL 1 1
+      2: [line 361] CALL 0 2 1
+      3: [line 362] RETURN 0 1
+child 16:
+  proto createRoot params=1 vararg=False maxstack=8 linedefined=365-397
+  constants:
+    [0] fn
+    [1] nil
+    [2] value
+    [3] state
+    [4] sources
+    [5] observers
+    [6] owned
+    [7] cleanups
+    [8] owner
+    [9] disposed
+    [10] false
+    [11] isEffect
+    [12] __devName
+    [13] pcall
+    [14] error
+  upvalues:
+    [0] Owner local=True index=4 byvalue=False
+    [1] Listener local=True index=5 byvalue=False
+    [2] CLEAN local=True index=3 byvalue=True
+    [3] PendingRootName local=True index=12 byvalue=False
+    [4] _ENV local=False index=0 byvalue=False
+    [5] disposeComputation local=True index=20 byvalue=False
+  locals:
+    [0] fn pc=0-37
+    [1] prevOwner pc=2-37
+    [2] prevListener pc=2-37
+    [3] root pc=14-37
+    [4] ok pc=27-37
+    [5] result pc=27-37
+  code:
+    0: [line 366] GETUPVAL 1 0
+    1: [line 366] GETUPVAL 2 1
+    2: [line 367] NEWTABLE 3 0 10
+    3: [line 368] SETTABLE 3 -1 -2
+    4: [line 369] SETTABLE 3 -3 -2
+    5: [line 370] GETUPVAL 4 2
+    6: [line 370] SETTABLE 3 -4 4
+    7: [line 371] SETTABLE 3 -5 -2
+    8: [line 372] SETTABLE 3 -6 -2
+    9: [line 373] SETTABLE 3 -7 -2
+    10: [line 374] SETTABLE 3 -8 -2
+    11: [line 375] SETTABLE 3 -9 -2
+    12: [line 376] SETTABLE 3 -10 -11
+    13: [line 377] SETTABLE 3 -12 -11
+    14: [line 379] GETUPVAL 4 3
+    15: [line 379] JMPIFEQK 4 5
+    16: [line 379] EXTRAARG 1
+    17: [line 382] GETUPVAL 4 3
+    18: [line 382] SETTABLE 3 -13 4
+    19: [line 383] LOADNIL 4 0
+    20: [line 383] SETUPVAL 4 3
+    21: [line 385] SETUPVAL 3 0
+    22: [line 386] LOADNIL 4 0
+    23: [line 386] SETUPVAL 4 1
+    24: [line 387] GETTABUP 4 4 -14
+    25: [line 391] CLOSURE 5 0
+    26: [line 387] CALL 4 2 3
+    27: [line 392] MOVE 6 1
+    28: [line 392] SETUPVAL 2 1
+    29: [line 392] SETUPVAL 6 0
+    30: [line 393] TEST 4 1
+    31: [line 393] JMP 0 3
+    32: [line 394] GETTABUP 6 4 -15
+    33: [line 394] MOVE 7 5
+    34: [line 394] CALL 6 2 1
+    35: [line 396] RETURN 5 2
+    36: [line 397] RETURN 0 1
+  child 0:
+    proto ? params=0 vararg=False maxstack=2 linedefined=387-391
+    constants:
+    upvalues:
+      [0] fn local=True index=0 byvalue=True
+      [1] disposeComputation local=False index=5 byvalue=False
+      [2] root local=True index=3 byvalue=True
+    locals:
+    code:
+      0: [line 388] GETUPVAL 0 0
+      1: [line 390] CLOSURE 1 0
+      2: [line 388] TAILCALL 0 2 0
+      3: [line 390] RETURN 0 0
+      4: [line 391] RETURN 0 1
+    child 0:
+      proto ? params=0 vararg=False maxstack=2 linedefined=388-390
+      constants:
+      upvalues:
+        [0] disposeComputation local=False index=1 byvalue=False
+        [1] root local=False index=2 byvalue=False
+      locals:
+      code:
+        0: [line 389] GETUPVAL 0 0
+        1: [line 389] GETUPVAL 1 1
+        2: [line 389] CALL 0 2 1
+        3: [line 390] RETURN 0 1
+child 17:
+  proto batch params=1 vararg=False maxstack=5 linedefined=399-410
+  constants:
+    [0] 1
+    [1] pcall
+    [2] error
+    [3] 0
+  upvalues:
+    [0] batching local=True index=6 byvalue=False
+    [1] _ENV local=False index=0 byvalue=False
+    [2] scheduleFlush local=True index=27 byvalue=False
+  locals:
+    [0] fn pc=0-21
+    [1] ok pc=6-21
+    [2] result pc=6-21
+  code:
+    0: [line 400] GETUPVAL 1 0
+    1: [line 400] ADD 1 1 -1
+    2: [line 400] SETUPVAL 1 0
+    3: [line 401] GETTABUP 1 1 -2
+    4: [line 401] MOVE 2 0
+    5: [line 401] CALL 1 2 3
+    6: [line 402] GETUPVAL 3 0
+    7: [line 402] SUB 3 3 -1
+    8: [line 402] SETUPVAL 3 0
+    9: [line 403] TEST 1 1
+    10: [line 403] JMP 0 3
+    11: [line 404] GETTABUP 3 1 -3
+    12: [line 404] MOVE 4 2
+    13: [line 404] CALL 3 2 1
+    14: [line 406] GETUPVAL 3 0
+    15: [line 406] JMPIFNEK 3 3
+    16: [line 406] EXTRAARG 3
+    17: [line 407] GETUPVAL 3 2
+    18: [line 407] CALL 3 1 1
+    19: [line 409] RETURN 2 2
+    20: [line 410] RETURN 0 1
+child 18:
+  proto untrack params=1 vararg=False maxstack=6 linedefined=412-421
+  constants:
+    [0] pcall
+    [1] error
+  upvalues:
+    [0] Listener local=True index=5 byvalue=False
+    [1] _ENV local=False index=0 byvalue=False
+  locals:
+    [0] fn pc=0-14
+    [1] prevListener pc=1-14
+    [2] ok pc=6-14
+    [3] result pc=6-14
+  code:
+    0: [line 413] GETUPVAL 1 0
+    1: [line 414] LOADNIL 2 0
+    2: [line 414] SETUPVAL 2 0
+    3: [line 415] GETTABUP 2 1 -1
+    4: [line 415] MOVE 3 0
+    5: [line 415] CALL 2 2 3
+    6: [line 416] SETUPVAL 1 0
+    7: [line 417] TEST 2 1
+    8: [line 417] JMP 0 3
+    9: [line 418] GETTABUP 4 1 -2
+    10: [line 418] MOVE 5 3
+    11: [line 418] CALL 4 2 1
+    12: [line 420] RETURN 3 2
+    13: [line 421] RETURN 0 1
+child 19:
+  proto onCleanup params=1 vararg=False maxstack=4 linedefined=423-430
+  constants:
+    [0] cleanups
+    [1] nil
+    [2] table
+    [3] insert
+  upvalues:
+    [0] Owner local=True index=4 byvalue=False
+    [1] _ENV local=False index=0 byvalue=False
+  locals:
+    [0] fn pc=0-14
+  code:
+    0: [line 424] GETUPVAL 1 0
+    1: [line 424] TEST 1 0
+    2: [line 424] JMP 0 10
+    3: [line 425] GETTABUP 1 0 -1
+    4: [line 425] JMPIFNEK 1 3
+    5: [line 425] EXTRAARG 1
+    6: [line 426] NEWTABLE 1 0 0
+    7: [line 426] SETTABUP 0 -1 1
+    8: [line 428] GETIMPORT 1 1 -3
+    9: [line 428] EXTRAARG 3
+    10: [line 428] GETTABUP 2 0 -1
+    11: [line 428] MOVE 3 0
+    12: [line 428] CALL 1 3 1
+    13: [line 430] RETURN 0 1
+child 20:
+  proto onMount params=1 vararg=False maxstack=4 linedefined=440-447
+  constants:
+    [0] state
+  upvalues:
+    [0] createComputation local=True index=29 byvalue=False
+    [1] untrack local=True index=34 byvalue=False
+    [2] STALE local=True index=1 byvalue=True
+    [3] queueEffect local=True index=24 byvalue=False
+    [4] scheduleFlush local=True index=27 byvalue=False
+  locals:
+    [0] fn pc=0-12
+    [1] node pc=4-12
+  code:
+    0: [line 441] GETUPVAL 1 0
+    1: [line 443] CLOSURE 2 0
+    2: [line 443] LOADBOOL 3 1 0
+    3: [line 441] CALL 1 3 2
+    4: [line 444] GETUPVAL 2 2
+    5: [line 444] SETTABLE 1 -1 2
+    6: [line 445] GETUPVAL 2 3
+    7: [line 445] MOVE 3 1
+    8: [line 445] CALL 2 2 1
+    9: [line 446] GETUPVAL 2 4
+    10: [line 446] CALL 2 1 1
+    11: [line 447] RETURN 0 1
+  child 0:
+    proto node params=0 vararg=False maxstack=2 linedefined=441-443
+    constants:
+    upvalues:
+      [0] untrack local=False index=1 byvalue=False
+      [1] fn local=True index=0 byvalue=True
+    locals:
+    code:
+      0: [line 442] GETUPVAL 0 0
+      1: [line 442] GETUPVAL 1 1
+      2: [line 442] CALL 0 2 1
+      3: [line 443] RETURN 0 1
+child 21:
+  proto getOwner params=0 vararg=False maxstack=2 linedefined=449-451
+  constants:
+  upvalues:
+    [0] Owner local=True index=4 byvalue=False
+  locals:
+  code:
+    0: [line 450] GETUPVAL 0 0
+    1: [line 450] RETURN 0 2
+    2: [line 451] RETURN 0 1
+child 22:
+  proto runWithOwner params=2 vararg=False maxstack=8 linedefined=453-463
+  constants:
+    [0] pcall
+    [1] error
+  upvalues:
+    [0] Owner local=True index=4 byvalue=False
+    [1] Listener local=True index=5 byvalue=False
+    [2] _ENV local=False index=0 byvalue=False
+  locals:
+    [0] owner pc=0-18
+    [1] fn pc=0-18
+    [2] prevOwner pc=2-18
+    [3] prevListener pc=2-18
+    [4] ok pc=8-18
+    [5] result pc=8-18
+  code:
+    0: [line 454] GETUPVAL 2 0
+    1: [line 454] GETUPVAL 3 1
+    2: [line 455] SETUPVAL 0 0
+    3: [line 456] LOADNIL 4 0
+    4: [line 456] SETUPVAL 4 1
+    5: [line 457] GETTABUP 4 2 -1
+    6: [line 457] MOVE 5 1
+    7: [line 457] CALL 4 2 3
+    8: [line 458] MOVE 6 2
+    9: [line 458] SETUPVAL 3 1
+    10: [line 458] SETUPVAL 6 0
+    11: [line 459] TEST 4 1
+    12: [line 459] JMP 0 3
+    13: [line 460] GETTABUP 6 2 -2
+    14: [line 460] MOVE 7 5
+    15: [line 460] CALL 6 2 1
+    16: [line 462] RETURN 5 2
+    17: [line 463] RETURN 0 1
+child 23:
+  proto setScheduler params=1 vararg=False maxstack=2 linedefined=465-467
+  constants:
+  upvalues:
+    [0] Scheduler local=True index=9 byvalue=False
+  locals:
+    [0] fn pc=0-2
+  code:
+    0: [line 466] SETUPVAL 0 0
+    1: [line 467] RETURN 0 1
+child 24:
+  proto flushSync params=0 vararg=False maxstack=2 linedefined=469-471
+  constants:
+  upvalues:
+    [0] flushEffects local=True index=26 byvalue=False
+  locals:
+  code:
+    0: [line 470] GETUPVAL 0 0
+    1: [line 470] CALL 0 1 1
+    2: [line 471] RETURN 0 1
+child 25:
+  proto ? params=1 vararg=False maxstack=2 linedefined=474-476
+  constants:
+    [0] onChange
+  upvalues:
+    [0] DebugHooks local=True index=13 byvalue=True
+  locals:
+    [0] fn pc=0-2
+  code:
+    0: [line 475] SETTABUP 0 -1 0
+    1: [line 476] RETURN 0 1
+child 26:
+  proto ? params=0 vararg=False maxstack=9 linedefined=477-485
+  constants:
+    [0] ipairs
+    [1] node
+    [2] disposed
+    [3] nil
+    [4] 1
+    [5] kind
+  upvalues:
+    [0] _ENV local=False index=0 byvalue=False
+    [1] LiveNodes local=True index=14 byvalue=True
+  locals:
+    [0] out pc=1-27
+    [1] (for generator) pc=4-25
+    [2] (for state) pc=4-25
+    [3] (for control) pc=4-25
+    [4] _ pc=5-23
+    [5] entry pc=5-23
+  code:
+    0: [line 478] NEWTABLE 0 0 0
+    1: [line 479] GETTABUP 1 0 -1
+    2: [line 479] GETUPVAL 2 1
+    3: [line 479] CALL 1 2 4
+    4: [line 479] JMP 0 18
+    5: [line 480] TEST 5 0
+    6: [line 480] JMP 0 16
+    7: [line 480] GETTABLE 6 5 -2
+    8: [line 480] GETTABLE 6 6 -3
+    9: [line 480] JMPIFEQK 6 5
+    10: [line 480] EXTRAARG 3
+    11: [line 480] GETTABLE 6 5 -2
+    12: [line 480] GETTABLE 6 6 -3
+    13: [line 480] TEST 6 1
+    14: [line 480] JMP 0 8
+    15: [line 481] LEN 6 0
+    16: [line 481] ADD 6 6 -5
+    17: [line 481] NEWTABLE 7 0 2
+    18: [line 481] GETTABLE 8 5 -6
+    19: [line 481] SETTABLE 7 -6 8
+    20: [line 481] GETTABLE 8 5 -2
+    21: [line 481] SETTABLE 7 -2 8
+    22: [line 481] SETTABLE 0 6 7
+    23: [line 479] TFORCALL 1 2
+    24: [line 479] TFORLOOP 3 -20
+    25: [line 484] RETURN 0 2
+    26: [line 485] RETURN 0 1
+child 27:
+  proto ? params=1 vararg=False maxstack=2 linedefined=487-489
+  constants:
+  upvalues:
+    [0] PendingRootName local=True index=12 byvalue=False
+  locals:
+    [0] name pc=0-2
+  code:
+    0: [line 488] SETUPVAL 0 0
+    1: [line 489] RETURN 0 1
+child 28:
+  proto ? params=2 vararg=False maxstack=2 linedefined=492-494
+  constants:
+  upvalues:
+    [0] StyledNames local=True index=15 byvalue=True
+  locals:
+    [0] fn pc=0-2
+    [1] name pc=0-2
+  code:
+    0: [line 493] SETTABUP 0 0 1
+    1: [line 494] RETURN 0 1
+child 29:
+  proto ? params=1 vararg=False maxstack=2 linedefined=495-497
+  constants:
+  upvalues:
+    [0] StyledNames local=True index=15 byvalue=True
+  locals:
+    [0] fn pc=0-3
+  code:
+    0: [line 496] GETTABUP 1 0 0
+    1: [line 496] RETURN 1 2
+    2: [line 497] RETURN 0 1
+child 30:
+  proto ? params=1 vararg=False maxstack=3 linedefined=500-509
+  constants:
+    [0] __devName
+    [1] nil
+    [2] owner
+  upvalues:
+  locals:
+    [0] node pc=0-13
+    [1] cur pc=1-13
+  code:
+    0: [line 501] MOVE 1 0
+    1: [line 502] TEST 1 0
+    2: [line 502] JMP 0 7
+    3: [line 503] GETTABLE 2 1 -1
+    4: [line 503] JMPIFEQK 2 3
+    5: [line 503] EXTRAARG 1
+    6: [line 504] GETTABLE 2 1 -1
+    7: [line 504] RETURN 2 2
+    8: [line 506] GETTABLE 1 1 -3
+    9: [line 506] JMP 0 -9
+    10: [line 508] LOADNIL 2 0
+    11: [line 508] RETURN 2 2
+    12: [line 509] RETURN 0 1

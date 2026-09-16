@@ -450,6 +450,50 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
         if (array.Length < newCapacity) GrowArray(newCapacity);
     }
 
+    /// <summary>
+    /// Compiler-rewrite plan Milestone 4: the independent copy <see cref="Lua.Runtime.OpCode.DupTable"/> stores
+    /// into its destination register, of the all-constant template that instruction names. One
+    /// <c>Clone()</c> per part -- the array and both hash structures -- so the copy is identical to
+    /// the template at its exact capacities, which is what makes a fused literal indistinguishable
+    /// from the unfused NewTable + per-field writes that built the template.
+    ///
+    /// No metatable is copied (a template never has one) and no metamethod can fire: the copy is
+    /// fresh with no live entries, so <c>__index</c>/<c>__newindex</c> are unreachable and
+    /// <see cref="MetamethodCache"/> needs no invalidation -- even a template field literally named
+    /// <c>__index</c> is inert on a metatable-less table.
+    /// </summary>
+    internal LuaTable CloneTemplate()
+    {
+        var clone = new LuaTable(0, 0);
+        clone.array = (LuaValue[])array.Clone();
+        clone.stringDictionary = stringDictionary.Clone();
+        clone.dictionary = dictionary?.Clone();
+        return clone;
+    }
+
+    /// <summary>
+    /// Compiler-rewrite plan Milestone 4: the hash part only, in insertion order, for serializing a
+    /// template (<c>Dump.cs</c>). The two dictionaries are copied directly rather than walked
+    /// through <see cref="GetEnumerator"/> on purpose: that enumerator interleaves the array part,
+    /// and deciding "is this key an array slot?" from outside would mean duplicating the indexer's
+    /// key routing. Nothing here can be an array-range integer key -- writing one routes it to the
+    /// array, and <see cref="GrowArray"/> migrates any the array later grows over -- so a caller can
+    /// write this list alongside <see cref="GetArraySpan"/> without the two overlapping.
+    /// <para>
+    /// This is the <em>whole</em> hash part, dead (nil-valued) entries included, which is why it
+    /// cannot use the public enumerator: that one skips them (they are what <c>pairs</c> must not
+    /// expose), but a serialized template has to reproduce the table's actual contents rather than
+    /// its iteration view. Dropping a dead entry changes what <c>next(t, k)</c> returns for a key
+    /// the reader wrote as nil -- a live-table-empty answer instead of the entry that follows it --
+    /// so the reconstructed template would not be the template.
+    /// </para>
+    /// </summary>
+    internal void CopyHashEntriesTo(List<KeyValuePair<LuaValue, LuaValue>> destination)
+    {
+        stringDictionary.CopyAllEntriesTo(destination);
+        dictionary?.CopyAllEntriesTo(destination);
+    }
+
     private void GrowArray(int newCapacity)
     {
         var prevLength = array.Length;

@@ -1,0 +1,345 @@
+proto ? params=0 vararg=True maxstack=4 linedefined=0-0
+constants:
+  [0] require
+  [1] ./signals
+  [2] ./types
+upvalues:
+  [0] _ENV local=True index=0 byvalue=False
+locals:
+  [0] Sx pc=3-10
+  [1] t pc=6-10
+  [2] copyStyle pc=7-10
+  [3] styled pc=8-10
+code:
+  0: [line 13] GETTABUP 0 0 -1
+  1: [line 13] LOADK 1 1
+  2: [line 13] CALL 0 2 2
+  3: [line 14] GETTABUP 1 0 -1
+  4: [line 14] LOADK 2 2
+  5: [line 14] CALL 1 2 2
+  6: [line 20] CLOSURE 2 0
+  7: [line 203] CLOSURE 3 1
+  8: [line 205] RETURN 3 2
+  9: [line 205] RETURN 0 1
+child 0:
+  proto copyStyle params=2 vararg=False maxstack=8 linedefined=16-20
+  constants:
+    [0] pairs
+  upvalues:
+    [0] _ENV local=False index=0 byvalue=False
+  locals:
+    [0] dst pc=0-8
+    [1] src pc=0-8
+    [2] (for generator) pc=3-7
+    [3] (for state) pc=3-7
+    [4] (for control) pc=3-7
+    [5] k pc=4-5
+    [6] v pc=4-5
+  code:
+    0: [line 17] GETTABUP 2 0 -1
+    1: [line 17] MOVE 3 1
+    2: [line 17] CALL 2 2 4
+    3: [line 17] JMP 0 1
+    4: [line 18] SETTABLE 0 5 6
+    5: [line 17] TFORCALL 2 2
+    6: [line 17] TFORLOOP 4 -3
+    7: [line 20] RETURN 0 1
+child 1:
+  proto styled params=2 vararg=False maxstack=3 linedefined=111-203
+  constants:
+  upvalues:
+    [0] _ENV local=False index=0 byvalue=False
+    [1] Sx local=True index=0 byvalue=True
+    [2] copyStyle local=True index=2 byvalue=False
+  locals:
+    [0] tag pc=0-3
+    [1] name pc=0-3
+  code:
+    0: [line 202] CLOSURE 2 0
+    1: [line 202] RETURN 2 2
+    2: [line 203] RETURN 0 1
+  child 0:
+    proto ? params=1 vararg=False maxstack=9 linedefined=112-202
+    constants:
+      [0] hover
+      [1] nil
+      [2] pairs
+      [3] focus
+      [4] active
+      [5] 0
+      [6] sub
+      [7] 1
+      [8] upper
+      [9] 2
+      [10] debug
+      [11] setStyledName
+      [12] StyledComponent
+    upvalues:
+      [0] _ENV local=False index=0 byvalue=False
+      [1] Sx local=False index=1 byvalue=False
+      [2] copyStyle local=False index=2 byvalue=False
+      [3] tag local=True index=0 byvalue=True
+      [4] name local=True index=1 byvalue=True
+    locals:
+      [0] baseStyle pc=0-53
+      [1] hasHover pc=9-53
+      [2] staticStyle pc=10-53
+      [3] (for generator) pc=13-23
+      [4] (for state) pc=13-23
+      [5] (for control) pc=13-23
+      [6] k pc=14-21
+      [7] v pc=14-21
+      [8] component pc=24-53
+      [9] tagName pc=25-53
+    code:
+      0: [line 113] TEST 0 1
+      1: [line 113] JMP 0 2
+      2: [line 113] NEWTABLE 1 0 0
+      3: [line 113] MOVE 0 1
+      4: [line 114] GETTABLE 1 0 -1
+      5: [line 114] JMPIFNEK 1 2
+      6: [line 114] EXTRAARG 1
+      7: [line 114] LOADBOOL 1 0 1
+      8: [line 114] LOADBOOL 1 1 0
+      9: [line 117] NEWTABLE 2 0 0
+      10: [line 118] GETTABUP 3 0 -3
+      11: [line 118] MOVE 4 0
+      12: [line 118] CALL 3 2 4
+      13: [line 118] JMP 0 7
+      14: [line 119] JMPIFEQK 6 6
+      15: [line 119] EXTRAARG 0
+      16: [line 119] JMPIFEQK 6 4
+      17: [line 119] EXTRAARG 3
+      18: [line 119] JMPIFEQK 6 2
+      19: [line 119] EXTRAARG 4
+      20: [line 120] SETTABLE 2 6 7
+      21: [line 118] TFORCALL 3 2
+      22: [line 118] TFORLOOP 5 -9
+      23: [line 187] CLOSURE 3 0
+      24: [line 193] GETUPVAL 4 4
+      25: [line 194] TEST 4 0
+      26: [line 194] JMP 0 19
+      27: [line 194] LEN 5 4
+      28: [line 194] LT 0 -6 5
+      29: [line 194] JMP 0 16
+      30: [line 195] SELF 5 4 -7
+      31: [line 195] LOADK 7 7
+      32: [line 195] LOADK 8 7
+      33: [line 195] CALL 5 4 2
+      34: [line 195] SELF 5 5 -9
+      35: [line 195] CALL 5 2 2
+      36: [line 195] SELF 6 4 -7
+      37: [line 195] LOADK 8 9
+      38: [line 195] CALL 6 3 2
+      39: [line 195] CONCAT 4 5 6
+      40: [line 196] GETIMPORT 5 1 -11
+      41: [line 196] EXTRAARG 11
+      42: [line 196] MOVE 6 3
+      43: [line 196] MOVE 7 4
+      44: [line 196] CALL 5 3 1
+      45: [line 196] JMP 0 5
+      46: [line 198] GETIMPORT 5 1 -11
+      47: [line 198] EXTRAARG 11
+      48: [line 198] MOVE 6 3
+      49: [line 198] LOADK 7 12
+      50: [line 198] CALL 5 3 1
+      51: [line 201] RETURN 3 2
+      52: [line 202] RETURN 0 1
+    child 0:
+      proto component params=1 vararg=False maxstack=9 linedefined=124-187
+      constants:
+        [0] pairs
+        [1] style
+        [2] children
+        [3] key
+        [4] createSignal
+        [5] createMemo
+        [6] onmouseenter
+        [7] onmouseleave
+        [8] nil
+        [9] type
+        [10] function
+        [11] props
+      upvalues:
+        [0] _ENV local=False index=0 byvalue=False
+        [1] hasHover local=True index=1 byvalue=True
+        [2] Sx local=False index=1 byvalue=False
+        [3] copyStyle local=False index=2 byvalue=False
+        [4] staticStyle local=True index=2 byvalue=True
+        [5] baseStyle local=True index=0 byvalue=False
+        [6] tag local=False index=3 byvalue=False
+      locals:
+        [0] props pc=0-71
+        [1] named pc=5-71
+        [2] (for generator) pc=8-18
+        [3] (for state) pc=8-18
+        [4] (for control) pc=8-18
+        [5] k pc=9-16
+        [6] v pc=9-16
+        [7] override pc=19-71
+        [8] hover pc=25-36
+        [9] setHover pc=25-36
+        [10] merged pc=28-36
+        [11] userEnter pc=30-36
+        [12] userLeave pc=31-36
+        [13] s pc=38-60
+      code:
+        0: [line 125] TEST 0 1
+        1: [line 125] JMP 0 2
+        2: [line 125] NEWTABLE 1 0 0
+        3: [line 125] MOVE 0 1
+        4: [line 127] NEWTABLE 1 0 0
+        5: [line 128] GETTABUP 2 0 -1
+        6: [line 128] MOVE 3 0
+        7: [line 128] CALL 2 2 4
+        8: [line 128] JMP 0 7
+        9: [line 129] JMPIFEQK 5 6
+        10: [line 129] EXTRAARG 1
+        11: [line 129] JMPIFEQK 5 4
+        12: [line 129] EXTRAARG 2
+        13: [line 129] JMPIFEQK 5 2
+        14: [line 129] EXTRAARG 3
+        15: [line 130] SETTABLE 1 5 6
+        16: [line 128] TFORCALL 2 2
+        17: [line 128] TFORLOOP 4 -9
+        18: [line 134] GETTABLE 2 0 -2
+        19: [line 135] GETUPVAL 3 1
+        20: [line 135] TEST 3 0
+        21: [line 135] JMP 0 15
+        22: [line 136] GETTABUP 3 2 -5
+        23: [line 136] LOADBOOL 4 0 0
+        24: [line 136] CALL 3 2 3
+        25: [line 137] GETTABUP 5 2 -6
+        26: [line 151] CLOSURE 6 0
+        27: [line 137] CALL 5 2 2
+        28: [line 153] SETTABLE 1 -2 5
+        29: [line 155] GETTABLE 6 1 -7
+        30: [line 156] GETTABLE 7 1 -8
+        31: [line 162] CLOSURE 8 1
+        32: [line 162] SETTABLE 1 -7 8
+        33: [line 168] CLOSURE 8 2
+        34: [line 168] SETTABLE 1 -8 8
+        35: [line 168] JMP 4 24
+        36: [line 168] JMP 0 23
+        37: [line 170] NEWTABLE 3 0 0
+        38: [line 171] GETUPVAL 4 3
+        39: [line 171] MOVE 5 3
+        40: [line 171] GETUPVAL 6 4
+        41: [line 171] CALL 4 3 1
+        42: [line 172] JMPIFEQK 2 16
+        43: [line 172] EXTRAARG 8
+        44: [line 173] GETTABUP 4 0 -10
+        45: [line 173] MOVE 5 2
+        46: [line 173] CALL 4 2 2
+        47: [line 173] JMPIFNEK 4 7
+        48: [line 173] EXTRAARG 10
+        49: [line 174] GETUPVAL 4 3
+        50: [line 174] MOVE 5 3
+        51: [line 174] MOVE 6 2
+        52: [line 174] CALL 6 1 0
+        53: [line 174] CALL 4 0 1
+        54: [line 174] JMP 0 4
+        55: [line 176] GETUPVAL 4 3
+        56: [line 176] MOVE 5 3
+        57: [line 176] MOVE 6 2
+        58: [line 176] CALL 4 3 1
+        59: [line 179] SETTABLE 1 -2 3
+        60: [line 182] NEWTABLE 3 0 3
+        61: [line 183] GETUPVAL 4 6
+        62: [line 183] SETTABLE 3 -10 4
+        63: [line 184] SETTABLE 3 -12 1
+        64: [line 185] GETTABLE 4 0 -3
+        65: [line 185] TEST 4 1
+        66: [line 185] JMP 0 1
+        67: [line 185] NEWTABLE 4 0 0
+        68: [line 185] SETTABLE 3 -3 4
+        69: [line 186] RETURN 3 2
+        70: [line 187] RETURN 0 1
+      child 0:
+        proto merged params=0 vararg=False maxstack=4 linedefined=137-151
+        constants:
+          [0] nil
+          [1] type
+          [2] function
+          [3] hover
+        upvalues:
+          [0] copyStyle local=False index=3 byvalue=False
+          [1] staticStyle local=False index=4 byvalue=False
+          [2] override local=True index=2 byvalue=True
+          [3] _ENV local=False index=0 byvalue=False
+          [4] hover local=True index=3 byvalue=True
+          [5] baseStyle local=False index=5 byvalue=False
+        locals:
+          [0] s pc=1-33
+        code:
+          0: [line 138] NEWTABLE 0 0 0
+          1: [line 139] GETUPVAL 1 0
+          2: [line 139] MOVE 2 0
+          3: [line 139] GETUPVAL 3 1
+          4: [line 139] CALL 1 3 1
+          5: [line 140] GETUPVAL 1 2
+          6: [line 140] JMPIFEQK 1 16
+          7: [line 140] EXTRAARG 0
+          8: [line 141] GETTABUP 1 3 -2
+          9: [line 141] GETUPVAL 2 2
+          10: [line 141] CALL 1 2 2
+          11: [line 141] JMPIFNEK 1 7
+          12: [line 141] EXTRAARG 2
+          13: [line 142] GETUPVAL 1 0
+          14: [line 142] MOVE 2 0
+          15: [line 142] GETUPVAL 3 2
+          16: [line 142] CALL 3 1 0
+          17: [line 142] CALL 1 0 1
+          18: [line 142] JMP 0 4
+          19: [line 144] GETUPVAL 1 0
+          20: [line 144] MOVE 2 0
+          21: [line 144] GETUPVAL 3 2
+          22: [line 144] CALL 1 3 1
+          23: [line 147] GETUPVAL 1 4
+          24: [line 147] CALL 1 1 2
+          25: [line 147] TEST 1 0
+          26: [line 147] JMP 0 4
+          27: [line 148] GETUPVAL 1 0
+          28: [line 148] MOVE 2 0
+          29: [line 148] GETTABUP 3 5 -4
+          30: [line 148] CALL 1 3 1
+          31: [line 150] RETURN 0 2
+          32: [line 151] RETURN 0 1
+      child 1:
+        proto ? params=1 vararg=False maxstack=3 linedefined=157-162
+        constants:
+        upvalues:
+          [0] setHover local=True index=4 byvalue=True
+          [1] userEnter local=True index=6 byvalue=True
+        locals:
+          [0] evt pc=0-10
+        code:
+          0: [line 158] GETUPVAL 1 0
+          1: [line 158] LOADBOOL 2 1 0
+          2: [line 158] CALL 1 2 1
+          3: [line 159] GETUPVAL 1 1
+          4: [line 159] TEST 1 0
+          5: [line 159] JMP 0 3
+          6: [line 160] GETUPVAL 1 1
+          7: [line 160] MOVE 2 0
+          8: [line 160] CALL 1 2 1
+          9: [line 162] RETURN 0 1
+      child 2:
+        proto ? params=1 vararg=False maxstack=3 linedefined=163-168
+        constants:
+        upvalues:
+          [0] setHover local=True index=4 byvalue=True
+          [1] userLeave local=True index=7 byvalue=True
+        locals:
+          [0] evt pc=0-10
+        code:
+          0: [line 164] GETUPVAL 1 0
+          1: [line 164] LOADBOOL 2 0 0
+          2: [line 164] CALL 1 2 1
+          3: [line 165] GETUPVAL 1 1
+          4: [line 165] TEST 1 0
+          5: [line 165] JMP 0 3
+          6: [line 166] GETUPVAL 1 1
+          7: [line 166] MOVE 2 0
+          8: [line 166] CALL 1 2 1
+          9: [line 168] RETURN 0 1

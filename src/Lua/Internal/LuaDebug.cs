@@ -507,6 +507,20 @@ readonly struct LuaDebug : IDisposable
                     GetConstantName(prototype, pc, k, out name);
                     return vn is "_ENV" ? "global" : "field";
                 }
+                case OpCode.GetImport:
+                {
+                    /* The fused two-level read `UpValue[B][RK(C)][Kst(extra)]`, where it stands in
+                       for the pair's *second* level: the name is the outer key (its ExtraArg word),
+                       and the "what" is deliberately always "field". Not "global" even when B
+                       resolves to _ENV, because the unfused pair this replaces cannot report that
+                       either -- its GetName sees a GetTable whose table register is a temporary
+                       holding the first level's result, never the _ENV upvalue itself. Reporting
+                       the same thing here is what keeps a traceback or an argument error identical
+                       whether or not the chain happened to be fused. */
+                    var k = prototype.Code[pc + 1].Ax; /* outer key: a plain constant index */
+                    GetConstantName(prototype, pc, Instruction.AsConstant(k), out name);
+                    return "field";
+                }
                 case OpCode.GetUpVal:
                 {
                     name = prototype.UpValues[i.B].Name.ToString();
@@ -554,6 +568,7 @@ readonly struct LuaDebug : IDisposable
             case OpCode.Self:
             case OpCode.GetTabUp:
             case OpCode.GetTable:
+            case OpCode.GetImport:
                 name = "index";
                 break;
             case OpCode.SetTabUp:
@@ -742,6 +757,8 @@ readonly struct LuaDebug : IDisposable
         GetOpMode(0, 1, OpArgK, OpArgN, iABx), /* OP_LOADBUILTIN */
         GetOpMode(0, 0, OpArgR, OpArgN, iAsBx), /* OP_JMPIFEQK */
         GetOpMode(0, 0, OpArgR, OpArgN, iAsBx), /* OP_JMPIFNEK */
+        GetOpMode(0, 1, OpArgU, OpArgK, iABC), /* OP_GETIMPORT -- same modes as OP_GETTABUP */
+        GetOpMode(0, 1, OpArgU, OpArgU, iABC), /* OP_DUPTABLE -- same modes as OP_NEWTABLE */
     ];
 
     internal static OpMode GetOpMode(OpCode m)

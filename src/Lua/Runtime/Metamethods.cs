@@ -32,7 +32,7 @@ public static class Metamethods
     {
         return opCode switch
         {
-            OpCode.GetTabUp or OpCode.GetTable or OpCode.Self => (Index, "index"),
+            OpCode.GetTabUp or OpCode.GetTable or OpCode.Self or OpCode.GetImport => (Index, "index"),
             OpCode.SetTabUp or OpCode.SetTable => (NewIndex, "new index"),
             OpCode.Add => (Add, "add"),
             OpCode.Sub => (Sub, "sub"),
@@ -57,7 +57,7 @@ public static class Metamethods
     {
         return opCode switch
         {
-            OpCode.GetTabUp or OpCode.GetTable or OpCode.Self => Index,
+            OpCode.GetTabUp or OpCode.GetTable or OpCode.Self or OpCode.GetImport => Index,
             OpCode.SetTabUp or OpCode.SetTable => NewIndex,
             OpCode.Add => Add,
             OpCode.Sub => Sub,

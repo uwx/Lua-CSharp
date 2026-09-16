@@ -1,0 +1,1227 @@
+proto ? params=0 vararg=True maxstack=19 linedefined=0-0
+constants:
+  [0] fixed64
+  [1] 0
+  [2] 1
+  [3] RunAi
+upvalues:
+  [0] _ENV local=True index=0 byvalue=False
+locals:
+  [0] pyo pc=1-29
+  [1] angleDiff pc=2-29
+  [2] pan pc=5-29
+  [3] difficulty pc=8-29
+  [4] sequence pc=9-29
+  [5] targetFixRoadStartNode pc=9-29
+  [6] bouncing pc=10-29
+  [7] _targetNode pc=11-29
+  [8] _stuckCounter pc=12-29
+  [9] _avoidanceAngle pc=15-29
+  [10] _avoidanceTimer pc=16-29
+  [11] smallturn pc=17-29
+  [12] getClearanceInDirection pc=18-29
+  [13] detectAndAvoidObstacles pc=19-29
+  [14] target pc=20-29
+  [15] findDrivingTarget pc=21-29
+  [16] steer pc=22-29
+code:
+  0: [line 12] CLOSURE 0 0
+  1: [line 22] CLOSURE 1 1
+  2: [line 25] GETTABUP 2 0 -1
+  3: [line 25] LOADK 3 1
+  4: [line 25] CALL 2 2 2
+  5: [line 26] GETTABUP 3 0 -1
+  6: [line 26] LOADK 4 2
+  7: [line 26] CALL 3 2 2
+  8: [line 29] LOADNIL 4 1
+  9: [line 32] LOADBOOL 6 0 0
+  10: [line 33] LOADK 7 2
+  11: [line 36] LOADK 8 1
+  12: [line 37] GETTABUP 9 0 -1
+  13: [line 37] LOADK 10 1
+  14: [line 37] CALL 9 2 2
+  15: [line 38] LOADK 10 1
+  16: [line 39] LOADBOOL 11 0 0
+  17: [line 54] CLOSURE 12 2
+  18: [line 116] CLOSURE 13 3
+  19: [line 128] CLOSURE 14 4
+  20: [line 357] CLOSURE 15 5
+  21: [line 415] CLOSURE 16 6
+  22: [line 454] CLOSURE 17 7
+  23: [line 418] SETTABUP 0 -4 17
+  24: [line 456] NEWTABLE 17 0 1
+  25: [line 457] GETTABUP 18 0 -4
+  26: [line 457] SETTABLE 17 -4 18
+  27: [line 458] RETURN 17 2
+  28: [line 458] RETURN 0 1
+child 0:
+  proto pyo params=4 vararg=False maxstack=8 linedefined=8-12
+  constants:
+  upvalues:
+  locals:
+    [0] x1 pc=0-7
+    [1] x2 pc=0-7
+    [2] z1 pc=0-7
+    [3] z2 pc=0-7
+    [4] dx pc=1-7
+    [5] dz pc=2-7
+  code:
+    0: [line 9] SUB 4 0 1
+    1: [line 10] SUB 5 2 3
+    2: [line 11] MUL 6 4 4
+    3: [line 11] MUL 7 5 5
+    4: [line 11] ADD 6 6 7
+    5: [line 11] RETURN 6 2
+    6: [line 12] RETURN 0 1
+child 1:
+  proto angleDiff params=2 vararg=False maxstack=6 linedefined=15-22
+  constants:
+    [0] fixed64
+    [1] 180
+    [2] 360
+    [3] -180
+  upvalues:
+    [0] _ENV local=False index=0 byvalue=False
+  locals:
+    [0] a pc=0-24
+    [1] b pc=0-24
+    [2] diff pc=1-24
+  code:
+    0: [line 16] SUB 2 0 1
+    1: [line 17] GETTABUP 3 0 -1
+    2: [line 17] LOADK 4 1
+    3: [line 17] CALL 3 2 2
+    4: [line 17] ADD 3 2 3
+    5: [line 17] GETTABUP 4 0 -1
+    6: [line 17] LOADK 5 2
+    7: [line 17] CALL 4 2 2
+    8: [line 17] MOD 3 3 4
+    9: [line 17] GETTABUP 4 0 -1
+    10: [line 17] LOADK 5 1
+    11: [line 17] CALL 4 2 2
+    12: [line 17] SUB 2 3 4
+    13: [line 18] GETTABUP 3 0 -1
+    14: [line 18] LOADK 4 3
+    15: [line 18] CALL 3 2 2
+    16: [line 18] LT 0 2 3
+    17: [line 18] JMP 0 4
+    18: [line 19] GETTABUP 3 0 -1
+    19: [line 19] LOADK 4 2
+    20: [line 19] CALL 3 2 2
+    21: [line 19] ADD 2 2 3
+    22: [line 21] RETURN 2 2
+    23: [line 22] RETURN 0 1
+child 2:
+  proto getClearanceInDirection params=4 vararg=False maxstack=15 linedefined=42-54
+  constants:
+    [0] f64math
+    [1] maxValue
+    [2] 1
+    [3] nodes
+    [4] position
+    [5] x
+    [6] z
+    [7] sqrt
+  upvalues:
+    [0] _ENV local=False index=0 byvalue=False
+    [1] pyo local=True index=0 byvalue=False
+  locals:
+    [0] car pc=0-27
+    [1] targetX pc=0-27
+    [2] targetZ pc=0-27
+    [3] stage pc=0-27
+    [4] minDistSq pc=2-27
+    [5] (for index) pc=6-21
+    [6] (for limit) pc=6-21
+    [7] (for step) pc=6-21
+    [8] i pc=7-20
+    [9] node pc=9-20
+    [10] distSq pc=17-20
+  code:
+    0: [line 43] GETIMPORT 4 0 -1
+    1: [line 43] EXTRAARG 1
+    2: [line 45] LOADK 5 2
+    3: [line 45] GETTABLE 6 3 -4
+    4: [line 45] LEN 6 6
+    5: [line 45] LOADK 7 2
+    6: [line 45] FORPREP 5 13
+    7: [line 46] GETTABLE 9 3 -4
+    8: [line 46] GETTABLE 9 9 8
+    9: [line 47] GETUPVAL 10 1
+    10: [line 47] MOVE 11 1
+    11: [line 47] GETTABLE 12 9 -5
+    12: [line 47] GETTABLE 12 12 -6
+    13: [line 47] MOVE 13 2
+    14: [line 47] GETTABLE 14 9 -5
+    15: [line 47] GETTABLE 14 14 -7
+    16: [line 47] CALL 10 5 2
+    17: [line 48] LT 0 10 4
+    18: [line 48] JMP 0 1
+    19: [line 49] MOVE 4 10
+    20: [line 45] FORLOOP 5 -14
+    21: [line 53] GETIMPORT 5 0 -1
+    22: [line 53] EXTRAARG 7
+    23: [line 53] MOVE 6 4
+    24: [line 53] TAILCALL 5 2 0
+    25: [line 53] RETURN 5 0
+    26: [line 54] RETURN 0 1
+child 3:
+  proto detectAndAvoidObstacles params=3 vararg=False maxstack=23 linedefined=57-116
+  constants:
+    [0] 0
+    [1] 1
+    [2] FrameTrace
+    [3] addMessage
+    [4] Avoiding obstacle, timer: 
+    [5] tostring
+    [6] control
+    [7] up
+    [8] speed
+    [9] fixed64
+    [10] 20
+    [11] 10
+    [12] Car stuck! Speed: 
+    [13] , initiating avoidance
+    [14] rotation
+    [15] yaw
+    [16] deg
+    [17] 90
+    [18] 500
+    [19] f64math
+    [20] pi
+    [21] 180
+    [22] position
+    [23] x
+    [24] sin
+    [25] z
+    [26] cos
+    [27] Left clearance: 
+    [28] , Right: 
+    [29] 60
+  upvalues:
+    [0] _avoidanceTimer local=True index=10 byvalue=False
+    [1] pan local=True index=2 byvalue=False
+    [2] _avoidanceAngle local=True index=9 byvalue=False
+    [3] _ENV local=False index=0 byvalue=False
+    [4] _stuckCounter local=True index=8 byvalue=False
+    [5] getClearanceInDirection local=True index=12 byvalue=False
+  locals:
+    [0] car pc=0-147
+    [1] mad pc=0-147
+    [2] stage pc=0-147
+    [3] isThrottling pc=19-147
+    [4] isStuck pc=33-147
+    [5] currentHeading pc=53-143
+    [6] leftAngle pc=57-143
+    [7] rightAngle pc=61-143
+    [8] sampleDistance pc=64-143
+    [9] leftAngleRad pc=71-143
+    [10] rightAngleRad pc=78-143
+    [11] leftX pc=86-143
+    [12] leftZ pc=94-143
+    [13] rightX pc=102-143
+    [14] rightZ pc=110-143
+    [15] leftClearance pc=116-143
+    [16] rightClearance pc=122-143
+  code:
+    0: [line 59] GETUPVAL 3 0
+    1: [line 59] LT 0 -1 3
+    2: [line 59] JMP 0 14
+    3: [line 60] GETUPVAL 3 0
+    4: [line 60] SUB 3 3 -2
+    5: [line 60] SETUPVAL 3 0
+    6: [line 62] GETUPVAL 3 2
+    7: [line 62] SETUPVAL 3 1
+    8: [line 63] GETIMPORT 3 3 -3
+    9: [line 63] EXTRAARG 3
+    10: [line 63] LOADK 4 4
+    11: [line 63] GETTABUP 5 3 -6
+    12: [line 63] GETUPVAL 6 0
+    13: [line 63] CALL 5 2 2
+    14: [line 63] CONCAT 4 4 5
+    15: [line 63] CALL 3 2 1
+    16: [line 64] RETURN 0 1
+    17: [line 68] GETTABLE 3 0 -7
+    18: [line 68] GETTABLE 3 3 -8
+    19: [line 69] TESTSET 4 3 0
+    20: [line 69] JMP 0 12
+    21: [line 69] GETTABLE 4 1 -9
+    22: [line 69] GETTABUP 5 3 -10
+    23: [line 69] LOADK 6 10
+    24: [line 69] CALL 5 2 2
+    25: [line 69] SUB 4 4 5
+    26: [line 69] GETTABUP 5 3 -10
+    27: [line 69] LOADK 6 0
+    28: [line 69] CALL 5 2 2
+    29: [line 69] LT 1 4 5
+    30: [line 69] JMP 0 1
+    31: [line 69] LOADBOOL 4 0 1
+    32: [line 69] LOADBOOL 4 1 0
+    33: [line 71] TEST 4 0
+    34: [line 71] JMP 0 109
+    35: [line 72] GETUPVAL 5 4
+    36: [line 72] ADD 5 5 -2
+    37: [line 72] SETUPVAL 5 4
+    38: [line 75] GETUPVAL 5 4
+    39: [line 75] LT 0 -12 5
+    40: [line 75] JMP 0 105
+    41: [line 76] GETIMPORT 5 3 -3
+    42: [line 76] EXTRAARG 3
+    43: [line 76] LOADK 6 12
+    44: [line 76] GETTABUP 7 3 -6
+    45: [line 76] GETTABLE 8 1 -9
+    46: [line 76] CALL 7 2 2
+    47: [line 76] LOADK 8 13
+    48: [line 76] CONCAT 6 6 8
+    49: [line 76] CALL 5 2 1
+    50: [line 79] GETTABLE 5 0 -15
+    51: [line 79] GETTABLE 5 5 -16
+    52: [line 79] GETTABLE 5 5 -17
+    53: [line 80] GETTABUP 6 3 -10
+    54: [line 80] LOADK 7 17
+    55: [line 80] CALL 6 2 2
+    56: [line 80] SUB 6 5 6
+    57: [line 81] GETTABUP 7 3 -10
+    58: [line 81] LOADK 8 17
+    59: [line 81] CALL 7 2 2
+    60: [line 81] ADD 7 5 7
+    61: [line 84] GETTABUP 8 3 -10
+    62: [line 84] LOADK 9 18
+    63: [line 84] CALL 8 2 2
+    64: [line 86] GETIMPORT 9 3 -20
+    65: [line 86] EXTRAARG 20
+    66: [line 86] MUL 9 6 9
+    67: [line 86] GETTABUP 10 3 -10
+    68: [line 86] LOADK 11 21
+    69: [line 86] CALL 10 2 2
+    70: [line 86] DIV 9 9 10
+    71: [line 87] GETIMPORT 10 3 -20
+    72: [line 87] EXTRAARG 20
+    73: [line 87] MUL 10 7 10
+    74: [line 87] GETTABUP 11 3 -10
+    75: [line 87] LOADK 12 21
+    76: [line 87] CALL 11 2 2
+    77: [line 87] DIV 10 10 11
+    78: [line 89] GETTABLE 11 0 -23
+    79: [line 89] GETTABLE 11 11 -24
+    80: [line 89] GETIMPORT 12 3 -20
+    81: [line 89] EXTRAARG 24
+    82: [line 89] MOVE 13 9
+    83: [line 89] CALL 12 2 2
+    84: [line 89] MUL 12 12 8
+    85: [line 89] ADD 11 11 12
+    86: [line 90] GETTABLE 12 0 -23
+    87: [line 90] GETTABLE 12 12 -26
+    88: [line 90] GETIMPORT 13 3 -20
+    89: [line 90] EXTRAARG 26
+    90: [line 90] MOVE 14 9
+    91: [line 90] CALL 13 2 2
+    92: [line 90] MUL 13 13 8
+    93: [line 90] ADD 12 12 13
+    94: [line 92] GETTABLE 13 0 -23
+    95: [line 92] GETTABLE 13 13 -24
+    96: [line 92] GETIMPORT 14 3 -20
+    97: [line 92] EXTRAARG 24
+    98: [line 92] MOVE 15 10
+    99: [line 92] CALL 14 2 2
+    100: [line 92] MUL 14 14 8
+    101: [line 92] ADD 13 13 14
+    102: [line 93] GETTABLE 14 0 -23
+    103: [line 93] GETTABLE 14 14 -26
+    104: [line 93] GETIMPORT 15 3 -20
+    105: [line 93] EXTRAARG 26
+    106: [line 93] MOVE 16 10
+    107: [line 93] CALL 15 2 2
+    108: [line 93] MUL 15 15 8
+    109: [line 93] ADD 14 14 15
+    110: [line 96] GETUPVAL 15 5
+    111: [line 96] MOVE 16 0
+    112: [line 96] MOVE 17 11
+    113: [line 96] MOVE 18 12
+    114: [line 96] MOVE 19 2
+    115: [line 96] CALL 15 5 2
+    116: [line 97] GETUPVAL 16 5
+    117: [line 97] MOVE 17 0
+    118: [line 97] MOVE 18 13
+    119: [line 97] MOVE 19 14
+    120: [line 97] MOVE 20 2
+    121: [line 97] CALL 16 5 2
+    122: [line 99] GETIMPORT 17 3 -3
+    123: [line 99] EXTRAARG 3
+    124: [line 99] LOADK 18 27
+    125: [line 99] GETTABUP 19 3 -6
+    126: [line 99] MOVE 20 15
+    127: [line 99] CALL 19 2 2
+    128: [line 99] LOADK 20 28
+    129: [line 99] GETTABUP 21 3 -6
+    130: [line 99] MOVE 22 16
+    131: [line 99] CALL 21 2 2
+    132: [line 99] CONCAT 18 18 21
+    133: [line 99] CALL 17 2 1
+    134: [line 102] LE 0 16 15
+    135: [line 102] JMP 0 2
+    136: [line 103] SETUPVAL 6 2
+    137: [line 103] JMP 0 1
+    138: [line 105] SETUPVAL 7 2
+    139: [line 109] LOADK 17 29
+    140: [line 109] SETUPVAL 17 0
+    141: [line 110] LOADK 17 0
+    142: [line 110] SETUPVAL 17 4
+    143: [line 110] JMP 0 2
+    144: [line 114] LOADK 5 0
+    145: [line 114] SETUPVAL 5 4
+    146: [line 116] RETURN 0 1
+child 4:
+  proto target params=2 vararg=False maxstack=7 linedefined=119-128
+  constants:
+    [0] x
+    [1] position
+    [2] z
+    [3] f64math
+    [4] atan2
+    [5] fixed64
+    [6] 180
+    [7] pi
+  upvalues:
+    [0] _ENV local=False index=0 byvalue=False
+    [1] pan local=True index=2 byvalue=False
+  locals:
+    [0] car pc=0-23
+    [1] position pc=0-23
+    [2] dx pc=4-23
+    [3] dz pc=8-23
+    [4] angleRad pc=13-23
+    [5] angleDeg pc=20-23
+  code:
+    0: [line 121] GETTABLE 2 1 -1
+    1: [line 121] GETTABLE 3 0 -2
+    2: [line 121] GETTABLE 3 3 -1
+    3: [line 121] SUB 2 2 3
+    4: [line 122] GETTABLE 3 1 -3
+    5: [line 122] GETTABLE 4 0 -2
+    6: [line 122] GETTABLE 4 4 -3
+    7: [line 122] SUB 3 3 4
+    8: [line 125] GETIMPORT 4 0 -4
+    9: [line 125] EXTRAARG 4
+    10: [line 125] MOVE 5 2
+    11: [line 125] MOVE 6 3
+    12: [line 125] CALL 4 3 2
+    13: [line 126] GETTABUP 5 0 -6
+    14: [line 126] LOADK 6 6
+    15: [line 126] CALL 5 2 2
+    16: [line 126] GETIMPORT 6 0 -4
+    17: [line 126] EXTRAARG 7
+    18: [line 126] DIV 5 5 6
+    19: [line 126] MUL 5 4 5
+    20: [line 127] UNM 6 5
+    21: [line 127] SETUPVAL 6 1
+    22: [line 128] RETURN 0 1
+child 5:
+  proto findDrivingTarget params=4 vararg=False maxstack=26 linedefined=131-357
+  constants:
+    [0] AI
+    [1] stage
+    [2] nodes
+    [3] lastCheckpointNode
+    [4] 1
+    [5] checkpoints
+    [6] 0
+    [7] -1
+    [8] currentCheckpoint
+    [9] position
+    [10] x
+    [11] z
+    [12] speed
+    [13] fixed64
+    [14] 200
+    [15] print
+    [16] Advanced _targetNode to 
+    [17]  (visited ahead of current target)
+    [18] nodeKind
+    [19] AiNodeKind
+    [20] checkPoint
+    [21] road
+    [22] ramp
+    [23] halfpipe
+    [24] auto
+    [25] 100
+    [26] 3
+    [27] tonumber
+    [28] f64math
+    [29] floor
+    [30] power
+    [31] 80
+    [32] sequenceStart
+    [33] sequenceEnd
+    [34] startNode
+    [35] endNode
+    [36] currentNode
+    [37] traversingBackwards
+    [38] false
+    [39] stat
+    [40] maxmag
+    [41] 0.8
+    [42] hitmag
+    [43] nextf64
+    [44] fixRoadStart
+    [45] fixRoadEnd
+    [46] table
+    [47] insert
+    [48] nextBetween
+    [49] true
+    [50] FrameTrace
+    [51] addMessage
+    [52] Targeting node index: 
+    [53] , kind: 
+    [54] tostring
+    [55] Actual node target: 
+  upvalues:
+    [0] _ENV local=False index=0 byvalue=False
+    [1] _targetNode local=True index=7 byvalue=False
+    [2] pyo local=True index=0 byvalue=False
+    [3] sequence local=True index=4 byvalue=False
+    [4] difficulty local=True index=3 byvalue=True
+    [5] targetFixRoadStartNode local=True index=5 byvalue=False
+    [6] target local=True index=14 byvalue=False
+  locals:
+    [0] car pc=0-437
+    [1] rubberbandingFactor pc=0-437
+    [2] mad pc=0-437
+    [3] random pc=0-437
+    [4] numNodes pc=4-437
+    [5] targetNodeIndex pc=5-437
+    [6] lastCheckpointNode pc=7-437
+    [7] numCheckpoints pc=18-437
+    [8] finalCheckpoint pc=22-437
+    [9] finalCheckpointNodeIndex pc=23-437
+    [10] (for index) pc=26-36
+    [11] (for limit) pc=26-36
+    [12] (for step) pc=26-36
+    [13] i pc=27-35
+    [14] nextCheckpoint pc=51-437
+    [15] nextCheckpointNodeIndex pc=52-437
+    [16] (for index) pc=55-65
+    [17] (for limit) pc=55-65
+    [18] (for step) pc=55-65
+    [19] i pc=56-64
+    [20] (for index) pc=68-106
+    [21] (for limit) pc=68-106
+    [22] (for step) pc=68-106
+    [23] i pc=69-105
+    [24] nodeIndex pc=70-105
+    [25] node pc=77-105
+    [26] distanceToNodeSq pc=87-105
+    [27] speedSq pc=90-105
+    [28] threshold pc=94-105
+    [29] targetNode pc=110-437
+    [30] kind pc=120-170
+    [31] distanceToTargetSq pc=155-170
+    [32] speedSq pc=158-170
+    [33] threshold pc=162-170
+    [34] skipFactor pc=185-375
+    [35] nodesToSkip pc=191-375
+    [36] (for index) pc=194-235
+    [37] (for limit) pc=194-235
+    [38] (for step) pc=194-235
+    [39] i pc=195-234
+    [40] kind pc=200-234
+    [41] (for index) pc=247-265
+    [42] (for limit) pc=247-265
+    [43] (for step) pc=247-265
+    [44] i pc=248-264
+    [45] maxmagThreshold pc=273-375
+    [46] wantFix pc=282-375
+    [47] fixRoadNodes pc=285-375
+    [48] (for index) pc=288-308
+    [49] (for limit) pc=288-308
+    [50] (for step) pc=288-308
+    [51] i pc=289-307
+    [52] kind pc=294-307
+    [53] selectedIndex pc=315-375
+    [54] kind pc=324-375
+    [55] (for index) pc=331-349
+    [56] (for limit) pc=331-349
+    [57] (for step) pc=331-349
+    [58] i pc=332-348
+    [59] (for index) pc=357-375
+    [60] (for limit) pc=357-375
+    [61] (for step) pc=357-375
+    [62] i pc=358-374
+    [63] seq pc=377-412
+    [64] nextNodeIndex pc=392-400
+    [65] prevNodeIndex pc=402-410
+    [66] finalTargetNode pc=416-437
+  code:
+    0: [line 134] GETIMPORT 4 0 -1
+    1: [line 134] EXTRAARG 1
+    2: [line 134] GETTABLE 4 4 -3
+    3: [line 134] LEN 4 4
+    4: [line 135] GETUPVAL 5 1
+    5: [line 138] GETTABLE 6 0 -4
+    6: [line 138] ADD 6 6 -5
+    7: [line 139] ADD 7 6 -5
+    8: [line 139] LT 0 5 7
+    9: [line 139] JMP 0 4
+    10: [line 140] ADD 5 6 -5
+    11: [line 141] LT 0 4 5
+    12: [line 141] JMP 0 1
+    13: [line 142] LOADK 5 4
+    14: [line 147] GETIMPORT 7 0 -1
+    15: [line 147] EXTRAARG 1
+    16: [line 147] GETTABLE 7 7 -6
+    17: [line 147] LEN 7 7
+    18: [line 148] GETIMPORT 8 0 -1
+    19: [line 148] EXTRAARG 1
+    20: [line 148] GETTABLE 8 8 -6
+    21: [line 148] GETTABLE 8 8 7
+    22: [line 149] LOADK 9 6
+    23: [line 150] LOADK 10 4
+    24: [line 150] MOVE 11 4
+    25: [line 150] LOADK 12 4
+    26: [line 150] FORPREP 10 8
+    27: [line 151] GETIMPORT 14 0 -1
+    28: [line 151] EXTRAARG 1
+    29: [line 151] GETTABLE 14 14 -3
+    30: [line 151] GETTABLE 14 14 13
+    31: [line 151] EQ 0 14 8
+    32: [line 151] JMP 0 2
+    33: [line 152] MOVE 9 13
+    34: [line 153] JMP 0 1
+    35: [line 150] FORLOOP 10 -9
+    36: [line 158] LT 0 9 5
+    37: [line 158] JMP 0 1
+    38: [line 159] LOADK 5 4
+    39: [line 163] EQ 0 5 9
+    40: [line 163] JMP 0 4
+    41: [line 163] GETTABLE 10 0 -4
+    42: [line 163] JMPIFNEK 10 2
+    43: [line 163] EXTRAARG 7
+    44: [line 164] LOADK 5 4
+    45: [line 168] GETIMPORT 10 0 -1
+    46: [line 168] EXTRAARG 1
+    47: [line 168] GETTABLE 10 10 -6
+    48: [line 168] GETTABLE 11 0 -9
+    49: [line 168] ADD 11 11 -5
+    50: [line 168] GETTABLE 10 10 11
+    51: [line 169] LOADK 11 6
+    52: [line 170] LOADK 12 4
+    53: [line 170] MOVE 13 4
+    54: [line 170] LOADK 14 4
+    55: [line 170] FORPREP 12 8
+    56: [line 171] GETIMPORT 16 0 -1
+    57: [line 171] EXTRAARG 1
+    58: [line 171] GETTABLE 16 16 -3
+    59: [line 171] GETTABLE 16 16 15
+    60: [line 171] EQ 0 16 10
+    61: [line 171] JMP 0 2
+    62: [line 172] MOVE 11 15
+    63: [line 173] JMP 0 1
+    64: [line 170] FORLOOP 12 -9
+    65: [line 177] ADD 12 5 -5
+    66: [line 177] MOVE 13 11
+    67: [line 177] LOADK 14 4
+    68: [line 177] FORPREP 12 36
+    69: [line 178] MOVE 16 15
+    70: [line 179] LT 0 4 16
+    71: [line 179] JMP 0 1
+    72: [line 180] SUB 16 16 4
+    73: [line 183] GETIMPORT 17 0 -1
+    74: [line 183] EXTRAARG 1
+    75: [line 183] GETTABLE 17 17 -3
+    76: [line 183] GETTABLE 17 17 16
+    77: [line 184] GETUPVAL 18 2
+    78: [line 184] GETTABLE 19 0 -10
+    79: [line 184] GETTABLE 19 19 -11
+    80: [line 184] GETTABLE 20 17 -10
+    81: [line 184] GETTABLE 20 20 -11
+    82: [line 184] GETTABLE 21 0 -10
+    83: [line 184] GETTABLE 21 21 -12
+    84: [line 184] GETTABLE 22 17 -10
+    85: [line 184] GETTABLE 22 22 -12
+    86: [line 184] CALL 18 5 2
+    87: [line 185] GETTABLE 19 2 -13
+    88: [line 185] GETTABLE 20 2 -13
+    89: [line 185] MUL 19 19 20
+    90: [line 186] GETTABUP 20 0 -14
+    91: [line 186] LOADK 21 14
+    92: [line 186] CALL 20 2 2
+    93: [line 186] MUL 20 20 19
+    94: [line 188] LT 0 18 20
+    95: [line 188] JMP 0 9
+    96: [line 189] SETUPVAL 16 1
+    97: [line 190] MOVE 5 16
+    98: [line 191] GETTABUP 21 0 -16
+    99: [line 191] LOADK 22 16
+    100: [line 191] MOVE 23 16
+    101: [line 191] LOADK 24 17
+    102: [line 191] CONCAT 22 22 24
+    103: [line 191] CALL 21 2 1
+    104: [line 192] JMP 0 1
+    105: [line 177] FORLOOP 12 -37
+    106: [line 197] GETIMPORT 12 0 -1
+    107: [line 197] EXTRAARG 1
+    108: [line 197] GETTABLE 12 12 -3
+    109: [line 197] GETTABLE 12 12 5
+    110: [line 198] GETTABLE 13 12 -19
+    111: [line 198] GETIMPORT 14 0 -20
+    112: [line 198] EXTRAARG 20
+    113: [line 198] EQ 1 13 14
+    114: [line 198] JMP 0 56
+    115: [line 200] GETIMPORT 13 0 -1
+    116: [line 200] EXTRAARG 1
+    117: [line 200] GETTABLE 13 13 -3
+    118: [line 200] GETTABLE 12 13 5
+    119: [line 201] GETTABLE 13 12 -19
+    120: [line 204] GETIMPORT 14 0 -20
+    121: [line 204] EXTRAARG 21
+    122: [line 204] EQ 1 13 14
+    123: [line 204] JMP 0 21
+    124: [line 204] GETIMPORT 14 0 -20
+    125: [line 204] EXTRAARG 20
+    126: [line 204] EQ 1 13 14
+    127: [line 204] JMP 0 17
+    128: [line 205] GETIMPORT 14 0 -20
+    129: [line 205] EXTRAARG 22
+    130: [line 205] EQ 1 13 14
+    131: [line 205] JMP 0 13
+    132: [line 205] GETIMPORT 14 0 -20
+    133: [line 205] EXTRAARG 23
+    134: [line 205] EQ 1 13 14
+    135: [line 205] JMP 0 9
+    136: [line 206] GETIMPORT 14 0 -20
+    137: [line 206] EXTRAARG 24
+    138: [line 206] EQ 1 13 14
+    139: [line 206] JMP 0 5
+    140: [line 207] ADD 5 5 -5
+    141: [line 208] LT 0 4 5
+    142: [line 208] JMP 0 -28
+    143: [line 209] LOADK 5 4
+    144: [line 209] JMP 0 -30
+    145: [line 212] GETUPVAL 14 2
+    146: [line 212] GETTABLE 15 0 -10
+    147: [line 212] GETTABLE 15 15 -11
+    148: [line 212] GETTABLE 16 12 -10
+    149: [line 212] GETTABLE 16 16 -11
+    150: [line 213] GETTABLE 17 0 -10
+    151: [line 213] GETTABLE 17 17 -12
+    152: [line 213] GETTABLE 18 12 -10
+    153: [line 213] GETTABLE 18 18 -12
+    154: [line 212] CALL 14 5 2
+    155: [line 214] GETTABLE 15 2 -13
+    156: [line 214] GETTABLE 16 2 -13
+    157: [line 214] MUL 15 15 16
+    158: [line 215] GETTABUP 16 0 -14
+    159: [line 215] LOADK 17 25
+    160: [line 215] CALL 16 2 2
+    161: [line 215] MUL 16 16 15
+    162: [line 217] LT 0 14 16
+    163: [line 217] JMP 0 7
+    164: [line 218] ADD 5 5 -5
+    165: [line 219] LT 0 4 5
+    166: [line 219] JMP 0 -52
+    167: [line 220] LOADK 5 4
+    168: [line 220] JMP 0 -54
+    169: [line 223] JMP 0 1
+    170: [line 223] JMP 0 -56
+    171: [line 229] SETUPVAL 5 1
+    172: [line 232] GETUPVAL 13 3
+    173: [line 232] TEST 13 1
+    174: [line 232] JMP 0 201
+    175: [line 234] GETUPVAL 13 4
+    176: [line 234] GETTABUP 14 0 -14
+    177: [line 234] LOADK 15 26
+    178: [line 234] CALL 14 2 2
+    179: [line 234] MUL 13 13 14
+    180: [line 234] GETTABUP 14 0 -14
+    181: [line 234] LOADK 15 4
+    182: [line 234] CALL 14 2 2
+    183: [line 234] SUB 14 14 1
+    184: [line 234] MUL 13 13 14
+    185: [line 235] GETTABUP 14 0 -28
+    186: [line 235] GETIMPORT 15 0 -29
+    187: [line 235] EXTRAARG 29
+    188: [line 235] MOVE 16 13
+    189: [line 235] CALL 15 2 0
+    190: [line 235] CALL 14 0 2
+    191: [line 237] LOADK 15 4
+    192: [line 237] MOVE 16 14
+    193: [line 237] LOADK 17 4
+    194: [line 237] FORPREP 15 39
+    195: [line 238] GETIMPORT 19 0 -1
+    196: [line 238] EXTRAARG 1
+    197: [line 238] GETTABLE 19 19 -3
+    198: [line 238] GETTABLE 19 19 5
+    199: [line 238] GETTABLE 19 19 -19
+    200: [line 239] GETIMPORT 20 0 -20
+    201: [line 239] EXTRAARG 24
+    202: [line 239] EQ 1 19 20
+    203: [line 239] JMP 0 12
+    204: [line 239] GETIMPORT 20 0 -20
+    205: [line 239] EXTRAARG 21
+    206: [line 239] EQ 1 19 20
+    207: [line 239] JMP 0 8
+    208: [line 240] GETIMPORT 20 0 -20
+    209: [line 240] EXTRAARG 22
+    210: [line 240] EQ 1 19 20
+    211: [line 240] JMP 0 4
+    212: [line 240] GETIMPORT 20 0 -20
+    213: [line 240] EXTRAARG 23
+    214: [line 240] EQ 0 19 20
+    215: [line 240] JMP 0 18
+    216: [line 242] GETTABLE 20 2 -31
+    217: [line 242] GETTABUP 21 0 -14
+    218: [line 242] LOADK 22 31
+    219: [line 242] CALL 21 2 2
+    220: [line 242] LT 0 20 21
+    221: [line 242] JMP 0 8
+    222: [line 242] GETIMPORT 20 0 -20
+    223: [line 242] EXTRAARG 22
+    224: [line 242] EQ 1 19 20
+    225: [line 242] JMP 0 9
+    226: [line 242] GETIMPORT 20 0 -20
+    227: [line 242] EXTRAARG 23
+    228: [line 242] EQ 1 19 20
+    229: [line 242] JMP 0 5
+    230: [line 246] ADD 5 5 -5
+    231: [line 247] LT 0 4 5
+    232: [line 247] JMP 0 1
+    233: [line 248] LOADK 5 4
+    234: [line 237] FORLOOP 15 -40
+    235: [line 254] GETIMPORT 15 0 -1
+    236: [line 254] EXTRAARG 1
+    237: [line 254] GETTABLE 15 15 -3
+    238: [line 254] GETTABLE 15 15 5
+    239: [line 254] GETTABLE 15 15 -19
+    240: [line 254] GETIMPORT 16 0 -20
+    241: [line 254] EXTRAARG 32
+    242: [line 254] EQ 0 15 16
+    243: [line 254] JMP 0 21
+    244: [line 255] ADD 15 5 -5
+    245: [line 255] MOVE 16 4
+    246: [line 255] LOADK 17 4
+    247: [line 255] FORPREP 15 16
+    248: [line 256] GETIMPORT 19 0 -1
+    249: [line 256] EXTRAARG 1
+    250: [line 256] GETTABLE 19 19 -3
+    251: [line 256] GETTABLE 19 19 18
+    252: [line 256] GETTABLE 19 19 -19
+    253: [line 256] GETIMPORT 20 0 -20
+    254: [line 256] EXTRAARG 33
+    255: [line 256] EQ 0 19 20
+    256: [line 256] JMP 0 7
+    257: [line 257] NEWTABLE 19 0 4
+    258: [line 258] SETTABLE 19 -35 5
+    259: [line 259] SETTABLE 19 -36 18
+    260: [line 260] SETTABLE 19 -37 5
+    261: [line 261] SETTABLE 19 -38 -39
+    262: [line 262] SETUPVAL 19 3
+    263: [line 263] JMP 0 1
+    264: [line 255] FORLOOP 15 -17
+    265: [line 269] GETTABUP 15 0 -14
+    266: [line 269] GETTABLE 16 2 -40
+    267: [line 269] GETTABLE 16 16 -41
+    268: [line 269] CALL 15 2 2
+    269: [line 269] GETTABUP 16 0 -14
+    270: [line 269] LOADK 17 41
+    271: [line 269] CALL 16 2 2
+    272: [line 269] MUL 15 15 16
+    273: [line 270] GETTABLE 16 2 -43
+    274: [line 270] LT 0 15 16
+    275: [line 270] JMP 0 4
+    276: [line 270] SELF 16 3 -44
+    277: [line 270] CALL 16 2 2
+    278: [line 270] LT 1 16 1
+    279: [line 270] JMP 0 1
+    280: [line 270] LOADBOOL 16 0 1
+    281: [line 270] LOADBOOL 16 1 0
+    282: [line 272] TEST 16 0
+    283: [line 272] JMP 0 128
+    284: [line 274] NEWTABLE 17 0 0
+    285: [line 275] LOADK 18 4
+    286: [line 275] MOVE 19 4
+    287: [line 275] LOADK 20 4
+    288: [line 275] FORPREP 18 18
+    289: [line 276] GETIMPORT 22 0 -1
+    290: [line 276] EXTRAARG 1
+    291: [line 276] GETTABLE 22 22 -3
+    292: [line 276] GETTABLE 22 22 21
+    293: [line 276] GETTABLE 22 22 -19
+    294: [line 277] GETIMPORT 23 0 -20
+    295: [line 277] EXTRAARG 44
+    296: [line 277] EQ 1 22 23
+    297: [line 277] JMP 0 4
+    298: [line 277] GETIMPORT 23 0 -20
+    299: [line 277] EXTRAARG 45
+    300: [line 277] EQ 0 22 23
+    301: [line 277] JMP 0 5
+    302: [line 278] GETIMPORT 23 0 -47
+    303: [line 278] EXTRAARG 47
+    304: [line 278] MOVE 24 17
+    305: [line 278] MOVE 25 21
+    306: [line 278] CALL 23 3 1
+    307: [line 275] FORLOOP 18 -19
+    308: [line 282] LEN 18 17
+    309: [line 282] LT 0 -7 18
+    310: [line 282] JMP 0 101
+    311: [line 283] SELF 18 3 -49
+    312: [line 283] LOADK 20 6
+    313: [line 283] LEN 21 17
+    314: [line 283] CALL 18 4 2
+    315: [line 284] ADD 19 18 -5
+    316: [line 284] GETTABLE 19 17 19
+    317: [line 284] SETUPVAL 19 5
+    318: [line 285] GETUPVAL 5 5
+    319: [line 287] GETIMPORT 19 0 -1
+    320: [line 287] EXTRAARG 1
+    321: [line 287] GETTABLE 19 19 -3
+    322: [line 287] GETTABLE 19 19 5
+    323: [line 287] GETTABLE 19 19 -19
+    324: [line 288] GETIMPORT 20 0 -20
+    325: [line 288] EXTRAARG 44
+    326: [line 288] EQ 0 19 20
+    327: [line 288] JMP 0 22
+    328: [line 290] ADD 20 5 -5
+    329: [line 290] MOVE 21 4
+    330: [line 290] LOADK 22 4
+    331: [line 290] FORPREP 20 16
+    332: [line 291] GETIMPORT 24 0 -1
+    333: [line 291] EXTRAARG 1
+    334: [line 291] GETTABLE 24 24 -3
+    335: [line 291] GETTABLE 24 24 23
+    336: [line 291] GETTABLE 24 24 -19
+    337: [line 291] GETIMPORT 25 0 -20
+    338: [line 291] EXTRAARG 45
+    339: [line 291] EQ 0 24 25
+    340: [line 291] JMP 0 7
+    341: [line 292] NEWTABLE 24 0 4
+    342: [line 293] SETTABLE 24 -35 5
+    343: [line 294] SETTABLE 24 -36 23
+    344: [line 295] SETTABLE 24 -37 5
+    345: [line 296] SETTABLE 24 -38 -39
+    346: [line 297] SETUPVAL 24 3
+    347: [line 298] JMP 0 64
+    348: [line 290] FORLOOP 20 -17
+    349: [line 290] JMP 0 62
+    350: [line 301] GETIMPORT 20 0 -20
+    351: [line 301] EXTRAARG 45
+    352: [line 301] EQ 0 19 20
+    353: [line 301] JMP 0 58
+    354: [line 303] SUB 20 5 -5
+    355: [line 303] LOADK 21 4
+    356: [line 303] LOADK 22 7
+    357: [line 303] FORPREP 20 16
+    358: [line 304] GETIMPORT 24 0 -1
+    359: [line 304] EXTRAARG 1
+    360: [line 304] GETTABLE 24 24 -3
+    361: [line 304] GETTABLE 24 24 23
+    362: [line 304] GETTABLE 24 24 -19
+    363: [line 304] GETIMPORT 25 0 -20
+    364: [line 304] EXTRAARG 44
+    365: [line 304] EQ 0 24 25
+    366: [line 304] JMP 0 7
+    367: [line 305] NEWTABLE 24 0 4
+    368: [line 306] SETTABLE 24 -35 23
+    369: [line 307] SETTABLE 24 -36 5
+    370: [line 308] SETTABLE 24 -37 23
+    371: [line 309] SETTABLE 24 -38 -50
+    372: [line 310] SETUPVAL 24 3
+    373: [line 311] JMP 0 38
+    374: [line 303] FORLOOP 20 -17
+    375: [line 303] JMP 0 36
+    376: [line 319] GETUPVAL 13 3
+    377: [line 321] GETTABLE 14 13 -35
+    378: [line 321] LT 1 5 14
+    379: [line 321] JMP 0 3
+    380: [line 321] GETTABLE 14 13 -36
+    381: [line 321] LT 0 14 5
+    382: [line 321] JMP 0 2
+    383: [line 323] GETTABLE 5 13 -35
+    384: [line 323] JMP 0 27
+    385: [line 324] GETTABLE 14 13 -37
+    386: [line 324] EQ 0 5 14
+    387: [line 324] JMP 0 23
+    388: [line 325] GETTABLE 14 13 -38
+    389: [line 325] TEST 14 1
+    390: [line 325] JMP 0 10
+    391: [line 327] ADD 14 5 -5
+    392: [line 328] GETTABLE 15 13 -36
+    393: [line 328] LT 0 15 14
+    394: [line 328] JMP 0 3
+    395: [line 330] LOADNIL 15 0
+    396: [line 330] SETUPVAL 15 3
+    397: [line 330] JMP 0 14
+    398: [line 332] SETTABUP 3 -37 14
+    399: [line 333] MOVE 5 14
+    400: [line 333] JMP 0 11
+    401: [line 337] SUB 14 5 -5
+    402: [line 338] GETTABLE 15 13 -35
+    403: [line 338] LT 0 14 15
+    404: [line 338] JMP 0 3
+    405: [line 340] LOADNIL 15 0
+    406: [line 340] SETUPVAL 15 3
+    407: [line 340] JMP 0 4
+    408: [line 342] SETTABUP 3 -37 14
+    409: [line 343] MOVE 5 14
+    410: [line 343] JMP 0 1
+    411: [line 348] GETTABLE 5 13 -35
+    412: [line 352] GETIMPORT 13 0 -1
+    413: [line 352] EXTRAARG 1
+    414: [line 352] GETTABLE 13 13 -3
+    415: [line 352] GETTABLE 13 13 5
+    416: [line 353] GETIMPORT 14 0 -51
+    417: [line 353] EXTRAARG 51
+    418: [line 353] LOADK 15 52
+    419: [line 353] MOVE 16 5
+    420: [line 353] LOADK 17 53
+    421: [line 353] GETTABUP 18 0 -55
+    422: [line 353] GETTABLE 19 13 -19
+    423: [line 353] CALL 18 2 2
+    424: [line 353] CONCAT 15 15 18
+    425: [line 353] CALL 14 2 1
+    426: [line 354] GETIMPORT 14 0 -51
+    427: [line 354] EXTRAARG 51
+    428: [line 354] LOADK 15 55
+    429: [line 354] GETUPVAL 16 1
+    430: [line 354] CONCAT 15 15 16
+    431: [line 354] CALL 14 2 1
+    432: [line 356] GETUPVAL 14 6
+    433: [line 356] MOVE 15 0
+    434: [line 356] GETTABLE 16 13 -10
+    435: [line 356] CALL 14 3 1
+    436: [line 357] RETURN 0 1
+child 6:
+  proto steer params=3 vararg=False maxstack=13 linedefined=363-415
+  constants:
+    [0] up
+    [1] false
+    [2] down
+    [3] left
+    [4] right
+    [5] handb
+    [6] rotation
+    [7] yaw
+    [8] deg
+    [9] zyinv
+    [10] fixed64
+    [11] 180
+    [12] FrameTrace
+    [13] addMessage
+    [14] Angle diff: 
+    [15] toString
+    [16] 5
+    [17] -5
+    [18] 1
+    [19] -1
+    [20] true
+    [21] speed
+    [22] stat
+    [23] swits
+    [24] x
+    [25] f64math
+    [26] abs
+    [27] 50
+    [28] 120
+  upvalues:
+    [0] _ENV local=False index=0 byvalue=False
+    [1] angleDiff local=True index=1 byvalue=False
+    [2] pan local=True index=2 byvalue=False
+    [3] smallturn local=True index=11 byvalue=False
+  locals:
+    [0] car pc=0-89
+    [1] mad pc=0-89
+    [2] u pc=0-89
+    [3] myxz pc=8-89
+    [4] diff pc=19-89
+    [5] five pc=29-89
+    [6] negFive pc=32-89
+    [7] one pc=35-89
+    [8] negOne pc=38-89
+    [9] absDiff pc=71-86
+    [10] fifty pc=74-86
+    [11] onetwenty pc=77-86
+  code:
+    0: [line 365] SETTABLE 2 -1 -2
+    1: [line 366] SETTABLE 2 -3 -2
+    2: [line 367] SETTABLE 2 -4 -2
+    3: [line 368] SETTABLE 2 -5 -2
+    4: [line 369] SETTABLE 2 -6 -2
+    5: [line 371] GETTABLE 3 0 -7
+    6: [line 371] GETTABLE 3 3 -8
+    7: [line 371] GETTABLE 3 3 -9
+    8: [line 372] GETTABLE 4 2 -10
+    9: [line 372] TEST 4 0
+    10: [line 372] JMP 0 4
+    11: [line 373] GETTABUP 4 0 -11
+    12: [line 373] LOADK 5 11
+    13: [line 373] CALL 4 2 2
+    14: [line 373] ADD 3 3 4
+    15: [line 377] GETUPVAL 4 1
+    16: [line 377] MOVE 5 3
+    17: [line 377] GETUPVAL 6 2
+    18: [line 377] CALL 4 3 2
+    19: [line 378] GETIMPORT 5 0 -13
+    20: [line 378] EXTRAARG 13
+    21: [line 378] LOADK 6 14
+    22: [line 378] SELF 7 4 -16
+    23: [line 378] CALL 7 2 2
+    24: [line 378] CONCAT 6 6 7
+    25: [line 378] CALL 5 2 1
+    26: [line 380] GETTABUP 5 0 -11
+    27: [line 380] LOADK 6 16
+    28: [line 380] CALL 5 2 2
+    29: [line 381] GETTABUP 6 0 -11
+    30: [line 381] LOADK 7 17
+    31: [line 381] CALL 6 2 2
+    32: [line 382] GETTABUP 7 0 -11
+    33: [line 382] LOADK 8 18
+    34: [line 382] CALL 7 2 2
+    35: [line 383] GETTABUP 8 0 -11
+    36: [line 383] LOADK 9 19
+    37: [line 383] CALL 8 2 2
+    38: [line 385] LT 0 5 4
+    39: [line 385] JMP 0 2
+    40: [line 386] SETTABLE 2 -5 -21
+    41: [line 386] JMP 0 19
+    42: [line 387] LT 0 4 6
+    43: [line 387] JMP 0 2
+    44: [line 388] SETTABLE 2 -4 -21
+    45: [line 388] JMP 0 15
+    46: [line 390] LT 0 7 4
+    47: [line 390] JMP 0 6
+    48: [line 391] GETUPVAL 9 3
+    49: [line 391] SETTABLE 2 -5 9
+    50: [line 392] GETUPVAL 9 3
+    51: [line 392] NOT 9 9
+    52: [line 392] SETUPVAL 9 3
+    53: [line 392] JMP 0 7
+    54: [line 393] LT 0 4 8
+    55: [line 393] JMP 0 5
+    56: [line 394] GETUPVAL 9 3
+    57: [line 394] SETTABLE 2 -4 9
+    58: [line 395] GETUPVAL 9 3
+    59: [line 395] NOT 9 9
+    60: [line 395] SETUPVAL 9 3
+    61: [line 400] GETTABLE 9 1 -22
+    62: [line 400] GETTABLE 10 1 -23
+    63: [line 400] GETTABLE 10 10 -24
+    64: [line 400] GETTABLE 10 10 -25
+    65: [line 400] LT 0 10 9
+    66: [line 400] JMP 0 20
+    67: [line 401] GETIMPORT 9 0 -26
+    68: [line 401] EXTRAARG 26
+    69: [line 401] MOVE 10 4
+    70: [line 401] CALL 9 2 2
+    71: [line 402] GETTABUP 10 0 -11
+    72: [line 402] LOADK 11 27
+    73: [line 402] CALL 10 2 2
+    74: [line 403] GETTABUP 11 0 -11
+    75: [line 403] LOADK 12 28
+    76: [line 403] CALL 11 2 2
+    77: [line 405] LT 0 9 10
+    78: [line 405] JMP 0 2
+    79: [line 406] SETTABLE 2 -1 -21
+    80: [line 406] JMP 0 7
+    81: [line 407] LT 0 9 11
+    82: [line 407] JMP 0 2
+    83: [line 408] SETTABLE 2 -3 -21
+    84: [line 408] JMP 0 3
+    85: [line 410] SETTABLE 2 -6 -21
+    86: [line 410] JMP 0 1
+    87: [line 413] SETTABLE 2 -1 -21
+    88: [line 415] RETURN 0 1
+child 7:
+  proto RunAi params=0 vararg=False maxstack=14 linedefined=418-454
+  constants:
+    [0] AI
+    [1] player
+    [2] car
+    [3] nil
+    [4] control
+    [5] placement
+    [6] carPhysics
+    [7] position
+    [8] x
+    [9] raw
+    [10] DeterministicRandom
+    [11] new
+    [12] players
+    [13] fixed64
+    [14] 1
+    [15] wasted
+    [16] wtouch
+    [17] mtouch
+    [18] stage
+  upvalues:
+    [0] _ENV local=False index=0 byvalue=False
+    [1] bouncing local=True index=6 byvalue=True
+    [2] findDrivingTarget local=True index=15 byvalue=False
+    [3] detectAndAvoidObstacles local=True index=13 byvalue=False
+    [4] steer local=True index=16 byvalue=False
+  locals:
+    [0] car pc=3-57
+    [1] u pc=7-57
+    [2] position pc=8-57
+    [3] mad pc=9-57
+    [4] seedValue pc=12-57
+    [5] random pc=16-57
+    [6] numCars pc=19-57
+    [7] rubberbandingFactor pc=26-57
+    [8] grounded pc=31-57
+  code:
+    0: [line 419] GETIMPORT 0 0 -1
+    1: [line 419] EXTRAARG 1
+    2: [line 419] GETTABLE 0 0 -3
+    3: [line 420] JMPIFNEK 0 2
+    4: [line 420] EXTRAARG 3
+    5: [line 421] RETURN 0 1
+    6: [line 424] GETTABLE 1 0 -5
+    7: [line 425] GETTABLE 2 0 -6
+    8: [line 426] GETTABLE 3 0 -7
+    9: [line 429] GETTABLE 4 0 -8
+    10: [line 429] GETTABLE 4 4 -9
+    11: [line 429] GETTABLE 4 4 -10
+    12: [line 430] GETIMPORT 5 0 -11
+    13: [line 430] EXTRAARG 11
+    14: [line 430] MOVE 6 4
+    15: [line 430] CALL 5 2 2
+    16: [line 434] GETIMPORT 6 0 -1
+    17: [line 434] EXTRAARG 12
+    18: [line 434] LEN 6 6
+    19: [line 435] GETTABUP 7 0 -14
+    20: [line 435] MOVE 8 2
+    21: [line 435] CALL 7 2 2
+    22: [line 435] GETTABUP 8 0 -14
+    23: [line 435] SUB 9 6 -15
+    24: [line 435] CALL 8 2 2
+    25: [line 435] DIV 7 7 8
+    26: [line 437] GETTABLE 8 0 -16
+    27: [line 437] TEST 8 0
+    28: [line 437] JMP 0 1
+    29: [line 437] RETURN 0 1
+    30: [line 439] LOADNIL 8 0
+    31: [line 440] GETUPVAL 9 1
+    32: [line 440] TEST 9 0
+    33: [line 440] JMP 0 2
+    34: [line 441] GETTABLE 8 3 -17
+    35: [line 441] JMP 0 1
+    36: [line 443] GETTABLE 8 3 -18
+    37: [line 446] GETUPVAL 9 2
+    38: [line 446] MOVE 10 0
+    39: [line 446] MOVE 11 7
+    40: [line 446] MOVE 12 3
+    41: [line 446] MOVE 13 5
+    42: [line 446] CALL 9 5 1
+    43: [line 448] TEST 8 0
+    44: [line 448] JMP 0 11
+    45: [line 450] GETUPVAL 9 3
+    46: [line 450] MOVE 10 0
+    47: [line 450] MOVE 11 3
+    48: [line 450] GETIMPORT 12 0 -1
+    49: [line 450] EXTRAARG 18
+    50: [line 450] CALL 9 4 1
+    51: [line 452] GETUPVAL 9 4
+    52: [line 452] MOVE 10 0
+    53: [line 452] MOVE 11 3
+    54: [line 452] MOVE 12 1
+    55: [line 452] CALL 9 4 1
+    56: [line 454] RETURN 0 1

@@ -38,7 +38,11 @@ unsafe struct Header
         }
 
         Version = (Constants.VersionMajor << 4) | Constants.VersionMinor;
-        Format = 0;
+        // Format 1 = Milestone 4's DupTable template pool: a "number of templates" section follows
+        // each function's upvalues. Format 0 dumps (no section) still load as long as they contain
+        // no DupTable, and an older reader rejects a format 1 chunk loudly at Header.Validate
+        // instead of misparsing the bytes after it.
+        Format = 1;
         Endianness = (byte)(isLittleEndian ? 1 : 0);
         IntSize = 4;
         PointerSize = (byte)sizeof(IntPtr);
@@ -72,7 +76,7 @@ unsafe struct Header
 
         if (
             IntSize != 4
-            || Format != 0
+            || Format is not (0 or 1)
             || IntegralNumber != 0
             || PointerSize is not (4 or 8)
             || InstructionSize != 4
@@ -148,6 +152,7 @@ unsafe ref struct DumpState(IBufferWriter<byte> writer, bool reversedEndian)
         WriteConstants(prototype.Constants); // 4
         WritePrototypes(prototype.ChildPrototypes); // 4
         WriteUpValues(prototype.UpValues); // 4
+        WriteTemplates(prototype.Templates); // 4, format 1 only
 
         // Debug
         WriteString(prototype.ChunkName);
@@ -243,20 +248,74 @@ unsafe ref struct DumpState(IBufferWriter<byte> writer, bool reversedEndian)
         WriteInt(constants.Length);
         foreach (var c in constants)
         {
-            WriteByte((byte)c.Type);
-            switch (c.Type)
+            WriteConstant(c);
+        }
+    }
+
+    void WriteConstant(LuaValue c)
+    {
+        WriteByte((byte)c.Type);
+        switch (c.Type)
+        {
+            case LuaValueType.Nil:
+                break;
+            case LuaValueType.Boolean:
+                WriteBool(c.ReadAsBool());
+                break;
+            case LuaValueType.Number:
+                // ReadAsDouble, not ReadAsInt64: the latter is the value's raw bits as an integer,
+                // and passing them to WriteDouble(0.0) as a *number* converts them instead of
+                // reinterpreting, which corrupts every constant that is not a small integer-valued
+                // double.
+                WriteDouble(c.ReadAsDouble());
+                break;
+            case LuaValueType.Integer:
+                // Missing until Milestone 4, which made it a real round-trip bug rather than a
+                // latent one: an unmapped type wrote its byte and nothing else, so an integer
+                // constant came back as nil (`{ gap = 4 }` is exactly that case).
+                WriteLong(c.ReadAsInt64());
+                break;
+            case LuaValueType.String:
+                WriteString(c.UnsafeRead<string>());
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Compiler-rewrite plan Milestone 4: the all-constant table templates <see cref="OpCode.DupTable"/>
+    /// copies from, as (array length, that many values, hash-entry count, key/value pairs each). The
+    /// array part is written whole, nils included, and the hash part is written in insertion order,
+    /// so the reader can rebuild the template exactly -- capacities included -- rather than merely an
+    /// equal table. Values and keys are primitives by construction (the fold predicate admits
+    /// nothing else), and <see cref="LuaTable.CopyHashEntriesTo"/> is the only part that is not
+    /// already a flat span.
+    /// <para>
+    /// "Exactly" has to include nil-valued hash entries, which are written here like any other: a
+    /// field the source literally set to nil is a dead entry in the template (it is in the hash part,
+    /// and <c>pairs</c> skips it, but <c>next(t, thatKey)</c> still reports what follows it). See
+    /// <see cref="LuaTable.CopyHashEntriesTo"/> -- it is the whole reason that method exists alongside
+    /// the enumerator -- and <c>ReadTemplates</c>, which recreates the entry by assigning nil.
+    /// </para>
+    /// </summary>
+    void WriteTemplates(ReadOnlySpan<LuaTable> templates)
+    {
+        WriteInt(templates.Length);
+        foreach (var template in templates)
+        {
+            var array = template.GetArraySpan();
+            WriteInt(array.Length);
+            foreach (var v in array)
             {
-                case LuaValueType.Nil:
-                    break;
-                case LuaValueType.Boolean:
-                    WriteBool(c.ReadAsBool());
-                    break;
-                case LuaValueType.Number:
-                    WriteDouble(c.ReadAsInt64());
-                    break;
-                case LuaValueType.String:
-                    WriteString(c.UnsafeRead<string>());
-                    break;
+                WriteConstant(v);
+            }
+
+            var hashEntries = new List<KeyValuePair<LuaValue, LuaValue>>();
+            template.CopyHashEntriesTo(hashEntries);
+            WriteInt(hashEntries.Count);
+            foreach (var entry in hashEntries)
+            {
+                WriteConstant(entry.Key);
+                WriteConstant(entry.Value);
             }
         }
     }
@@ -303,6 +362,7 @@ unsafe ref struct UndumpState(
     public ReadOnlySpan<byte> Unread = span;
     bool otherEndian;
     int pointerSize;
+    byte format;
     readonly ReadOnlySpan<char> name = name;
 
     void Throw(string why)
@@ -399,6 +459,7 @@ unsafe ref struct UndumpState(
         h.Validate(name);
         otherEndian = BitConverter.IsLittleEndian ^ (h.Endianness == 1);
         pointerSize = h.PointerSize;
+        format = h.Format;
         return UndumpFunction();
     }
 
@@ -415,6 +476,9 @@ unsafe ref struct UndumpState(
         var constants = ReadConstants();
         var prototypes = ReadPrototypes();
         var upValues = ReadUpValues();
+        // Format 0 (a chunk written before Milestone 4) has no section here; it also cannot contain a
+        // DupTable, so an empty pool is the correct reading of it either way.
+        LuaTable[] templates = format >= 1 ? ReadTemplates() : [];
 
         // Debug
         var source = ReadString();
@@ -446,7 +510,8 @@ unsafe ref struct UndumpState(
             prototypes,
             lineInfo,
             localVariables,
-            upValues
+            upValues,
+            templates
         );
     }
 
@@ -499,24 +564,68 @@ unsafe ref struct UndumpState(
         var constants = new LuaValue[count];
         for (var i = 0; i < count; i++)
         {
-            var type = (LuaValueType)ReadByte();
-            switch (type)
-            {
-                case LuaValueType.Nil:
-                    break;
-                case LuaValueType.Boolean:
-                    constants[i] = ReadByte() == 1;
-                    break;
-                case LuaValueType.Number:
-                    constants[i] = ReadDouble();
-                    break;
-                case LuaValueType.String:
-                    constants[i] = ReadString();
-                    break;
-            }
+            constants[i] = ReadConstant();
         }
 
         return constants;
+    }
+
+    LuaValue ReadConstant()
+    {
+        var type = (LuaValueType)ReadByte();
+        switch (type)
+        {
+            case LuaValueType.Nil:
+                return LuaValue.Nil;
+            case LuaValueType.Boolean:
+                return new(ReadByte() == 1);
+            case LuaValueType.Number:
+                return new(ReadDouble());
+            case LuaValueType.Integer:
+                return new(ReadLong());
+            case LuaValueType.String:
+                return new(ReadString());
+            default:
+                return LuaValue.Nil;
+        }
+    }
+
+    /// <summary>
+    /// Reads back what <see cref="DumpState.WriteTemplates"/> wrote. The template is rebuilt at the
+    /// template's own capacities -- <c>new LuaTable(arrayLength, hashCount)</c> then
+    /// <c>EnsureArrayCapacity</c>, the same two steps the compiler's own template construction takes
+    /// -- and the hash entries are inserted before the array part is filled in, which is safe
+    /// because a template's keys are strings: a string key never routes to the array part, so the
+    /// two halves cannot overwrite each other.
+    /// </summary>
+    LuaTable[] ReadTemplates()
+    {
+        var count = ReadInt();
+        var templates = count != 0 ? new LuaTable[count] : [];
+        for (var i = 0; i < count; i++)
+        {
+            var arrayLength = ReadInt();
+            var array = new LuaValue[arrayLength];
+            for (var v = 0; v < arrayLength; v++)
+            {
+                array[v] = ReadConstant();
+            }
+
+            var hashCount = ReadInt();
+            var template = new LuaTable(arrayLength, hashCount);
+            template.EnsureArrayCapacity(arrayLength);
+            for (var h = 0; h < hashCount; h++)
+            {
+                var key = ReadConstant();
+                var value = ReadConstant();
+                template[key] = value;
+            }
+
+            array.CopyTo(template.GetArraySpan());
+            templates[i] = template;
+        }
+
+        return templates;
     }
 
     Prototype[] ReadPrototypes()

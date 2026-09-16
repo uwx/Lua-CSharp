@@ -1,0 +1,286 @@
+proto ? params=0 vararg=True maxstack=4 linedefined=0-0
+constants:
+  [0] require
+  [1] ../../library/sx/index
+  [2] x
+  [3] ../../library/ui/theme
+upvalues:
+  [0] _ENV local=True index=0 byvalue=False
+locals:
+  [0] Sx pc=3-10
+  [1] x pc=4-10
+  [2] theme pc=7-10
+  [3] TextField pc=8-10
+code:
+  0: [line 9] GETTABUP 0 0 -1
+  1: [line 9] LOADK 1 1
+  2: [line 9] CALL 0 2 2
+  3: [line 10] GETTABLE 1 0 -3
+  4: [line 11] GETTABUP 2 0 -1
+  5: [line 11] LOADK 3 3
+  6: [line 11] CALL 2 2 2
+  7: [line 81] CLOSURE 3 0
+  8: [line 83] RETURN 3 2
+  9: [line 83] RETURN 0 1
+child 0:
+  proto TextField params=1 vararg=False maxstack=13 linedefined=23-81
+  constants:
+    [0] createSignal
+    [1] disabled
+    [2] true
+    [3] View
+    [4] style
+    [5] display
+    [6] flex
+    [7] flexDirection
+    [8] column
+    [9] alignItems
+    [10] flex-start
+    [11] gap
+    [12] 6
+    [13] width
+    [14] 100%
+    [15] Show
+    [16] when
+    [17] Text
+    [18] TextInput
+    [19] createMemo
+    [20] value
+    [21] placeholder
+    [22] onchange
+    [23] onChange
+    [24] onsubmit
+    [25] onSubmit
+    [26] onfocus
+    [27] onblur
+    [28] onmouseenter
+    [29] onmouseleave
+  templates:
+    [0] array=[] hash={fontSize=12, color=rgba(255,255,255,0.6)}
+  upvalues:
+    [0] Sx local=True index=0 byvalue=True
+    [1] x local=True index=1 byvalue=True
+    [2] theme local=True index=2 byvalue=True
+  locals:
+    [0] props pc=0-73
+    [1] focus pc=3-73
+    [2] setFocus pc=3-73
+    [3] hovered pc=6-73
+    [4] setHovered pc=6-73
+    [5] disabled pc=11-73
+  code:
+    0: [line 24] GETTABUP 1 0 -1
+    1: [line 24] LOADBOOL 2 0 0
+    2: [line 24] CALL 1 2 3
+    3: [line 25] GETTABUP 3 0 -1
+    4: [line 25] LOADBOOL 4 0 0
+    5: [line 25] CALL 3 2 3
+    6: [line 26] GETTABLE 5 0 -2
+    7: [line 26] JMPIFEQK 5 2
+    8: [line 26] EXTRAARG 2
+    9: [line 26] LOADBOOL 5 0 1
+    10: [line 26] LOADBOOL 5 1 0
+    11: [line 28] GETUPVAL 6 1
+    12: [line 28] GETTABUP 7 0 -4
+    13: [line 28] CALL 6 2 2
+    14: [line 28] NEWTABLE 7 1 1
+    15: [line 29] NEWTABLE 8 0 5
+    16: [line 30] SETTABLE 8 -6 -7
+    17: [line 31] SETTABLE 8 -8 -9
+    18: [line 32] SETTABLE 8 -10 -11
+    19: [line 33] SETTABLE 8 -12 -13
+    20: [line 34] GETTABLE 9 0 -14
+    21: [line 34] TEST 9 1
+    22: [line 34] JMP 0 1
+    23: [line 34] LOADK 9 14
+    24: [line 34] SETTABLE 8 -14 9
+    25: [line 35] SETTABLE 7 -5 8
+    26: [line 36] GETUPVAL 8 1
+    27: [line 36] GETTABUP 9 0 -16
+    28: [line 36] CALL 8 2 2
+    29: [line 36] NEWTABLE 9 0 1
+    30: [line 37] CLOSURE 10 0
+    31: [line 37] SETTABLE 9 -17 10
+    32: [line 38] GETUPVAL 10 1
+    33: [line 38] GETTABUP 11 0 -18
+    34: [line 38] CALL 10 2 2
+    35: [line 38] NEWTABLE 11 1 1
+    36: [line 39] DUPTABLE 12 0 0
+    37: [line 39] EXTRAARG 0
+    38: [line 39] SETTABLE 11 -5 12
+    39: [line 44] CLOSURE 12 1
+    40: [line 45] SETLIST 11 1 1
+    41: [line 38] CALL 10 2 0
+    42: [line 46] SETLIST 9 0 1
+    43: [line 36] CALL 8 2 2
+    44: [line 47] GETUPVAL 9 1
+    45: [line 47] GETTABUP 10 0 -19
+    46: [line 47] CALL 9 2 2
+    47: [line 47] NEWTABLE 10 0 9
+    48: [line 48] GETTABUP 11 0 -20
+    49: [line 62] CLOSURE 12 2
+    50: [line 48] CALL 11 2 2
+    51: [line 62] SETTABLE 10 -5 11
+    52: [line 63] GETTABLE 11 0 -21
+    53: [line 63] SETTABLE 10 -21 11
+    54: [line 64] GETTABLE 11 0 -22
+    55: [line 64] SETTABLE 10 -22 11
+    56: [line 65] GETTABLE 11 0 -24
+    57: [line 65] SETTABLE 10 -23 11
+    58: [line 66] GETTABLE 11 0 -26
+    59: [line 66] SETTABLE 10 -25 11
+    60: [line 69] CLOSURE 11 3
+    61: [line 69] SETTABLE 10 -27 11
+    62: [line 72] CLOSURE 11 4
+    63: [line 72] SETTABLE 10 -28 11
+    64: [line 75] CLOSURE 11 5
+    65: [line 75] SETTABLE 10 -29 11
+    66: [line 78] CLOSURE 11 6
+    67: [line 78] SETTABLE 10 -30 11
+    68: [line 47] CALL 9 2 0
+    69: [line 80] SETLIST 7 0 1
+    70: [line 28] TAILCALL 6 2 0
+    71: [line 80] RETURN 6 0
+    72: [line 81] RETURN 0 1
+  child 0:
+    proto ? params=0 vararg=False maxstack=2 linedefined=37-37
+    constants:
+      [0] label
+      [1] nil
+    upvalues:
+      [0] props local=True index=0 byvalue=True
+    locals:
+    code:
+      0: [line 37] GETTABUP 0 0 -1
+      1: [line 37] JMPIFNEK 0 2
+      2: [line 37] EXTRAARG 1
+      3: [line 37] LOADBOOL 0 0 1
+      4: [line 37] LOADBOOL 0 1 0
+      5: [line 37] RETURN 0 2
+      6: [line 37] RETURN 0 1
+  child 1:
+    proto ? params=0 vararg=False maxstack=3 linedefined=40-44
+    constants:
+      [0] label
+      [1] nil
+      [2] 
+      [3] read
+    upvalues:
+      [0] props local=True index=0 byvalue=True
+      [1] Sx local=False index=0 byvalue=False
+    locals:
+      [0] label pc=1-10
+    code:
+      0: [line 41] GETTABUP 0 0 -1
+      1: [line 42] JMPIFNEK 0 3
+      2: [line 42] EXTRAARG 1
+      3: [line 42] LOADK 1 2
+      4: [line 42] RETURN 1 2
+      5: [line 43] GETTABUP 1 1 -4
+      6: [line 43] MOVE 2 0
+      7: [line 43] TAILCALL 1 2 0
+      8: [line 43] RETURN 1 0
+      9: [line 44] RETURN 0 1
+  child 2:
+    proto ? params=0 vararg=False maxstack=3 linedefined=48-62
+    constants:
+      [0] paddingTop
+      [1] 10
+      [2] paddingBottom
+      [3] paddingLeft
+      [4] 14
+      [5] paddingRight
+      [6] backgroundColor
+      [7] rgba(255,255,255,0.08)
+      [8] borderWidth
+      [9] 1
+      [10] borderColor
+      [11] rgba(79,195,247,0.7)
+      [12] rgba(255,255,255,0.4)
+      [13] rgba(255,255,255,0.12)
+      [14] borderRadius
+      [15] 8
+      [16] placeholderColor
+      [17] rgba(255,255,255,0.35)
+      [18] cursorColor
+      [19] accent
+    upvalues:
+      [0] focus local=True index=1 byvalue=True
+      [1] hovered local=True index=3 byvalue=True
+      [2] theme local=False index=2 byvalue=False
+    locals:
+      [0] isFocused pc=2-29
+    code:
+      0: [line 49] GETUPVAL 0 0
+      1: [line 49] CALL 0 1 2
+      2: [line 50] NEWTABLE 1 0 10
+      3: [line 51] SETTABLE 1 -1 -2
+      4: [line 52] SETTABLE 1 -3 -2
+      5: [line 53] SETTABLE 1 -4 -5
+      6: [line 54] SETTABLE 1 -6 -5
+      7: [line 55] SETTABLE 1 -7 -8
+      8: [line 56] SETTABLE 1 -9 -10
+      9: [line 57] TEST 0 0
+      10: [line 57] JMP 0 3
+      11: [line 57] LOADK 2 11
+      12: [line 57] TEST 2 1
+      13: [line 57] JMP 0 8
+      14: [line 57] GETUPVAL 2 1
+      15: [line 57] CALL 2 1 2
+      16: [line 57] TEST 2 0
+      17: [line 57] JMP 0 3
+      18: [line 57] LOADK 2 12
+      19: [line 57] TEST 2 1
+      20: [line 57] JMP 0 1
+      21: [line 57] LOADK 2 13
+      22: [line 57] SETTABLE 1 -11 2
+      23: [line 58] SETTABLE 1 -15 -16
+      24: [line 59] SETTABLE 1 -17 -18
+      25: [line 60] GETTABUP 2 2 -20
+      26: [line 60] SETTABLE 1 -19 2
+      27: [line 61] RETURN 1 2
+      28: [line 62] RETURN 0 1
+  child 3:
+    proto ? params=0 vararg=False maxstack=2 linedefined=67-69
+    constants:
+    upvalues:
+      [0] setFocus local=True index=2 byvalue=True
+    locals:
+    code:
+      0: [line 68] GETUPVAL 0 0
+      1: [line 68] LOADBOOL 1 1 0
+      2: [line 68] CALL 0 2 1
+      3: [line 69] RETURN 0 1
+  child 4:
+    proto ? params=0 vararg=False maxstack=2 linedefined=70-72
+    constants:
+    upvalues:
+      [0] setFocus local=True index=2 byvalue=True
+    locals:
+    code:
+      0: [line 71] GETUPVAL 0 0
+      1: [line 71] LOADBOOL 1 0 0
+      2: [line 71] CALL 0 2 1
+      3: [line 72] RETURN 0 1
+  child 5:
+    proto ? params=0 vararg=False maxstack=2 linedefined=73-75
+    constants:
+    upvalues:
+      [0] setHovered local=True index=4 byvalue=True
+    locals:
+    code:
+      0: [line 74] GETUPVAL 0 0
+      1: [line 74] LOADBOOL 1 1 0
+      2: [line 74] CALL 0 2 1
+      3: [line 75] RETURN 0 1
+  child 6:
+    proto ? params=0 vararg=False maxstack=2 linedefined=76-78
+    constants:
+    upvalues:
+      [0] setHovered local=True index=4 byvalue=True
+    locals:
+    code:
+      0: [line 77] GETUPVAL 0 0
+      1: [line 77] LOADBOOL 1 0 0
+      2: [line 77] CALL 0 2 1
+      3: [line 78] RETURN 0 1

@@ -36,6 +36,14 @@ class PrototypeBuilder : IPoolNode<PrototypeBuilder>
 
     public ReadOnlySpan<UpValueDesc> UpValues => UpValuesList.AsSpan();
 
+    /// <summary>
+    /// Compiler-rewrite plan Milestone 4: one prebuilt all-constant <see cref="LuaTable"/> per
+    /// fused table literal, indexed by <see cref="OpCode.DupTable"/>'s trailing ExtraArg.
+    /// </summary>
+    internal FastListCore<LuaTable> TemplatesList;
+
+    public ReadOnlySpan<LuaTable> Templates => TemplatesList.AsSpan();
+
     public string Source;
     public string? Name;
     public int LineDefined,
@@ -81,6 +89,7 @@ class PrototypeBuilder : IPoolNode<PrototypeBuilder>
         LocalVariablesList.Clear();
         LocalWrittenList.Clear();
         UpValuesList.Clear();
+        TemplatesList.Clear();
         LineDefined = 0;
         LastLineDefined = 0;
         ParameterCount = 0;
@@ -112,7 +121,8 @@ class PrototypeBuilder : IPoolNode<PrototypeBuilder>
             protoTypes,
             LineInfo.ToArray(),
             LocalVariables.ToArray(),
-            UpValues.ToArray()
+            UpValues.ToArray(),
+            Templates.ToArray()
         );
         Release();
         return p;

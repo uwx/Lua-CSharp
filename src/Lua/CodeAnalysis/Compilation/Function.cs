@@ -504,16 +504,28 @@ class Function : IPoolNode<Function>
     public void LeaveBlock()
     {
         var b = Block;
-        if (b.Previous != null && b.HasUpValue) // create a 'jump to here' to close upvalues
-        {
-            var j = Jump();
-            PatchClose(j, b.ActiveVariableCount);
-            PatchToHere(j);
-        }
 
-        if (b.IsLoop)
+        // Skipped entirely in resolution-only mode (AstParser, the two-pass compiler's first
+        // pass). Both blocks below are pure emission -- they write instructions and patch jump
+        // lists -- and that pass emits nothing and discards its PrototypeBuilder, so running them
+        // would only corrupt a code list nobody reads. The upvalue-close block in particular
+        // emits a Jmp and immediately patches its A as a close level, which trips the jump-list
+        // invariant in PatchClose once the discarded list's stale A values are re-patched at a
+        // different level. Everything below this point is genuine resolution state (block
+        // nesting, local/upvalue scope, pending-goto diagnostics) and always runs.
+        if (!P.ResolutionOnly)
         {
-            BreakLabel();
+            if (b.Previous != null && b.HasUpValue) // create a 'jump to here' to close upvalues
+            {
+                var j = Jump();
+                PatchClose(j, b.ActiveVariableCount);
+                PatchToHere(j);
+            }
+
+            if (b.IsLoop)
+            {
+                BreakLabel();
+            }
         }
 
         Block = b.Previous!;
@@ -773,6 +785,53 @@ class Function : IPoolNode<Function>
         return Jump();
     }
 
+    /// <summary>
+    /// Emits the fused two-level import <c>R(A) := UpValue[B][RK(C)][Kst(extra)]</c> -- the main
+    /// <see cref="OpCode.GetImport"/> instruction plus the trailing <see cref="OpCode.ExtraArg"/>
+    /// carrying the second key's constant index, the same two-word shape
+    /// <see cref="ConditionalJumpK"/> and <see cref="OpCode.LoadKX"/> use.
+    ///
+    /// <c>A</c> is left 0, exactly as <see cref="DischargeVariables"/>'s GetTabUp/GetTable branches
+    /// leave it, so the caller binds it through <see cref="ExpressionToRegister"/>. That is what
+    /// makes the fused instruction a drop-in for the pair it replaces: level 1's result, level 2's
+    /// table and level 2's result are all the one register A. It therefore needs *no more*
+    /// registers than the unfused pair -- in the common case the pair's two levels collapse onto
+    /// the same register too -- so register bookkeeping around the call site is unchanged.
+    ///
+    /// Both key indices must already fit an RK operand (<see cref="MaxIndexRK"/>), since C encodes
+    /// key1 as RK and the ExtraArg's Ax is re-encoded as RK by the deopt rewrite. Callers check
+    /// that and fall back to the unfused path when it doesn't hold.
+    /// </summary>
+    public int GetImport(int upValue, int key1Constant, int key2Constant)
+    {
+        Assert(key1Constant <= MaxIndexRK && key2Constant <= MaxIndexRK);
+        var pc = EncodeABC(OpCode.GetImport, 0, upValue, AsConstant(key1Constant));
+        EncodeExtraArg(key2Constant);
+        return pc;
+    }
+
+    /// <summary>
+    /// Compiler-rewrite plan Milestone 4: emits the fused all-constant table constructor
+    /// <c>R(A) := a copy of template[extra]</c> -- the <see cref="OpCode.DupTable"/> instruction plus
+    /// the trailing <see cref="OpCode.ExtraArg"/> holding the template's index in this prototype's
+    /// <see cref="Prototype.Templates"/> pool, which this call appends the given table to. The same
+    /// two-word shape <see cref="GetImport"/> and <see cref="OpCode.LoadKX"/> use.
+    ///
+    /// <c>A</c> is left 0, exactly as <see cref="GetImport"/> leaves it, so the caller binds it
+    /// through <see cref="ExpressionToNextRegister"/> and register bookkeeping around the
+    /// constructor is unchanged. Unlike GetImport there is no RK limit to respect: a template index
+    /// travels in a whole ExtraArg word (Ax), so only the pool's own size could overflow it.
+    /// </summary>
+    public int DupTable(LuaTable template)
+    {
+        var index = Proto.TemplatesList.Length;
+        Assert(index <= MaxArgAx);
+        Proto.TemplatesList.Add(template);
+        var pc = EncodeABC(OpCode.DupTable, 0, 0, 0);
+        EncodeExtraArg(index);
+        return pc;
+    }
+
     public void FixJump(int pc, int dest)
     {
         Assert(IsJumpListWalkable(pc));
@@ -938,7 +997,8 @@ class Function : IPoolNode<Function>
 
             Assert(
                 (Proto.CodeList[list].OpCode == OpCode.Jmp && Proto.CodeList[list].A == 0)
-                    || Proto.CodeList[list].A >= level
+                    || Proto.CodeList[list].A >= level,
+                $"PatchClose pc={list} op={Proto.CodeList[list].OpCode} A={Proto.CodeList[list].A} level={level}"
             );
             Proto.CodeList[list].A = level;
         }

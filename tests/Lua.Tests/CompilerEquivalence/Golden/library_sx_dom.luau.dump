@@ -1,0 +1,2650 @@
+proto ? params=0 vararg=True maxstack=54 linedefined=0-0
+constants:
+  [0] require
+  [1] ./signals
+  [2] ./host
+  [3] ./h
+  [4] createRoot
+  [5] createInstance
+  [6] createTextInstance
+  [7] appendChild
+  [8] insertBefore
+  [9] removeChild
+  [10] setProperty
+  [11] commitTextUpdate
+  [12] setActiveRoot
+  [13] ./types
+  [14] show
+  [15] switch
+  [16] match
+  [17] for
+  [18] index
+  [19] setScheduler
+  [20] defer
+  [21] render
+  [22] Fragment
+  [23] Show
+  [24] Switch
+  [25] Match
+  [26] For
+  [27] Index
+  [28] mountNode
+  [29] mountValueInto
+  [30] devtools
+  [31] enable
+  [32] disable
+  [33] snapshot
+templates:
+  [0] array=[] hash={enabled=false, root=nil}
+upvalues:
+  [0] _ENV local=True index=0 byvalue=False
+locals:
+  [0] Sx pc=3-88
+  [1] Host pc=6-88
+  [2] h pc=9-88
+  [3] createRoot pc=10-88
+  [4] createInstance pc=11-88
+  [5] createTextInstance pc=12-88
+  [6] appendChild pc=13-88
+  [7] insertBefore pc=14-88
+  [8] removeChild pc=15-88
+  [9] setProperty pc=16-88
+  [10] commitTextUpdate pc=17-88
+  [11] setActiveRoot pc=18-88
+  [12] Dom pc=19-88
+  [13] types pc=22-88
+  [14] DevTools pc=24-88
+  [15] DevStack pc=25-88
+  [16] formatCallSite pc=26-88
+  [17] devName pc=27-88
+  [18] devPush pc=28-88
+  [19] devPop pc=29-88
+  [20] devRemove pc=30-88
+  [21] FLOW pc=31-88
+  [22] Fragment pc=32-88
+  [23] isNode pc=33-88
+  [24] isEventKey pc=34-88
+  [25] toAccessor pc=35-88
+  [26] toValueOrCall pc=36-88
+  [27] insertInto pc=37-88
+  [28] removeNode pc=38-88
+  [29] createAnchor pc=39-88
+  [30] mountNode pc=40-88
+  [31] mountValueInto pc=40-88
+  [32] insertDynamic pc=40-88
+  [33] mountFlow pc=40-88
+  [34] mountHostElement pc=45-88
+  [35] mountComponent pc=46-88
+  [36] FlowKind_Show pc=49-88
+  [37] FlowKind_Switch pc=50-88
+  [38] FlowKind_Match pc=51-88
+  [39] FlowKind_For pc=52-88
+  [40] FlowKind_Index pc=53-88
+  [41] Show pc=54-88
+  [42] Switch pc=55-88
+  [43] Match pc=56-88
+  [44] For pc=57-88
+  [45] Index pc=58-88
+  [46] disposeMount pc=59-88
+  [47] mountShow pc=60-88
+  [48] mountSwitch pc=61-88
+  [49] rowKey pc=62-88
+  [50] mountList pc=63-88
+  [51] render pc=66-88
+code:
+  0: [line 13] GETTABUP 0 0 -1
+  1: [line 13] LOADK 1 1
+  2: [line 13] CALL 0 2 2
+  3: [line 14] GETTABUP 1 0 -1
+  4: [line 14] LOADK 2 2
+  5: [line 14] CALL 1 2 2
+  6: [line 15] GETTABUP 2 0 -1
+  7: [line 15] LOADK 3 3
+  8: [line 15] CALL 2 2 2
+  9: [line 16] GETTABLE 3 1 -5
+  10: [line 17] GETTABLE 4 1 -6
+  11: [line 18] GETTABLE 5 1 -7
+  12: [line 19] GETTABLE 6 1 -8
+  13: [line 20] GETTABLE 7 1 -9
+  14: [line 21] GETTABLE 8 1 -10
+  15: [line 22] GETTABLE 9 1 -11
+  16: [line 23] GETTABLE 10 1 -12
+  17: [line 24] GETTABLE 11 1 -13
+  18: [line 26] NEWTABLE 12 0 0
+  19: [line 28] GETTABUP 13 0 -1
+  20: [line 28] LOADK 14 13
+  21: [line 28] CALL 13 2 2
+  22: [line 35] DUPTABLE 14 0 0
+  23: [line 35] EXTRAARG 0
+  24: [line 36] NEWTABLE 15 0 0
+  25: [line 53] CLOSURE 16 0
+  26: [line 92] CLOSURE 17 1
+  27: [line 112] CLOSURE 18 2
+  28: [line 116] CLOSURE 19 3
+  29: [line 136] CLOSURE 20 4
+  30: [line 140] NEWTABLE 21 0 0
+  31: [line 141] NEWTABLE 22 0 0
+  32: [line 156] CLOSURE 23 5
+  33: [line 160] CLOSURE 24 6
+  34: [line 169] CLOSURE 25 7
+  35: [line 176] CLOSURE 26 8
+  36: [line 184] CLOSURE 27 9
+  37: [line 188] CLOSURE 28 10
+  38: [line 194] CLOSURE 29 11
+  39: [line 198] LOADNIL 30 3
+  40: [line 247] CLOSURE 34 12
+  41: [line 247] MOVE 31 34
+  42: [line 347] CLOSURE 34 13
+  43: [line 347] MOVE 32 34
+  44: [line 429] CLOSURE 34 14
+  45: [line 478] CLOSURE 35 15
+  46: [line 511] CLOSURE 36 16
+  47: [line 511] MOVE 30 36
+  48: [line 515] LOADK 36 14
+  49: [line 516] LOADK 37 15
+  50: [line 517] LOADK 38 16
+  51: [line 518] LOADK 39 17
+  52: [line 519] LOADK 40 18
+  53: [line 523] CLOSURE 41 17
+  54: [line 527] CLOSURE 42 18
+  55: [line 531] CLOSURE 43 19
+  56: [line 535] CLOSURE 44 20
+  57: [line 539] CLOSURE 45 21
+  58: [line 549] CLOSURE 46 22
+  59: [line 603] CLOSURE 47 23
+  60: [line 680] CLOSURE 48 24
+  61: [line 687] CLOSURE 49 25
+  62: [line 773] CLOSURE 50 26
+  63: [line 798] CLOSURE 51 27
+  64: [line 798] MOVE 33 51
+  65: [line 811] CLOSURE 51 28
+  66: [line 816] GETTABLE 52 0 -20
+  67: [line 816] GETTABLE 53 1 -21
+  68: [line 816] CALL 52 2 1
+  69: [line 818] SETTABLE 12 -22 51
+  70: [line 819] SETTABLE 12 -23 22
+  71: [line 820] SETTABLE 12 -24 41
+  72: [line 821] SETTABLE 12 -25 42
+  73: [line 822] SETTABLE 12 -26 43
+  74: [line 823] SETTABLE 12 -27 44
+  75: [line 824] SETTABLE 12 -28 45
+  76: [line 825] SETTABLE 12 -29 30
+  77: [line 826] SETTABLE 12 -30 31
+  78: [line 828] NEWTABLE 52 0 3
+  79: [line 832] CLOSURE 53 29
+  80: [line 832] SETTABLE 52 -32 53
+  81: [line 836] CLOSURE 53 30
+  82: [line 836] SETTABLE 52 -33 53
+  83: [line 856] CLOSURE 53 31
+  84: [line 856] SETTABLE 52 -34 53
+  85: [line 857] SETTABLE 12 -31 52
+  86: [line 859] RETURN 12 2
+  87: [line 859] RETURN 0 1
+child 0:
+  proto formatCallSite params=3 vararg=False maxstack=6 linedefined=42-53
+  constants:
+    [0] type
+    [1] string
+    [2] 
+    [3] number
+    [4] 0
+    [5] :
+  upvalues:
+    [0] _ENV local=False index=0 byvalue=False
+  locals:
+    [0] src pc=0-35
+    [1] linedefined pc=0-35
+    [2] currentline pc=0-35
+  code:
+    0: [line 43] GETTABUP 3 0 -1
+    1: [line 43] MOVE 4 0
+    2: [line 43] CALL 3 2 2
+    3: [line 43] JMPIFNEK 3 3
+    4: [line 43] EXTRAARG 1
+    5: [line 43] JMPIFNEK 0 3
+    6: [line 43] EXTRAARG 2
+    7: [line 44] LOADK 3 2
+    8: [line 44] RETURN 3 2
+    9: [line 46] GETTABUP 3 0 -1
+    10: [line 46] MOVE 4 1
+    11: [line 46] CALL 3 2 2
+    12: [line 46] JMPIFNEK 3 8
+    13: [line 46] EXTRAARG 3
+    14: [line 46] LT 0 -5 1
+    15: [line 46] JMP 0 5
+    16: [line 47] MOVE 3 0
+    17: [line 47] LOADK 4 5
+    18: [line 47] MOVE 5 1
+    19: [line 47] CONCAT 3 3 5
+    20: [line 47] RETURN 3 2
+    21: [line 49] GETTABUP 3 0 -1
+    22: [line 49] MOVE 4 2
+    23: [line 49] CALL 3 2 2
+    24: [line 49] JMPIFNEK 3 8
+    25: [line 49] EXTRAARG 3
+    26: [line 49] LT 0 -5 2
+    27: [line 49] JMP 0 5
+    28: [line 50] MOVE 3 0
+    29: [line 50] LOADK 4 5
+    30: [line 50] MOVE 5 2
+    31: [line 50] CONCAT 3 3 5
+    32: [line 50] RETURN 3 2
+    33: [line 52] RETURN 0 2
+    34: [line 53] RETURN 0 1
+child 1:
+  proto devName params=2 vararg=False maxstack=10 linedefined=55-92
+  constants:
+    [0] enabled
+    [1] 
+    [2] type
+    [3] string
+    [4] nil
+    [5] pcall
+    [6] debug
+    [7] getinfo
+    [8] table
+    [9] short_src
+    [10] linedefined
+    [11] currentline
+    [12] styledName
+    [13]  (
+    [14] )
+    [15] info
+    [16] n
+    [17] ?
+    [18] anonymous
+  upvalues:
+    [0] DevTools local=True index=14 byvalue=True
+    [1] _ENV local=False index=0 byvalue=False
+    [2] formatCallSite local=True index=16 byvalue=False
+    [3] Sx local=True index=0 byvalue=True
+  locals:
+    [0] fn pc=0-79
+    [1] callSite pc=0-79
+    [2] lineNumber pc=12-79
+    [3] ok2 pc=23-36
+    [4] info pc=23-36
+    [5] sxName pc=40-79
+    [6] ok pc=59-79
+    [7] name pc=59-79
+  code:
+    0: [line 57] GETTABUP 2 0 -1
+    1: [line 57] TEST 2 1
+    2: [line 57] JMP 0 2
+    3: [line 58] LOADK 2 1
+    4: [line 58] RETURN 2 2
+    5: [line 60] GETTABUP 2 1 -3
+    6: [line 60] MOVE 3 0
+    7: [line 60] CALL 2 2 2
+    8: [line 60] JMPIFNEK 2 2
+    9: [line 60] EXTRAARG 3
+    10: [line 61] RETURN 0 2
+    11: [line 67] LOADK 2 1
+    12: [line 68] JMPIFEQK 1 5
+    13: [line 68] EXTRAARG 4
+    14: [line 68] JMPIFEQK 1 3
+    15: [line 68] EXTRAARG 1
+    16: [line 69] MOVE 2 1
+    17: [line 69] JMP 0 18
+    18: [line 71] GETTABUP 3 1 -6
+    19: [line 71] GETIMPORT 4 1 -7
+    20: [line 71] EXTRAARG 7
+    21: [line 71] MOVE 5 0
+    22: [line 71] CALL 3 3 3
+    23: [line 72] TEST 3 0
+    24: [line 72] JMP 0 11
+    25: [line 72] GETTABUP 5 1 -3
+    26: [line 72] MOVE 6 4
+    27: [line 72] CALL 5 2 2
+    28: [line 72] JMPIFNEK 5 7
+    29: [line 72] EXTRAARG 8
+    30: [line 73] GETUPVAL 5 2
+    31: [line 73] GETTABLE 6 4 -10
+    32: [line 73] GETTABLE 7 4 -11
+    33: [line 73] GETTABLE 8 4 -12
+    34: [line 73] CALL 5 4 2
+    35: [line 73] MOVE 2 5
+    36: [line 80] GETIMPORT 3 3 -7
+    37: [line 80] EXTRAARG 12
+    38: [line 80] MOVE 4 0
+    39: [line 80] CALL 3 2 2
+    40: [line 81] GETTABUP 4 1 -3
+    41: [line 81] MOVE 5 3
+    42: [line 81] CALL 4 2 2
+    43: [line 81] JMPIFNEK 4 9
+    44: [line 81] EXTRAARG 3
+    45: [line 81] JMPIFEQK 3 7
+    46: [line 81] EXTRAARG 1
+    47: [line 82] MOVE 4 3
+    48: [line 82] LOADK 5 13
+    49: [line 82] MOVE 6 2
+    50: [line 82] LOADK 7 14
+    51: [line 82] CONCAT 4 4 7
+    52: [line 82] RETURN 4 2
+    53: [line 87] GETTABUP 4 1 -6
+    54: [line 87] GETIMPORT 5 1 -7
+    55: [line 87] EXTRAARG 15
+    56: [line 87] MOVE 6 0
+    57: [line 87] LOADK 7 16
+    58: [line 87] CALL 4 4 3
+    59: [line 88] TEST 4 0
+    60: [line 88] JMP 0 15
+    61: [line 88] GETTABUP 6 1 -3
+    62: [line 88] MOVE 7 5
+    63: [line 88] CALL 6 2 2
+    64: [line 88] JMPIFNEK 6 11
+    65: [line 88] EXTRAARG 3
+    66: [line 88] JMPIFEQK 5 9
+    67: [line 88] EXTRAARG 1
+    68: [line 88] JMPIFEQK 5 7
+    69: [line 88] EXTRAARG 17
+    70: [line 89] MOVE 6 5
+    71: [line 89] LOADK 7 13
+    72: [line 89] MOVE 8 2
+    73: [line 89] LOADK 9 14
+    74: [line 89] CONCAT 6 6 9
+    75: [line 89] RETURN 6 2
+    76: [line 91] LOADK 6 18
+    77: [line 91] RETURN 6 2
+    78: [line 92] RETURN 0 1
+child 2:
+  proto devPush params=3 vararg=False maxstack=7 linedefined=94-112
+  constants:
+    [0] enabled
+    [1] name
+    [2] kind
+    [3] children
+    [4] parent
+    [5] nil
+    [6] props
+    [7] 1
+    [8] root
+  upvalues:
+    [0] DevTools local=True index=14 byvalue=True
+    [1] DevStack local=True index=15 byvalue=True
+  locals:
+    [0] kind pc=0-35
+    [1] name pc=0-35
+    [2] props pc=0-35
+    [3] parent pc=8-35
+    [4] node pc=14-35
+  code:
+    0: [line 95] GETTABUP 3 0 -1
+    1: [line 95] TEST 3 1
+    2: [line 95] JMP 0 2
+    3: [line 96] LOADNIL 3 0
+    4: [line 96] RETURN 3 2
+    5: [line 98] GETUPVAL 3 1
+    6: [line 98] LEN 3 3
+    7: [line 98] GETTABUP 3 1 3
+    8: [line 99] NEWTABLE 4 0 4
+    9: [line 99] SETTABLE 4 -2 1
+    10: [line 99] SETTABLE 4 -3 0
+    11: [line 99] NEWTABLE 5 0 0
+    12: [line 99] SETTABLE 4 -4 5
+    13: [line 99] SETTABLE 4 -5 3
+    14: [line 100] JMPIFEQK 2 2
+    15: [line 100] EXTRAARG 5
+    16: [line 103] SETTABLE 4 -7 2
+    17: [line 105] TEST 3 0
+    18: [line 105] JMP 0 6
+    19: [line 106] GETTABLE 5 3 -4
+    20: [line 106] GETTABLE 6 3 -4
+    21: [line 106] LEN 6 6
+    22: [line 106] ADD 6 6 -8
+    23: [line 106] SETTABLE 5 6 4
+    24: [line 106] JMP 0 4
+    25: [line 107] GETTABUP 5 0 -9
+    26: [line 107] JMPIFNEK 5 2
+    27: [line 107] EXTRAARG 5
+    28: [line 108] SETTABUP 0 -9 4
+    29: [line 110] GETUPVAL 5 1
+    30: [line 110] LEN 5 5
+    31: [line 110] ADD 5 5 -8
+    32: [line 110] SETTABUP 1 5 4
+    33: [line 111] RETURN 4 2
+    34: [line 112] RETURN 0 1
+child 3:
+  proto devPop params=0 vararg=False maxstack=2 linedefined=114-116
+  constants:
+    [0] nil
+  upvalues:
+    [0] DevStack local=True index=15 byvalue=True
+  locals:
+  code:
+    0: [line 115] GETUPVAL 0 0
+    1: [line 115] LEN 0 0
+    2: [line 115] SETTABUP 0 0 -1
+    3: [line 116] RETURN 0 1
+child 4:
+  proto devRemove params=1 vararg=False maxstack=9 linedefined=118-136
+  constants:
+    [0] nil
+    [1] children
+    [2] parent
+    [3] 1
+    [4] table
+    [5] remove
+    [6] root
+  upvalues:
+    [0] _ENV local=False index=0 byvalue=False
+    [1] DevTools local=True index=14 byvalue=True
+  locals:
+    [0] node pc=0-30
+    [1] pc pc=10-25
+    [2] (for index) pc=13-24
+    [3] (for limit) pc=13-24
+    [4] (for step) pc=13-24
+    [5] i pc=14-23
+  code:
+    0: [line 119] JMPIFNEK 0 2
+    1: [line 119] EXTRAARG 0
+    2: [line 120] RETURN 0 1
+    3: [line 122] NEWTABLE 1 0 0
+    4: [line 122] SETTABLE 0 -2 1
+    5: [line 123] GETTABLE 1 0 -3
+    6: [line 123] TEST 1 0
+    7: [line 123] JMP 0 17
+    8: [line 124] GETTABLE 1 0 -3
+    9: [line 124] GETTABLE 1 1 -2
+    10: [line 125] LOADK 2 3
+    11: [line 125] LEN 3 1
+    12: [line 125] LOADK 4 3
+    13: [line 125] FORPREP 2 9
+    14: [line 126] GETTABLE 6 1 5
+    15: [line 126] EQ 0 6 0
+    16: [line 126] JMP 0 6
+    17: [line 127] GETIMPORT 6 0 -5
+    18: [line 127] EXTRAARG 5
+    19: [line 127] MOVE 7 1
+    20: [line 127] MOVE 8 5
+    21: [line 127] CALL 6 3 1
+    22: [line 128] JMP 0 1
+    23: [line 125] FORLOOP 2 -10
+    24: [line 131] SETTABLE 0 -3 -1
+    25: [line 133] GETTABUP 1 1 -7
+    26: [line 133] EQ 0 1 0
+    27: [line 133] JMP 0 1
+    28: [line 134] SETTABUP 1 -7 -1
+    29: [line 136] RETURN 0 1
+child 5:
+  proto isNode params=1 vararg=False maxstack=3 linedefined=154-156
+  constants:
+    [0] type
+    [1] table
+    [2] nil
+  upvalues:
+    [0] _ENV local=False index=0 byvalue=False
+  locals:
+    [0] v pc=0-12
+  code:
+    0: [line 155] GETTABUP 1 0 -1
+    1: [line 155] MOVE 2 0
+    2: [line 155] CALL 1 2 2
+    3: [line 155] JMPIFNEK 1 4
+    4: [line 155] EXTRAARG 1
+    5: [line 155] GETTABLE 1 0 -1
+    6: [line 155] JMPIFNEK 1 2
+    7: [line 155] EXTRAARG 2
+    8: [line 155] LOADBOOL 1 0 1
+    9: [line 155] LOADBOOL 1 1 0
+    10: [line 155] RETURN 1 2
+    11: [line 156] RETURN 0 1
+child 6:
+  proto isEventKey params=1 vararg=False maxstack=5 linedefined=158-160
+  constants:
+    [0] string
+    [1] sub
+    [2] 1
+    [3] 2
+    [4] on
+  upvalues:
+    [0] _ENV local=False index=0 byvalue=False
+  locals:
+    [0] key pc=0-12
+  code:
+    0: [line 159] GETIMPORT 1 0 -1
+    1: [line 159] EXTRAARG 1
+    2: [line 159] MOVE 2 0
+    3: [line 159] LOADK 3 2
+    4: [line 159] LOADK 4 3
+    5: [line 159] CALL 1 4 2
+    6: [line 159] JMPIFEQK 1 2
+    7: [line 159] EXTRAARG 4
+    8: [line 159] LOADBOOL 1 0 1
+    9: [line 159] LOADBOOL 1 1 0
+    10: [line 159] RETURN 1 2
+    11: [line 160] RETURN 0 1
+child 7:
+  proto toAccessor params=1 vararg=False maxstack=3 linedefined=162-169
+  constants:
+    [0] type
+    [1] function
+  upvalues:
+    [0] _ENV local=False index=0 byvalue=False
+  locals:
+    [0] v pc=0-9
+  code:
+    0: [line 163] GETTABUP 1 0 -1
+    1: [line 163] MOVE 2 0
+    2: [line 163] CALL 1 2 2
+    3: [line 163] JMPIFNEK 1 2
+    4: [line 163] EXTRAARG 1
+    5: [line 164] RETURN 0 2
+    6: [line 168] CLOSURE 1 0
+    7: [line 168] RETURN 1 2
+    8: [line 169] RETURN 0 1
+  child 0:
+    proto ? params=0 vararg=False maxstack=2 linedefined=166-168
+    constants:
+    upvalues:
+      [0] v local=True index=0 byvalue=True
+    locals:
+    code:
+      0: [line 167] GETUPVAL 0 0
+      1: [line 167] RETURN 0 2
+      2: [line 168] RETURN 0 1
+child 8:
+  proto toValueOrCall params=1 vararg=False maxstack=3 linedefined=171-176
+  constants:
+    [0] type
+    [1] function
+  upvalues:
+    [0] _ENV local=False index=0 byvalue=False
+  locals:
+    [0] v pc=0-10
+  code:
+    0: [line 172] GETTABUP 1 0 -1
+    1: [line 172] MOVE 2 0
+    2: [line 172] CALL 1 2 2
+    3: [line 172] JMPIFNEK 1 4
+    4: [line 172] EXTRAARG 1
+    5: [line 173] MOVE 1 0
+    6: [line 173] TAILCALL 1 1 0
+    7: [line 173] RETURN 1 0
+    8: [line 175] RETURN 0 2
+    9: [line 176] RETURN 0 1
+child 9:
+  proto insertInto params=3 vararg=False maxstack=7 linedefined=178-184
+  constants:
+    [0] nil
+  upvalues:
+    [0] insertBefore local=True index=7 byvalue=True
+    [1] appendChild local=True index=6 byvalue=True
+  locals:
+    [0] parent pc=0-13
+    [1] node pc=0-13
+    [2] marker pc=0-13
+  code:
+    0: [line 179] JMPIFEQK 2 7
+    1: [line 179] EXTRAARG 0
+    2: [line 180] GETUPVAL 3 0
+    3: [line 180] MOVE 4 0
+    4: [line 180] MOVE 5 1
+    5: [line 180] MOVE 6 2
+    6: [line 180] CALL 3 4 1
+    7: [line 180] JMP 0 4
+    8: [line 182] GETUPVAL 3 1
+    9: [line 182] MOVE 4 0
+    10: [line 182] MOVE 5 1
+    11: [line 182] CALL 3 3 1
+    12: [line 184] RETURN 0 1
+child 10:
+  proto removeNode params=2 vararg=False maxstack=5 linedefined=186-188
+  constants:
+  upvalues:
+    [0] removeChild local=True index=8 byvalue=True
+  locals:
+    [0] parent pc=0-5
+    [1] node pc=0-5
+  code:
+    0: [line 187] GETUPVAL 2 0
+    1: [line 187] MOVE 3 0
+    2: [line 187] MOVE 4 1
+    3: [line 187] CALL 2 3 1
+    4: [line 188] RETURN 0 1
+child 11:
+  proto createAnchor params=1 vararg=False maxstack=5 linedefined=190-194
+  constants:
+    [0] 
+  upvalues:
+    [0] createTextInstance local=True index=5 byvalue=True
+    [1] appendChild local=True index=6 byvalue=True
+  locals:
+    [0] parent pc=0-9
+    [1] anchor pc=3-9
+  code:
+    0: [line 191] GETUPVAL 1 0
+    1: [line 191] LOADK 2 0
+    2: [line 191] CALL 1 2 2
+    3: [line 192] GETUPVAL 2 1
+    4: [line 192] MOVE 3 0
+    5: [line 192] MOVE 4 1
+    6: [line 192] CALL 2 3 1
+    7: [line 193] RETURN 1 2
+    8: [line 194] RETURN 0 1
+child 12:
+  proto ? params=3 vararg=False maxstack=17 linedefined=205-247
+  constants:
+    [0] nil
+    [1] type
+    [2] string
+    [3] number
+    [4] tostring
+    [5] nodes
+    [6] dispose
+    [7] function
+    [8] table
+    [9] 1
+    [10] ipairs
+  upvalues:
+    [0] _ENV local=False index=0 byvalue=False
+    [1] createTextInstance local=True index=5 byvalue=True
+    [2] insertInto local=True index=27 byvalue=False
+    [3] removeNode local=True index=28 byvalue=False
+    [4] insertDynamic local=True index=32 byvalue=False
+    [5] isNode local=True index=23 byvalue=False
+    [6] mountNode local=True index=30 byvalue=False
+    [7] mountValueInto local=True index=31 byvalue=False
+  locals:
+    [0] parent pc=0-89
+    [1] value pc=0-89
+    [2] marker pc=0-89
+    [3] t pc=7-89
+    [4] node pc=16-30
+    [5] nodes pc=54-86
+    [6] disposes pc=55-86
+    [7] (for index) pc=58-80
+    [8] (for limit) pc=58-80
+    [9] (for step) pc=58-80
+    [10] i pc=59-79
+    [11] m pc=64-79
+    [12] (for generator) pc=69-75
+    [13] (for state) pc=69-75
+    [14] (for control) pc=69-75
+    [15] _ pc=70-73
+    [16] n pc=70-73
+  code:
+    0: [line 206] JMPIFNEK 1 3
+    1: [line 206] EXTRAARG 0
+    2: [line 207] LOADNIL 3 0
+    3: [line 207] RETURN 3 2
+    4: [line 209] GETTABUP 3 0 -2
+    5: [line 209] MOVE 4 1
+    6: [line 209] CALL 3 2 2
+    7: [line 210] JMPIFEQK 3 3
+    8: [line 210] EXTRAARG 2
+    9: [line 210] JMPIFNEK 3 21
+    10: [line 210] EXTRAARG 3
+    11: [line 211] GETUPVAL 4 1
+    12: [line 211] GETTABUP 5 0 -5
+    13: [line 211] MOVE 6 1
+    14: [line 211] CALL 5 2 0
+    15: [line 211] CALL 4 0 2
+    16: [line 212] GETUPVAL 5 2
+    17: [line 212] MOVE 6 0
+    18: [line 212] MOVE 7 4
+    19: [line 212] MOVE 8 2
+    20: [line 212] CALL 5 4 1
+    21: [line 213] NEWTABLE 5 0 2
+    22: [line 214] NEWTABLE 6 1 0
+    23: [line 214] MOVE 7 4
+    24: [line 214] SETLIST 6 1 1
+    25: [line 214] SETTABLE 5 -6 6
+    26: [line 217] CLOSURE 6 0
+    27: [line 217] SETTABLE 5 -7 6
+    28: [line 218] RETURN 5 2
+    29: [line 218] JMP 5 56
+    30: [line 218] JMP 0 55
+    31: [line 219] JMPIFNEK 3 8
+    32: [line 219] EXTRAARG 7
+    33: [line 220] GETUPVAL 4 4
+    34: [line 220] MOVE 5 0
+    35: [line 220] MOVE 6 1
+    36: [line 220] MOVE 7 2
+    37: [line 220] TAILCALL 4 4 0
+    38: [line 220] RETURN 4 0
+    39: [line 220] JMP 0 46
+    40: [line 221] JMPIFNEK 3 45
+    41: [line 221] EXTRAARG 8
+    42: [line 222] GETUPVAL 4 5
+    43: [line 222] MOVE 5 1
+    44: [line 222] CALL 4 2 2
+    45: [line 222] TEST 4 0
+    46: [line 222] JMP 0 6
+    47: [line 223] GETUPVAL 4 6
+    48: [line 223] MOVE 5 1
+    49: [line 223] MOVE 6 0
+    50: [line 223] MOVE 7 2
+    51: [line 223] TAILCALL 4 4 0
+    52: [line 223] RETURN 4 0
+    53: [line 226] NEWTABLE 4 0 0
+    54: [line 227] NEWTABLE 5 0 0
+    55: [line 228] LOADK 6 9
+    56: [line 228] LEN 7 1
+    57: [line 228] LOADK 8 9
+    58: [line 228] FORPREP 6 20
+    59: [line 229] GETUPVAL 10 7
+    60: [line 229] MOVE 11 0
+    61: [line 229] GETTABLE 12 1 9
+    62: [line 229] MOVE 13 2
+    63: [line 229] CALL 10 4 2
+    64: [line 230] TEST 10 0
+    65: [line 230] JMP 0 13
+    66: [line 231] GETTABUP 11 0 -11
+    67: [line 231] GETTABLE 12 10 -6
+    68: [line 231] CALL 11 2 4
+    69: [line 231] JMP 0 3
+    70: [line 232] LEN 16 4
+    71: [line 232] ADD 16 16 -10
+    72: [line 232] SETTABLE 4 16 15
+    73: [line 231] TFORCALL 11 2
+    74: [line 231] TFORLOOP 13 -5
+    75: [line 234] LEN 11 5
+    76: [line 234] ADD 11 11 -10
+    77: [line 234] GETTABLE 12 10 -7
+    78: [line 234] SETTABLE 5 11 12
+    79: [line 228] FORLOOP 6 -21
+    80: [line 237] NEWTABLE 6 0 2
+    81: [line 238] SETTABLE 6 -6 4
+    82: [line 243] CLOSURE 7 1
+    83: [line 243] SETTABLE 6 -7 7
+    84: [line 244] RETURN 6 2
+    85: [line 244] JMP 5 0
+    86: [line 246] LOADNIL 4 0
+    87: [line 246] RETURN 4 2
+    88: [line 247] RETURN 0 1
+  child 0:
+    proto ? params=0 vararg=False maxstack=3 linedefined=215-217
+    constants:
+    upvalues:
+      [0] removeNode local=False index=3 byvalue=False
+      [1] parent local=True index=0 byvalue=True
+      [2] node local=True index=4 byvalue=True
+    locals:
+    code:
+      0: [line 216] GETUPVAL 0 0
+      1: [line 216] GETUPVAL 1 1
+      2: [line 216] GETUPVAL 2 2
+      3: [line 216] CALL 0 3 1
+      4: [line 217] RETURN 0 1
+  child 1:
+    proto ? params=0 vararg=False maxstack=5 linedefined=239-243
+    constants:
+      [0] 1
+      [1] -1
+    upvalues:
+      [0] disposes local=True index=5 byvalue=True
+    locals:
+      [0] (for index) pc=4-8
+      [1] (for limit) pc=4-8
+      [2] (for step) pc=4-8
+      [3] i pc=5-7
+    code:
+      0: [line 240] GETUPVAL 0 0
+      1: [line 240] LEN 0 0
+      2: [line 240] LOADK 1 0
+      3: [line 240] LOADK 2 1
+      4: [line 240] FORPREP 0 2
+      5: [line 241] GETTABUP 4 0 3
+      6: [line 241] CALL 4 1 1
+      7: [line 240] FORLOOP 0 -3
+      8: [line 243] RETURN 0 1
+child 13:
+  proto ? params=3 vararg=False maxstack=13 linedefined=252-347
+  constants:
+    [0] nil
+    [1] 
+    [2] createEffect
+    [3] nodes
+    [4] dispose
+  upvalues:
+    [0] createTextInstance local=True index=5 byvalue=True
+    [1] appendChild local=True index=6 byvalue=True
+    [2] Sx local=True index=0 byvalue=True
+    [3] _ENV local=False index=0 byvalue=False
+    [4] commitTextUpdate local=True index=10 byvalue=True
+    [5] removeNode local=True index=28 byvalue=False
+    [6] mountValueInto local=True index=31 byvalue=False
+  locals:
+    [0] parent pc=0-29
+    [1] accessor pc=0-29
+    [2] marker pc=0-29
+    [3] anchor pc=1-29
+    [4] ownsAnchor pc=2-29
+    [5] currentText pc=16-29
+    [6] currentNodes pc=17-29
+    [7] currentDispose pc=17-29
+    [8] eff pc=20-29
+    [9] dispose pc=21-29
+  code:
+    0: [line 253] LOADNIL 3 0
+    1: [line 254] LOADBOOL 4 0 0
+    2: [line 255] JMPIFEQK 2 3
+    3: [line 255] EXTRAARG 0
+    4: [line 256] MOVE 3 2
+    5: [line 256] JMP 0 9
+    6: [line 258] GETUPVAL 5 0
+    7: [line 258] LOADK 6 1
+    8: [line 258] CALL 5 2 2
+    9: [line 258] MOVE 3 5
+    10: [line 259] GETUPVAL 5 1
+    11: [line 259] MOVE 6 0
+    12: [line 259] MOVE 7 3
+    13: [line 259] CALL 5 3 1
+    14: [line 260] LOADBOOL 4 1 0
+    15: [line 262] LOADK 5 1
+    16: [line 263] LOADNIL 6 1
+    17: [line 266] GETTABUP 8 2 -3
+    18: [line 324] CLOSURE 9 0
+    19: [line 266] CALL 8 2 2
+    20: [line 341] CLOSURE 9 1
+    21: [line 343] NEWTABLE 10 0 2
+    22: [line 344] NEWTABLE 11 1 0
+    23: [line 344] MOVE 12 3
+    24: [line 344] SETLIST 11 1 1
+    25: [line 344] SETTABLE 10 -4 11
+    26: [line 345] SETTABLE 10 -5 9
+    27: [line 346] RETURN 10 2
+    28: [line 347] RETURN 0 1
+  child 0:
+    proto eff params=0 vararg=False maxstack=11 linedefined=266-324
+    constants:
+      [0] type
+      [1] string
+      [2] number
+      [3] tostring
+      [4] nil
+      [5] ipairs
+      [6] table
+      [7] 
+      [8] nodes
+      [9] dispose
+    upvalues:
+      [0] accessor local=True index=1 byvalue=True
+      [1] _ENV local=False index=3 byvalue=False
+      [2] currentNodes local=True index=6 byvalue=False
+      [3] currentText local=True index=5 byvalue=False
+      [4] commitTextUpdate local=False index=4 byvalue=False
+      [5] anchor local=True index=3 byvalue=False
+      [6] currentDispose local=True index=7 byvalue=False
+      [7] removeNode local=False index=5 byvalue=False
+      [8] parent local=True index=0 byvalue=True
+      [9] mountValueInto local=False index=6 byvalue=False
+    locals:
+      [0] value pc=2-139
+      [1] t pc=5-139
+      [2] str pc=12-51
+      [3] (for generator) pc=34-41
+      [4] (for state) pc=34-41
+      [5] (for control) pc=34-41
+      [6] _ pc=35-39
+      [7] n pc=35-39
+      [8] m pc=61-104
+      [9] (for generator) pc=73-80
+      [10] (for state) pc=73-80
+      [11] (for control) pc=73-80
+      [12] _ pc=74-78
+      [13] n pc=74-78
+      [14] (for generator) pc=117-124
+      [15] (for state) pc=117-124
+      [16] (for control) pc=117-124
+      [17] _ pc=118-122
+      [18] n pc=118-122
+    code:
+      0: [line 267] GETUPVAL 0 0
+      1: [line 267] CALL 0 1 2
+      2: [line 268] GETTABUP 1 1 -1
+      3: [line 268] MOVE 2 0
+      4: [line 268] CALL 1 2 2
+      5: [line 269] JMPIFEQK 1 3
+      6: [line 269] EXTRAARG 1
+      7: [line 269] JMPIFNEK 1 44
+      8: [line 269] EXTRAARG 2
+      9: [line 270] GETTABUP 2 1 -4
+      10: [line 270] MOVE 3 0
+      11: [line 270] CALL 2 2 2
+      12: [line 271] GETUPVAL 3 2
+      13: [line 271] JMPIFNEK 3 11
+      14: [line 271] EXTRAARG 4
+      15: [line 272] GETUPVAL 3 3
+      16: [line 272] EQ 1 2 3
+      17: [line 272] JMP 0 120
+      18: [line 273] GETUPVAL 3 4
+      19: [line 273] GETUPVAL 4 5
+      20: [line 273] GETUPVAL 5 3
+      21: [line 273] MOVE 6 2
+      22: [line 273] CALL 3 4 1
+      23: [line 274] SETUPVAL 2 3
+      24: [line 274] JMP 0 113
+      25: [line 277] GETUPVAL 3 6
+      26: [line 277] TEST 3 0
+      27: [line 277] JMP 0 3
+      28: [line 278] GETUPVAL 3 6
+      29: [line 278] CALL 3 1 1
+      30: [line 278] JMP 0 10
+      31: [line 280] GETTABUP 3 1 -6
+      32: [line 280] GETUPVAL 4 2
+      33: [line 280] CALL 3 2 4
+      34: [line 280] JMP 0 4
+      35: [line 281] GETUPVAL 8 7
+      36: [line 281] GETUPVAL 9 8
+      37: [line 281] MOVE 10 7
+      38: [line 281] CALL 8 3 1
+      39: [line 280] TFORCALL 3 2
+      40: [line 280] TFORLOOP 5 -6
+      41: [line 284] LOADNIL 3 0
+      42: [line 284] SETUPVAL 3 2
+      43: [line 285] LOADNIL 3 0
+      44: [line 285] SETUPVAL 3 6
+      45: [line 286] GETUPVAL 3 4
+      46: [line 286] GETUPVAL 4 5
+      47: [line 286] GETUPVAL 5 3
+      48: [line 286] MOVE 6 2
+      49: [line 286] CALL 3 4 1
+      50: [line 287] SETUPVAL 2 3
+      51: [line 287] JMP 0 86
+      52: [line 289] JMPIFEQK 0 52
+      53: [line 289] EXTRAARG 4
+      54: [line 289] JMPIFNEK 1 50
+      55: [line 289] EXTRAARG 6
+      56: [line 290] GETUPVAL 2 9
+      57: [line 290] GETUPVAL 3 8
+      58: [line 290] MOVE 4 0
+      59: [line 290] GETUPVAL 5 5
+      60: [line 290] CALL 2 4 2
+      61: [line 291] GETUPVAL 3 2
+      62: [line 291] JMPIFEQK 3 17
+      63: [line 291] EXTRAARG 4
+      64: [line 292] GETUPVAL 3 6
+      65: [line 292] TEST 3 0
+      66: [line 292] JMP 0 3
+      67: [line 293] GETUPVAL 3 6
+      68: [line 293] CALL 3 1 1
+      69: [line 293] JMP 0 10
+      70: [line 295] GETTABUP 3 1 -6
+      71: [line 295] GETUPVAL 4 2
+      72: [line 295] CALL 3 2 4
+      73: [line 295] JMP 0 4
+      74: [line 296] GETUPVAL 8 7
+      75: [line 296] GETUPVAL 9 8
+      76: [line 296] MOVE 10 7
+      77: [line 296] CALL 8 3 1
+      78: [line 295] TFORCALL 3 2
+      79: [line 295] TFORLOOP 5 -6
+      80: [line 300] GETUPVAL 3 3
+      81: [line 300] JMPIFEQK 3 8
+      82: [line 300] EXTRAARG 7
+      83: [line 301] GETUPVAL 3 4
+      84: [line 301] GETUPVAL 4 5
+      85: [line 301] GETUPVAL 5 3
+      86: [line 301] LOADK 6 7
+      87: [line 301] CALL 3 4 1
+      88: [line 302] LOADK 3 7
+      89: [line 302] SETUPVAL 3 3
+      90: [line 304] TEST 2 0
+      91: [line 304] JMP 0 3
+      92: [line 304] GETTABLE 3 2 -9
+      93: [line 304] TEST 3 1
+      94: [line 304] JMP 0 1
+      95: [line 304] LOADNIL 3 0
+      96: [line 304] SETUPVAL 3 2
+      97: [line 305] TEST 2 0
+      98: [line 305] JMP 0 3
+      99: [line 305] GETTABLE 3 2 -10
+      100: [line 305] TEST 3 1
+      101: [line 305] JMP 0 1
+      102: [line 305] LOADNIL 3 0
+      103: [line 305] SETUPVAL 3 6
+      104: [line 305] JMP 0 33
+      105: [line 308] GETUPVAL 2 2
+      106: [line 308] JMPIFEQK 2 21
+      107: [line 308] EXTRAARG 4
+      108: [line 309] GETUPVAL 2 6
+      109: [line 309] TEST 2 0
+      110: [line 309] JMP 0 3
+      111: [line 310] GETUPVAL 2 6
+      112: [line 310] CALL 2 1 1
+      113: [line 310] JMP 0 10
+      114: [line 312] GETTABUP 2 1 -6
+      115: [line 312] GETUPVAL 3 2
+      116: [line 312] CALL 2 2 4
+      117: [line 312] JMP 0 4
+      118: [line 313] GETUPVAL 7 7
+      119: [line 313] GETUPVAL 8 8
+      120: [line 313] MOVE 9 6
+      121: [line 313] CALL 7 3 1
+      122: [line 312] TFORCALL 2 2
+      123: [line 312] TFORLOOP 4 -6
+      124: [line 316] LOADNIL 2 0
+      125: [line 316] SETUPVAL 2 2
+      126: [line 317] LOADNIL 2 0
+      127: [line 317] SETUPVAL 2 6
+      128: [line 319] GETUPVAL 2 3
+      129: [line 319] JMPIFEQK 2 8
+      130: [line 319] EXTRAARG 7
+      131: [line 320] GETUPVAL 2 4
+      132: [line 320] GETUPVAL 3 5
+      133: [line 320] GETUPVAL 4 3
+      134: [line 320] LOADK 5 7
+      135: [line 320] CALL 2 4 1
+      136: [line 321] LOADK 2 7
+      137: [line 321] SETUPVAL 2 3
+      138: [line 324] RETURN 0 1
+  child 1:
+    proto dispose params=0 vararg=False maxstack=8 linedefined=326-341
+    constants:
+      [0] nil
+      [1] ipairs
+    upvalues:
+      [0] eff local=True index=8 byvalue=True
+      [1] currentNodes local=True index=6 byvalue=False
+      [2] currentDispose local=True index=7 byvalue=False
+      [3] _ENV local=False index=3 byvalue=False
+      [4] removeNode local=False index=5 byvalue=False
+      [5] parent local=True index=0 byvalue=True
+      [6] ownsAnchor local=True index=4 byvalue=False
+      [7] anchor local=True index=3 byvalue=False
+    locals:
+      [0] (for generator) pc=14-21
+      [1] (for state) pc=14-21
+      [2] (for control) pc=14-21
+      [3] _ pc=15-19
+      [4] n pc=15-19
+    code:
+      0: [line 327] GETUPVAL 0 0
+      1: [line 327] CALL 0 1 1
+      2: [line 328] GETUPVAL 0 1
+      3: [line 328] JMPIFEQK 0 19
+      4: [line 328] EXTRAARG 0
+      5: [line 329] GETUPVAL 0 2
+      6: [line 329] TEST 0 0
+      7: [line 329] JMP 0 3
+      8: [line 330] GETUPVAL 0 2
+      9: [line 330] CALL 0 1 1
+      10: [line 330] JMP 0 10
+      11: [line 332] GETTABUP 0 3 -2
+      12: [line 332] GETUPVAL 1 1
+      13: [line 332] CALL 0 2 4
+      14: [line 332] JMP 0 4
+      15: [line 333] GETUPVAL 5 4
+      16: [line 333] GETUPVAL 6 5
+      17: [line 333] MOVE 7 4
+      18: [line 333] CALL 5 3 1
+      19: [line 332] TFORCALL 0 2
+      20: [line 332] TFORLOOP 2 -6
+      21: [line 336] LOADNIL 0 0
+      22: [line 336] SETUPVAL 0 1
+      23: [line 338] GETUPVAL 0 6
+      24: [line 338] TEST 0 0
+      25: [line 338] JMP 0 4
+      26: [line 339] GETUPVAL 0 4
+      27: [line 339] GETUPVAL 1 5
+      28: [line 339] GETUPVAL 2 7
+      29: [line 339] CALL 0 3 1
+      30: [line 341] RETURN 0 1
+child 14:
+  proto mountHostElement params=3 vararg=False maxstack=19 linedefined=351-429
+  constants:
+    [0] host
+    [1] tostring
+    [2] type
+    [3] props
+    [4] pairs
+    [5] ref
+    [6] function
+    [7] nil
+    [8] __host
+    [9] createEffect
+    [10] 1
+    [11] children
+    [12] dispose
+    [13] nodes
+  upvalues:
+    [0] devPush local=True index=18 byvalue=False
+    [1] _ENV local=False index=0 byvalue=False
+    [2] isEventKey local=True index=24 byvalue=False
+    [3] createInstance local=True index=4 byvalue=True
+    [4] insertInto local=True index=27 byvalue=False
+    [5] setProperty local=True index=9 byvalue=True
+    [6] Sx local=True index=0 byvalue=True
+    [7] insertDynamic local=True index=32 byvalue=False
+    [8] mountValueInto local=True index=31 byvalue=False
+    [9] removeNode local=True index=28 byvalue=False
+    [10] devRemove local=True index=20 byvalue=False
+    [11] devPop local=True index=19 byvalue=False
+  locals:
+    [0] descriptor pc=0-111
+    [1] parent pc=0-111
+    [2] marker pc=0-111
+    [3] devNode pc=7-111
+    [4] staticProps pc=8-111
+    [5] reactiveProps pc=9-111
+    [6] refProp pc=10-111
+    [7] (for generator) pc=13-35
+    [8] (for state) pc=13-35
+    [9] (for control) pc=13-35
+    [10] key pc=14-33
+    [11] val pc=14-33
+    [12] el pc=39-111
+    [13] (for generator) pc=57-66
+    [14] (for state) pc=57-66
+    [15] (for control) pc=57-66
+    [16] key pc=58-64
+    [17] accessor pc=58-64
+    [18] last pc=59-63
+    [19] childDisposes pc=67-111
+    [20] (for index) pc=71-100
+    [21] (for limit) pc=71-100
+    [22] (for step) pc=71-100
+    [23] i pc=72-99
+    [24] child pc=74-99
+    [25] m pc=75-99
+    [26] dispose pc=101-111
+  code:
+    0: [line 352] GETUPVAL 3 0
+    1: [line 352] LOADK 4 0
+    2: [line 352] GETTABUP 5 1 -2
+    3: [line 352] GETTABLE 6 0 -3
+    4: [line 352] CALL 5 2 2
+    5: [line 352] GETTABLE 6 0 -4
+    6: [line 352] CALL 3 4 2
+    7: [line 353] NEWTABLE 4 0 0
+    8: [line 354] NEWTABLE 5 0 0
+    9: [line 355] LOADNIL 6 0
+    10: [line 356] GETTABUP 7 1 -5
+    11: [line 356] GETTABLE 8 0 -4
+    12: [line 356] CALL 7 2 4
+    13: [line 356] JMP 0 19
+    14: [line 357] JMPIFNEK 10 3
+    15: [line 357] EXTRAARG 5
+    16: [line 362] MOVE 6 11
+    17: [line 362] JMP 0 15
+    18: [line 363] GETTABUP 12 1 -3
+    19: [line 363] MOVE 13 11
+    20: [line 363] CALL 12 2 2
+    21: [line 363] JMPIFNEK 12 10
+    22: [line 363] EXTRAARG 6
+    23: [line 364] GETUPVAL 12 2
+    24: [line 364] MOVE 13 10
+    25: [line 364] CALL 12 2 2
+    26: [line 364] TEST 12 0
+    27: [line 364] JMP 0 2
+    28: [line 367] SETTABLE 4 10 11
+    29: [line 367] JMP 0 3
+    30: [line 369] SETTABLE 5 10 11
+    31: [line 369] JMP 0 1
+    32: [line 372] SETTABLE 4 10 11
+    33: [line 356] TFORCALL 7 2
+    34: [line 356] TFORLOOP 9 -21
+    35: [line 376] GETUPVAL 7 3
+    36: [line 376] GETTABLE 8 0 -3
+    37: [line 376] MOVE 9 4
+    38: [line 376] CALL 7 3 2
+    39: [line 377] GETUPVAL 8 4
+    40: [line 377] MOVE 9 1
+    41: [line 377] MOVE 10 7
+    42: [line 377] MOVE 11 2
+    43: [line 377] CALL 8 4 1
+    44: [line 378] JMPIFEQK 6 6
+    45: [line 378] EXTRAARG 7
+    46: [line 379] GETUPVAL 8 5
+    47: [line 379] MOVE 9 7
+    48: [line 379] LOADK 10 5
+    49: [line 379] MOVE 11 6
+    50: [line 379] CALL 8 4 1
+    51: [line 381] JMPIFEQK 3 2
+    52: [line 381] EXTRAARG 7
+    53: [line 384] SETTABLE 3 -9 7
+    54: [line 390] GETTABUP 8 1 -5
+    55: [line 390] MOVE 9 5
+    56: [line 390] CALL 8 2 4
+    57: [line 390] JMP 0 6
+    58: [line 391] LOADNIL 13 0
+    59: [line 392] GETTABUP 14 6 -10
+    60: [line 398] CLOSURE 15 0
+    61: [line 392] CALL 14 2 1
+    62: [line 398] JMP 12 1
+    63: [line 390] JMP 12 0
+    64: [line 390] TFORCALL 8 2
+    65: [line 390] TFORLOOP 10 -8
+    66: [line 402] NEWTABLE 8 0 0
+    67: [line 403] LOADK 9 10
+    68: [line 403] GETTABLE 10 0 -12
+    69: [line 403] LEN 10 10
+    70: [line 403] LOADK 11 10
+    71: [line 403] FORPREP 9 27
+    72: [line 404] GETTABLE 13 0 -12
+    73: [line 404] GETTABLE 13 13 12
+    74: [line 405] LOADNIL 14 0
+    75: [line 406] GETTABUP 15 1 -3
+    76: [line 406] MOVE 16 13
+    77: [line 406] CALL 15 2 2
+    78: [line 406] JMPIFNEK 15 8
+    79: [line 406] EXTRAARG 6
+    80: [line 407] GETUPVAL 15 7
+    81: [line 407] MOVE 16 7
+    82: [line 407] MOVE 17 13
+    83: [line 407] LOADNIL 18 0
+    84: [line 407] CALL 15 4 2
+    85: [line 407] MOVE 14 15
+    86: [line 407] JMP 0 6
+    87: [line 409] GETUPVAL 15 8
+    88: [line 409] MOVE 16 7
+    89: [line 409] MOVE 17 13
+    90: [line 409] LOADNIL 18 0
+    91: [line 409] CALL 15 4 2
+    92: [line 409] MOVE 14 15
+    93: [line 411] TEST 14 0
+    94: [line 411] JMP 0 4
+    95: [line 412] LEN 15 8
+    96: [line 412] ADD 15 15 -11
+    97: [line 412] GETTABLE 16 14 -13
+    98: [line 412] SETTABLE 8 15 16
+    99: [line 403] FORLOOP 9 -28
+    100: [line 422] CLOSURE 9 1
+    101: [line 424] GETUPVAL 10 11
+    102: [line 424] CALL 10 1 1
+    103: [line 425] NEWTABLE 10 0 2
+    104: [line 426] NEWTABLE 11 1 0
+    105: [line 426] MOVE 12 7
+    106: [line 426] SETLIST 11 1 1
+    107: [line 426] SETTABLE 10 -14 11
+    108: [line 427] SETTABLE 10 -13 9
+    109: [line 428] RETURN 10 2
+    110: [line 429] RETURN 0 1
+  child 0:
+    proto ? params=0 vararg=False maxstack=5 linedefined=392-398
+    constants:
+    upvalues:
+      [0] accessor local=True index=12 byvalue=True
+      [1] last local=True index=13 byvalue=False
+      [2] setProperty local=False index=5 byvalue=False
+      [3] el local=True index=7 byvalue=True
+      [4] key local=True index=11 byvalue=True
+    locals:
+      [0] v pc=2-12
+    code:
+      0: [line 393] GETUPVAL 0 0
+      1: [line 393] CALL 0 1 2
+      2: [line 394] GETUPVAL 1 1
+      3: [line 394] EQ 1 0 1
+      4: [line 394] JMP 0 6
+      5: [line 395] GETUPVAL 1 2
+      6: [line 395] GETUPVAL 2 3
+      7: [line 395] GETUPVAL 3 4
+      8: [line 395] MOVE 4 0
+      9: [line 395] CALL 1 4 1
+      10: [line 396] SETUPVAL 0 1
+      11: [line 398] RETURN 0 1
+  child 1:
+    proto dispose params=0 vararg=False maxstack=5 linedefined=416-422
+    constants:
+      [0] 1
+      [1] -1
+    upvalues:
+      [0] childDisposes local=True index=8 byvalue=True
+      [1] removeNode local=False index=9 byvalue=False
+      [2] parent local=True index=1 byvalue=True
+      [3] el local=True index=7 byvalue=True
+      [4] devRemove local=False index=10 byvalue=False
+      [5] devNode local=True index=3 byvalue=True
+    locals:
+      [0] (for index) pc=4-8
+      [1] (for limit) pc=4-8
+      [2] (for step) pc=4-8
+      [3] i pc=5-7
+    code:
+      0: [line 417] GETUPVAL 0 0
+      1: [line 417] LEN 0 0
+      2: [line 417] LOADK 1 0
+      3: [line 417] LOADK 2 1
+      4: [line 417] FORPREP 0 2
+      5: [line 418] GETTABUP 4 0 3
+      6: [line 418] CALL 4 1 1
+      7: [line 417] FORLOOP 0 -3
+      8: [line 420] GETUPVAL 0 1
+      9: [line 420] GETUPVAL 1 2
+      10: [line 420] GETUPVAL 2 3
+      11: [line 420] CALL 0 3 1
+      12: [line 421] GETUPVAL 0 4
+      13: [line 421] GETUPVAL 1 5
+      14: [line 421] CALL 0 2 1
+      15: [line 422] RETURN 0 1
+child 15:
+  proto mountComponent params=3 vararg=False maxstack=12 linedefined=433-478
+  constants:
+    [0] type
+    [1] pairs
+    [2] props
+    [3] children
+    [4] callSite
+    [5] component
+    [6] enabled
+    [7] debug
+    [8] setPendingRootName
+    [9] createRoot
+    [10] nodes
+    [11] dispose
+  upvalues:
+    [0] _ENV local=False index=0 byvalue=False
+    [1] devName local=True index=17 byvalue=False
+    [2] devPush local=True index=18 byvalue=False
+    [3] DevTools local=True index=14 byvalue=True
+    [4] Sx local=True index=0 byvalue=True
+    [5] mountNode local=True index=30 byvalue=False
+    [6] devPop local=True index=19 byvalue=False
+    [7] devRemove local=True index=20 byvalue=False
+  locals:
+    [0] descriptor pc=0-45
+    [1] parent pc=0-45
+    [2] marker pc=0-45
+    [3] fn pc=1-45
+    [4] compProps pc=2-45
+    [5] (for generator) pc=5-9
+    [6] (for state) pc=5-9
+    [7] (for control) pc=5-9
+    [8] k pc=6-7
+    [9] v pc=6-7
+    [10] name pc=15-45
+    [11] devNode pc=20-45
+    [12] rootDispose pc=28-45
+    [13] mounted pc=28-45
+    [14] dispose pc=34-45
+  code:
+    0: [line 434] GETTABLE 3 0 -1
+    1: [line 435] NEWTABLE 4 0 0
+    2: [line 436] GETTABUP 5 0 -2
+    3: [line 436] GETTABLE 6 0 -3
+    4: [line 436] CALL 5 2 4
+    5: [line 436] JMP 0 1
+    6: [line 437] SETTABLE 4 8 9
+    7: [line 436] TFORCALL 5 2
+    8: [line 436] TFORLOOP 7 -3
+    9: [line 439] GETTABLE 5 0 -4
+    10: [line 439] SETTABLE 4 -4 5
+    11: [line 441] GETUPVAL 5 1
+    12: [line 441] MOVE 6 3
+    13: [line 441] GETTABLE 7 0 -5
+    14: [line 441] CALL 5 3 2
+    15: [line 442] GETUPVAL 6 2
+    16: [line 442] LOADK 7 5
+    17: [line 442] MOVE 8 5
+    18: [line 442] MOVE 9 4
+    19: [line 442] CALL 6 4 2
+    20: [line 443] GETTABUP 7 3 -7
+    21: [line 443] TEST 7 0
+    22: [line 443] JMP 0 4
+    23: [line 446] GETIMPORT 7 4 -8
+    24: [line 446] EXTRAARG 8
+    25: [line 446] MOVE 8 5
+    26: [line 446] CALL 7 2 1
+    27: [line 449] LOADNIL 7 1
+    28: [line 451] GETTABUP 9 4 -10
+    29: [line 458] CLOSURE 10 0
+    30: [line 451] CALL 9 2 1
+    31: [line 460] GETUPVAL 9 6
+    32: [line 460] CALL 9 1 1
+    33: [line 472] CLOSURE 9 1
+    34: [line 474] NEWTABLE 10 0 2
+    35: [line 475] TEST 8 0
+    36: [line 475] JMP 0 3
+    37: [line 475] GETTABLE 11 8 -11
+    38: [line 475] TEST 11 1
+    39: [line 475] JMP 0 1
+    40: [line 475] NEWTABLE 11 0 0
+    41: [line 475] SETTABLE 10 -11 11
+    42: [line 476] SETTABLE 10 -12 9
+    43: [line 477] RETURN 10 2
+    44: [line 478] RETURN 0 1
+  child 0:
+    proto ? params=1 vararg=False maxstack=6 linedefined=451-458
+    constants:
+      [0] nil
+    upvalues:
+      [0] rootDispose local=True index=7 byvalue=False
+      [1] fn local=True index=3 byvalue=True
+      [2] compProps local=True index=4 byvalue=True
+      [3] mounted local=True index=8 byvalue=False
+      [4] mountNode local=False index=5 byvalue=False
+      [5] parent local=True index=1 byvalue=True
+      [6] marker local=True index=2 byvalue=True
+    locals:
+      [0] dispose pc=0-14
+      [1] node pc=4-14
+    code:
+      0: [line 452] SETUPVAL 0 0
+      1: [line 453] GETUPVAL 1 1
+      2: [line 453] GETUPVAL 2 2
+      3: [line 453] CALL 1 2 2
+      4: [line 454] JMPIFEQK 1 7
+      5: [line 454] EXTRAARG 0
+      6: [line 455] GETUPVAL 2 4
+      7: [line 455] MOVE 3 1
+      8: [line 455] GETUPVAL 4 5
+      9: [line 455] GETUPVAL 5 6
+      10: [line 455] CALL 2 4 2
+      11: [line 455] SETUPVAL 2 3
+      12: [line 457] RETURN 1 2
+      13: [line 458] RETURN 0 1
+  child 1:
+    proto dispose params=0 vararg=False maxstack=2 linedefined=462-472
+    constants:
+      [0] dispose
+    upvalues:
+      [0] mounted local=True index=8 byvalue=False
+      [1] rootDispose local=True index=7 byvalue=False
+      [2] devRemove local=False index=7 byvalue=False
+      [3] devNode local=True index=6 byvalue=True
+    locals:
+    code:
+      0: [line 463] GETUPVAL 0 0
+      1: [line 463] TEST 0 0
+      2: [line 463] JMP 0 4
+      3: [line 464] GETTABUP 0 0 -1
+      4: [line 464] CALL 0 1 1
+      5: [line 465] LOADNIL 0 0
+      6: [line 465] SETUPVAL 0 0
+      7: [line 467] GETUPVAL 0 1
+      8: [line 467] TEST 0 0
+      9: [line 467] JMP 0 4
+      10: [line 468] GETUPVAL 0 1
+      11: [line 468] CALL 0 1 1
+      12: [line 469] LOADNIL 0 0
+      13: [line 469] SETUPVAL 0 1
+      14: [line 471] GETUPVAL 0 2
+      15: [line 471] GETUPVAL 1 3
+      16: [line 471] CALL 0 2 1
+      17: [line 472] RETURN 0 1
+child 16:
+  proto ? params=3 vararg=False maxstack=17 linedefined=481-511
+  constants:
+    [0] type
+    [1] string
+    [2] 1
+    [3] children
+    [4] ipairs
+    [5] nodes
+    [6] dispose
+  upvalues:
+    [0] _ENV local=False index=0 byvalue=False
+    [1] mountHostElement local=True index=34 byvalue=False
+    [2] FLOW local=True index=21 byvalue=True
+    [3] mountFlow local=True index=33 byvalue=False
+    [4] Fragment local=True index=22 byvalue=True
+    [5] mountValueInto local=True index=31 byvalue=False
+    [6] mountComponent local=True index=35 byvalue=False
+  locals:
+    [0] descriptor pc=0-69
+    [1] parent pc=0-69
+    [2] marker pc=0-69
+    [3] t pc=1-69
+    [4] nodes pc=27-61
+    [5] disposes pc=28-61
+    [6] (for index) pc=32-55
+    [7] (for limit) pc=32-55
+    [8] (for step) pc=32-55
+    [9] i pc=33-54
+    [10] m pc=39-54
+    [11] (for generator) pc=44-50
+    [12] (for state) pc=44-50
+    [13] (for control) pc=44-50
+    [14] _ pc=45-48
+    [15] n pc=45-48
+  code:
+    0: [line 482] GETTABLE 3 0 -1
+    1: [line 483] GETTABUP 4 0 -1
+    2: [line 483] MOVE 5 3
+    3: [line 483] CALL 4 2 2
+    4: [line 483] JMPIFNEK 4 8
+    5: [line 483] EXTRAARG 1
+    6: [line 484] GETUPVAL 4 1
+    7: [line 484] MOVE 5 0
+    8: [line 484] MOVE 6 1
+    9: [line 484] MOVE 7 2
+    10: [line 484] TAILCALL 4 4 0
+    11: [line 484] RETURN 4 0
+    12: [line 484] JMP 0 55
+    13: [line 485] GETUPVAL 4 2
+    14: [line 485] EQ 0 3 4
+    15: [line 485] JMP 0 7
+    16: [line 486] GETUPVAL 4 3
+    17: [line 486] MOVE 5 0
+    18: [line 486] MOVE 6 1
+    19: [line 486] MOVE 7 2
+    20: [line 486] TAILCALL 4 4 0
+    21: [line 486] RETURN 4 0
+    22: [line 486] JMP 0 45
+    23: [line 487] GETUPVAL 4 4
+    24: [line 487] EQ 0 3 4
+    25: [line 487] JMP 0 36
+    26: [line 489] NEWTABLE 4 0 0
+    27: [line 490] NEWTABLE 5 0 0
+    28: [line 491] LOADK 6 2
+    29: [line 491] GETTABLE 7 0 -4
+    30: [line 491] LEN 7 7
+    31: [line 491] LOADK 8 2
+    32: [line 491] FORPREP 6 21
+    33: [line 492] GETUPVAL 10 5
+    34: [line 492] MOVE 11 1
+    35: [line 492] GETTABLE 12 0 -4
+    36: [line 492] GETTABLE 12 12 9
+    37: [line 492] MOVE 13 2
+    38: [line 492] CALL 10 4 2
+    39: [line 493] TEST 10 0
+    40: [line 493] JMP 0 13
+    41: [line 494] GETTABUP 11 0 -5
+    42: [line 494] GETTABLE 12 10 -6
+    43: [line 494] CALL 11 2 4
+    44: [line 494] JMP 0 3
+    45: [line 495] LEN 16 4
+    46: [line 495] ADD 16 16 -3
+    47: [line 495] SETTABLE 4 16 15
+    48: [line 494] TFORCALL 11 2
+    49: [line 494] TFORLOOP 13 -5
+    50: [line 497] LEN 11 5
+    51: [line 497] ADD 11 11 -3
+    52: [line 497] GETTABLE 12 10 -7
+    53: [line 497] SETTABLE 5 11 12
+    54: [line 491] FORLOOP 6 -22
+    55: [line 500] NEWTABLE 6 0 2
+    56: [line 501] SETTABLE 6 -6 4
+    57: [line 506] CLOSURE 7 0
+    58: [line 506] SETTABLE 6 -7 7
+    59: [line 507] RETURN 6 2
+    60: [line 507] JMP 5 7
+    61: [line 507] JMP 0 6
+    62: [line 509] GETUPVAL 4 6
+    63: [line 509] MOVE 5 0
+    64: [line 509] MOVE 6 1
+    65: [line 509] MOVE 7 2
+    66: [line 509] TAILCALL 4 4 0
+    67: [line 509] RETURN 4 0
+    68: [line 511] RETURN 0 1
+  child 0:
+    proto ? params=0 vararg=False maxstack=5 linedefined=502-506
+    constants:
+      [0] 1
+      [1] -1
+    upvalues:
+      [0] disposes local=True index=5 byvalue=True
+    locals:
+      [0] (for index) pc=4-8
+      [1] (for limit) pc=4-8
+      [2] (for step) pc=4-8
+      [3] i pc=5-7
+    code:
+      0: [line 503] GETUPVAL 0 0
+      1: [line 503] LEN 0 0
+      2: [line 503] LOADK 1 0
+      3: [line 503] LOADK 2 1
+      4: [line 503] FORPREP 0 2
+      5: [line 504] GETTABUP 4 0 3
+      6: [line 504] CALL 4 1 1
+      7: [line 503] FORLOOP 0 -3
+      8: [line 506] RETURN 0 1
+child 17:
+  proto Show params=1 vararg=False maxstack=3 linedefined=521-523
+  constants:
+    [0] type
+    [1] kind
+    [2] props
+    [3] children
+  upvalues:
+    [0] FLOW local=True index=21 byvalue=True
+    [1] FlowKind_Show local=True index=36 byvalue=True
+  locals:
+    [0] props pc=0-10
+  code:
+    0: [line 522] NEWTABLE 1 0 4
+    1: [line 522] GETUPVAL 2 0
+    2: [line 522] SETTABLE 1 -1 2
+    3: [line 522] GETUPVAL 2 1
+    4: [line 522] SETTABLE 1 -2 2
+    5: [line 522] SETTABLE 1 -3 0
+    6: [line 522] GETTABLE 2 0 -4
+    7: [line 522] SETTABLE 1 -4 2
+    8: [line 522] RETURN 1 2
+    9: [line 523] RETURN 0 1
+child 18:
+  proto Switch params=1 vararg=False maxstack=3 linedefined=525-527
+  constants:
+    [0] type
+    [1] kind
+    [2] props
+    [3] children
+  upvalues:
+    [0] FLOW local=True index=21 byvalue=True
+    [1] FlowKind_Switch local=True index=37 byvalue=True
+  locals:
+    [0] props pc=0-10
+  code:
+    0: [line 526] NEWTABLE 1 0 4
+    1: [line 526] GETUPVAL 2 0
+    2: [line 526] SETTABLE 1 -1 2
+    3: [line 526] GETUPVAL 2 1
+    4: [line 526] SETTABLE 1 -2 2
+    5: [line 526] SETTABLE 1 -3 0
+    6: [line 526] GETTABLE 2 0 -4
+    7: [line 526] SETTABLE 1 -4 2
+    8: [line 526] RETURN 1 2
+    9: [line 527] RETURN 0 1
+child 19:
+  proto Match params=1 vararg=False maxstack=3 linedefined=529-531
+  constants:
+    [0] type
+    [1] kind
+    [2] props
+    [3] children
+  upvalues:
+    [0] FLOW local=True index=21 byvalue=True
+    [1] FlowKind_Match local=True index=38 byvalue=True
+  locals:
+    [0] props pc=0-10
+  code:
+    0: [line 530] NEWTABLE 1 0 4
+    1: [line 530] GETUPVAL 2 0
+    2: [line 530] SETTABLE 1 -1 2
+    3: [line 530] GETUPVAL 2 1
+    4: [line 530] SETTABLE 1 -2 2
+    5: [line 530] SETTABLE 1 -3 0
+    6: [line 530] GETTABLE 2 0 -4
+    7: [line 530] SETTABLE 1 -4 2
+    8: [line 530] RETURN 1 2
+    9: [line 531] RETURN 0 1
+child 20:
+  proto For params=1 vararg=False maxstack=3 linedefined=533-535
+  constants:
+    [0] type
+    [1] kind
+    [2] props
+    [3] children
+  upvalues:
+    [0] FLOW local=True index=21 byvalue=True
+    [1] FlowKind_For local=True index=39 byvalue=True
+  locals:
+    [0] props pc=0-10
+  code:
+    0: [line 534] NEWTABLE 1 0 4
+    1: [line 534] GETUPVAL 2 0
+    2: [line 534] SETTABLE 1 -1 2
+    3: [line 534] GETUPVAL 2 1
+    4: [line 534] SETTABLE 1 -2 2
+    5: [line 534] SETTABLE 1 -3 0
+    6: [line 534] GETTABLE 2 0 -4
+    7: [line 534] SETTABLE 1 -4 2
+    8: [line 534] RETURN 1 2
+    9: [line 535] RETURN 0 1
+child 21:
+  proto Index params=1 vararg=False maxstack=3 linedefined=537-539
+  constants:
+    [0] type
+    [1] kind
+    [2] props
+    [3] children
+  upvalues:
+    [0] FLOW local=True index=21 byvalue=True
+    [1] FlowKind_Index local=True index=40 byvalue=True
+  locals:
+    [0] props pc=0-10
+  code:
+    0: [line 538] NEWTABLE 1 0 4
+    1: [line 538] GETUPVAL 2 0
+    2: [line 538] SETTABLE 1 -1 2
+    3: [line 538] GETUPVAL 2 1
+    4: [line 538] SETTABLE 1 -2 2
+    5: [line 538] SETTABLE 1 -3 0
+    6: [line 538] GETTABLE 2 0 -4
+    7: [line 538] SETTABLE 1 -4 2
+    8: [line 538] RETURN 1 2
+    9: [line 539] RETURN 0 1
+child 22:
+  proto disposeMount params=1 vararg=False maxstack=2 linedefined=541-549
+  constants:
+    [0] dispose
+  upvalues:
+  locals:
+    [0] m pc=0-9
+  code:
+    0: [line 542] TEST 0 0
+    1: [line 542] JMP 0 6
+    2: [line 543] GETTABLE 1 0 -1
+    3: [line 543] TEST 1 0
+    4: [line 543] JMP 0 3
+    5: [line 544] GETTABLE 1 0 -1
+    6: [line 544] CALL 1 1 1
+    7: [line 544] JMP 0 0
+    8: [line 549] RETURN 0 1
+child 23:
+  proto mountShow params=4 vararg=False maxstack=14 linedefined=560-603
+  constants:
+    [0] when
+    [1] fallback
+    [2] createEffect
+    [3] nodes
+    [4] dispose
+  upvalues:
+    [0] toAccessor local=True index=25 byvalue=False
+    [1] createAnchor local=True index=29 byvalue=False
+    [2] Sx local=True index=0 byvalue=True
+    [3] disposeMount local=True index=46 byvalue=False
+    [4] mountValueInto local=True index=31 byvalue=False
+    [5] toValueOrCall local=True index=26 byvalue=False
+    [6] removeNode local=True index=28 byvalue=False
+  locals:
+    [0] props pc=0-22
+    [1] children pc=0-22
+    [2] parent pc=0-22
+    [3] marker pc=0-22
+    [4] when pc=3-22
+    [5] fallback pc=4-22
+    [6] anchor pc=9-22
+    [7] current pc=10-22
+    [8] currentBranch pc=10-22
+    [9] eff pc=13-22
+    [10] dispose pc=14-22
+  code:
+    0: [line 561] GETUPVAL 4 0
+    1: [line 561] GETTABLE 5 0 -1
+    2: [line 561] CALL 4 2 2
+    3: [line 562] GETTABLE 5 0 -2
+    4: [line 563] TESTSET 6 3 1
+    5: [line 563] JMP 0 3
+    6: [line 563] GETUPVAL 6 1
+    7: [line 563] MOVE 7 2
+    8: [line 563] CALL 6 2 2
+    9: [line 564] LOADNIL 7 1
+    10: [line 569] GETTABUP 9 2 -3
+    11: [line 592] CLOSURE 10 0
+    12: [line 569] CALL 9 2 2
+    13: [line 600] CLOSURE 10 1
+    14: [line 602] NEWTABLE 11 0 2
+    15: [line 602] NEWTABLE 12 1 0
+    16: [line 602] MOVE 13 6
+    17: [line 602] SETLIST 12 1 1
+    18: [line 602] SETTABLE 11 -4 12
+    19: [line 602] SETTABLE 11 -5 10
+    20: [line 602] RETURN 11 2
+    21: [line 603] RETURN 0 1
+  child 0:
+    proto eff params=0 vararg=False maxstack=6 linedefined=569-592
+    constants:
+      [0] 1
+      [1] nil
+      [2] 0
+    upvalues:
+      [0] when local=True index=4 byvalue=True
+      [1] fallback local=True index=5 byvalue=True
+      [2] currentBranch local=True index=8 byvalue=False
+      [3] disposeMount local=False index=3 byvalue=False
+      [4] current local=True index=7 byvalue=False
+      [5] mountValueInto local=False index=4 byvalue=False
+      [6] parent local=True index=2 byvalue=True
+      [7] children local=True index=1 byvalue=True
+      [8] anchor local=True index=6 byvalue=True
+      [9] toValueOrCall local=False index=5 byvalue=False
+    locals:
+      [0] w pc=2-43
+      [1] wantBranch pc=3-43
+    code:
+      0: [line 570] GETUPVAL 0 0
+      1: [line 570] CALL 0 1 2
+      2: [line 571] LOADNIL 1 0
+      3: [line 572] TEST 0 0
+      4: [line 572] JMP 0 2
+      5: [line 573] LOADK 1 0
+      6: [line 573] JMP 0 6
+      7: [line 574] GETUPVAL 2 1
+      8: [line 574] JMPIFEQK 2 3
+      9: [line 574] EXTRAARG 1
+      10: [line 575] LOADK 1 2
+      11: [line 575] JMP 0 1
+      12: [line 577] LOADNIL 1 0
+      13: [line 580] GETUPVAL 2 2
+      14: [line 580] EQ 0 1 2
+      15: [line 580] JMP 0 1
+      16: [line 581] RETURN 0 1
+      17: [line 583] SETUPVAL 1 2
+      18: [line 585] GETUPVAL 2 3
+      19: [line 585] GETUPVAL 3 4
+      20: [line 585] CALL 2 2 1
+      21: [line 586] LOADNIL 2 0
+      22: [line 586] SETUPVAL 2 4
+      23: [line 587] JMPIFNEK 1 8
+      24: [line 587] EXTRAARG 0
+      25: [line 588] GETUPVAL 2 5
+      26: [line 588] GETUPVAL 3 6
+      27: [line 588] GETUPVAL 4 7
+      28: [line 588] GETUPVAL 5 8
+      29: [line 588] CALL 2 4 2
+      30: [line 588] SETUPVAL 2 4
+      31: [line 588] JMP 0 10
+      32: [line 589] JMPIFNEK 1 9
+      33: [line 589] EXTRAARG 2
+      34: [line 590] GETUPVAL 2 5
+      35: [line 590] GETUPVAL 3 6
+      36: [line 590] GETUPVAL 4 9
+      37: [line 590] GETUPVAL 5 1
+      38: [line 590] CALL 4 2 2
+      39: [line 590] GETUPVAL 5 8
+      40: [line 590] CALL 2 4 2
+      41: [line 590] SETUPVAL 2 4
+      42: [line 592] RETURN 0 1
+  child 1:
+    proto dispose params=0 vararg=False maxstack=3 linedefined=594-600
+    constants:
+      [0] nil
+    upvalues:
+      [0] eff local=True index=9 byvalue=True
+      [1] disposeMount local=False index=3 byvalue=False
+      [2] current local=True index=7 byvalue=False
+      [3] marker local=True index=3 byvalue=True
+      [4] removeNode local=False index=6 byvalue=False
+      [5] parent local=True index=2 byvalue=True
+      [6] anchor local=True index=6 byvalue=True
+    locals:
+    code:
+      0: [line 595] GETUPVAL 0 0
+      1: [line 595] CALL 0 1 1
+      2: [line 596] GETUPVAL 0 1
+      3: [line 596] GETUPVAL 1 2
+      4: [line 596] CALL 0 2 1
+      5: [line 597] GETUPVAL 0 3
+      6: [line 597] JMPIFNEK 0 5
+      7: [line 597] EXTRAARG 0
+      8: [line 598] GETUPVAL 0 4
+      9: [line 598] GETUPVAL 1 5
+      10: [line 598] GETUPVAL 2 6
+      11: [line 598] CALL 0 3 1
+      12: [line 600] RETURN 0 1
+child 24:
+  proto mountSwitch params=4 vararg=False maxstack=12 linedefined=618-680
+  constants:
+    [0] createEffect
+    [1] nodes
+    [2] dispose
+  upvalues:
+    [0] createAnchor local=True index=29 byvalue=False
+    [1] Sx local=True index=0 byvalue=True
+    [2] Match local=True index=43 byvalue=False
+    [3] FLOW local=True index=21 byvalue=True
+    [4] FlowKind_Match local=True index=38 byvalue=True
+    [5] _ENV local=False index=0 byvalue=False
+    [6] disposeMount local=True index=46 byvalue=False
+    [7] mountValueInto local=True index=31 byvalue=False
+    [8] removeNode local=True index=28 byvalue=False
+  locals:
+    [0] props pc=0-18
+    [1] children pc=0-18
+    [2] parent pc=0-18
+    [3] marker pc=0-18
+    [4] anchor pc=5-18
+    [5] current pc=6-18
+    [6] currentChosen pc=6-18
+    [7] eff pc=9-18
+    [8] dispose pc=10-18
+  code:
+    0: [line 619] TESTSET 4 3 1
+    1: [line 619] JMP 0 3
+    2: [line 619] GETUPVAL 4 0
+    3: [line 619] MOVE 5 2
+    4: [line 619] CALL 4 2 2
+    5: [line 620] LOADNIL 5 1
+    6: [line 623] GETTABUP 7 1 -1
+    7: [line 669] CLOSURE 8 0
+    8: [line 623] CALL 7 2 2
+    9: [line 677] CLOSURE 8 1
+    10: [line 679] NEWTABLE 9 0 2
+    11: [line 679] NEWTABLE 10 1 0
+    12: [line 679] MOVE 11 4
+    13: [line 679] SETLIST 10 1 1
+    14: [line 679] SETTABLE 9 -2 10
+    15: [line 679] SETTABLE 9 -3 8
+    16: [line 679] RETURN 9 2
+    17: [line 680] RETURN 0 1
+  child 0:
+    proto eff params=0 vararg=False maxstack=11 linedefined=623-669
+    constants:
+      [0] 1
+      [1] type
+      [2] kind
+      [3] props
+      [4] when
+      [5] function
+      [6] createRoot
+    upvalues:
+      [0] children local=True index=1 byvalue=True
+      [1] Match local=False index=2 byvalue=False
+      [2] FLOW local=False index=3 byvalue=False
+      [3] FlowKind_Match local=False index=4 byvalue=False
+      [4] _ENV local=False index=5 byvalue=False
+      [5] currentChosen local=True index=6 byvalue=False
+      [6] disposeMount local=False index=6 byvalue=False
+      [7] current local=True index=5 byvalue=False
+      [8] Sx local=False index=1 byvalue=False
+      [9] mountValueInto local=False index=7 byvalue=False
+      [10] parent local=True index=2 byvalue=True
+      [11] anchor local=True index=4 byvalue=True
+    locals:
+      [0] chosen pc=1-59
+      [1] (for index) pc=5-41
+      [2] (for limit) pc=5-41
+      [3] (for step) pc=5-41
+      [4] i pc=6-40
+      [5] matchDesc pc=7-40
+      [6] isMatch pc=21-40
+      [7] w pc=25-40
+      [8] wv pc=26-40
+      [9] rootDispose pc=54-58
+    code:
+      0: [line 624] LOADNIL 0 0
+      1: [line 625] LOADK 1 0
+      2: [line 625] GETUPVAL 2 0
+      3: [line 625] LEN 2 2
+      4: [line 625] LOADK 3 0
+      5: [line 625] FORPREP 1 34
+      6: [line 626] GETTABUP 5 0 4
+      7: [line 627] GETTABLE 6 5 -2
+      8: [line 627] GETUPVAL 7 1
+      9: [line 627] EQ 1 6 7
+      10: [line 627] JMP 0 9
+      11: [line 628] GETTABLE 6 5 -2
+      12: [line 628] GETUPVAL 7 2
+      13: [line 628] EQ 0 6 7
+      14: [line 628] JMP 0 4
+      15: [line 628] GETTABLE 6 5 -3
+      16: [line 628] GETUPVAL 7 3
+      17: [line 628] EQ 1 6 7
+      18: [line 628] JMP 0 1
+      19: [line 628] LOADBOOL 6 0 1
+      20: [line 628] LOADBOOL 6 1 0
+      21: [line 629] TEST 6 0
+      22: [line 629] JMP 0 17
+      23: [line 630] GETTABLE 7 5 -4
+      24: [line 630] GETTABLE 7 7 -5
+      25: [line 631] LOADNIL 8 0
+      26: [line 632] GETTABUP 9 4 -2
+      27: [line 632] MOVE 10 7
+      28: [line 632] CALL 9 2 2
+      29: [line 632] JMPIFNEK 9 5
+      30: [line 632] EXTRAARG 5
+      31: [line 633] MOVE 9 7
+      32: [line 633] CALL 9 1 2
+      33: [line 633] MOVE 8 9
+      34: [line 633] JMP 0 1
+      35: [line 635] MOVE 8 7
+      36: [line 637] TEST 8 0
+      37: [line 637] JMP 0 2
+      38: [line 638] MOVE 0 5
+      39: [line 639] JMP 0 1
+      40: [line 625] FORLOOP 1 -35
+      41: [line 643] GETUPVAL 1 5
+      42: [line 643] EQ 0 0 1
+      43: [line 643] JMP 0 1
+      44: [line 644] RETURN 0 1
+      45: [line 646] SETUPVAL 0 5
+      46: [line 649] GETUPVAL 1 6
+      47: [line 649] GETUPVAL 2 7
+      48: [line 649] CALL 1 2 1
+      49: [line 650] LOADNIL 1 0
+      50: [line 650] SETUPVAL 1 7
+      51: [line 652] TEST 0 0
+      52: [line 652] JMP 0 5
+      53: [line 655] LOADNIL 1 0
+      54: [line 656] GETTABUP 2 8 -7
+      55: [line 667] CLOSURE 3 0
+      56: [line 656] CALL 2 2 1
+      57: [line 667] JMP 2 0
+      58: [line 669] RETURN 0 1
+    child 0:
+      proto ? params=1 vararg=False maxstack=5 linedefined=656-667
+      constants:
+        [0] children
+        [1] dispose
+      upvalues:
+        [0] rootDispose local=True index=1 byvalue=False
+        [1] mountValueInto local=False index=9 byvalue=False
+        [2] parent local=False index=10 byvalue=False
+        [3] chosen local=True index=0 byvalue=False
+        [4] anchor local=False index=11 byvalue=False
+        [5] current local=False index=7 byvalue=False
+      locals:
+        [0] dispose pc=0-14
+        [1] m pc=6-14
+        [2] innerDispose pc=9-13
+      code:
+        0: [line 657] SETUPVAL 0 0
+        1: [line 658] GETUPVAL 1 1
+        2: [line 658] GETUPVAL 2 2
+        3: [line 658] GETTABUP 3 3 -1
+        4: [line 658] GETUPVAL 4 4
+        5: [line 658] CALL 1 4 2
+        6: [line 659] TEST 1 0
+        7: [line 659] JMP 0 5
+        8: [line 660] GETTABLE 2 1 -2
+        9: [line 664] CLOSURE 3 0
+        10: [line 664] SETTABLE 1 -2 3
+        11: [line 665] SETUPVAL 1 5
+        12: [line 665] JMP 3 0
+        13: [line 667] RETURN 0 1
+      child 0:
+        proto ? params=0 vararg=False maxstack=2 linedefined=661-664
+        constants:
+        upvalues:
+          [0] rootDispose local=False index=0 byvalue=False
+          [1] innerDispose local=True index=2 byvalue=True
+        locals:
+        code:
+          0: [line 662] GETUPVAL 0 0
+          1: [line 662] TEST 0 0
+          2: [line 662] JMP 0 2
+          3: [line 662] GETUPVAL 0 0
+          4: [line 662] CALL 0 1 1
+          5: [line 663] GETUPVAL 0 1
+          6: [line 663] CALL 0 1 1
+          7: [line 664] RETURN 0 1
+  child 1:
+    proto dispose params=0 vararg=False maxstack=3 linedefined=671-677
+    constants:
+      [0] nil
+    upvalues:
+      [0] eff local=True index=7 byvalue=True
+      [1] disposeMount local=False index=6 byvalue=False
+      [2] current local=True index=5 byvalue=False
+      [3] marker local=True index=3 byvalue=True
+      [4] removeNode local=False index=8 byvalue=False
+      [5] parent local=True index=2 byvalue=True
+      [6] anchor local=True index=4 byvalue=True
+    locals:
+    code:
+      0: [line 672] GETUPVAL 0 0
+      1: [line 672] CALL 0 1 1
+      2: [line 673] GETUPVAL 0 1
+      3: [line 673] GETUPVAL 1 2
+      4: [line 673] CALL 0 2 1
+      5: [line 674] GETUPVAL 0 3
+      6: [line 674] JMPIFNEK 0 5
+      7: [line 674] EXTRAARG 0
+      8: [line 675] GETUPVAL 0 4
+      9: [line 675] GETUPVAL 1 5
+      10: [line 675] GETUPVAL 2 6
+      11: [line 675] CALL 0 3 1
+      12: [line 677] RETURN 0 1
+child 25:
+  proto rowKey params=3 vararg=False maxstack=3 linedefined=682-687
+  constants:
+  upvalues:
+  locals:
+    [0] item pc=0-5
+    [1] index pc=0-5
+    [2] keyed pc=0-5
+  code:
+    0: [line 683] TEST 2 0
+    1: [line 683] JMP 0 1
+    2: [line 684] RETURN 0 2
+    3: [line 686] RETURN 1 2
+    4: [line 687] RETURN 0 1
+child 26:
+  proto mountList params=5 vararg=False maxstack=16 linedefined=691-773
+  constants:
+    [0] each
+    [1] fallback
+    [2] 1
+    [3] createEffect
+    [4] nodes
+    [5] dispose
+  upvalues:
+    [0] toAccessor local=True index=25 byvalue=False
+    [1] createAnchor local=True index=29 byvalue=False
+    [2] Sx local=True index=0 byvalue=True
+    [3] _ENV local=False index=0 byvalue=False
+    [4] disposeMount local=True index=46 byvalue=False
+    [5] mountValueInto local=True index=31 byvalue=False
+    [6] toValueOrCall local=True index=26 byvalue=False
+    [7] rowKey local=True index=49 byvalue=False
+    [8] removeNode local=True index=28 byvalue=False
+  locals:
+    [0] props pc=0-24
+    [1] children pc=0-24
+    [2] parent pc=0-24
+    [3] marker pc=0-24
+    [4] keyed pc=0-24
+    [5] each pc=3-24
+    [6] fallback pc=4-24
+    [7] rowFn pc=5-24
+    [8] anchor pc=10-24
+    [9] rows pc=11-24
+    [10] currentFallback pc=12-24
+    [11] eff pc=15-24
+    [12] dispose pc=16-24
+  code:
+    0: [line 692] GETUPVAL 5 0
+    1: [line 692] GETTABLE 6 0 -1
+    2: [line 692] CALL 5 2 2
+    3: [line 693] GETTABLE 6 0 -2
+    4: [line 694] GETTABLE 7 1 -3
+    5: [line 695] TESTSET 8 3 1
+    6: [line 695] JMP 0 3
+    7: [line 695] GETUPVAL 8 1
+    8: [line 695] MOVE 9 2
+    9: [line 695] CALL 8 2 2
+    10: [line 697] NEWTABLE 9 0 0
+    11: [line 698] LOADNIL 10 0
+    12: [line 700] GETTABUP 11 2 -4
+    13: [line 758] CLOSURE 12 0
+    14: [line 700] CALL 11 2 2
+    15: [line 770] CLOSURE 12 1
+    16: [line 772] NEWTABLE 13 0 2
+    17: [line 772] NEWTABLE 14 1 0
+    18: [line 772] MOVE 15 8
+    19: [line 772] SETLIST 14 1 1
+    20: [line 772] SETTABLE 13 -5 14
+    21: [line 772] SETTABLE 13 -6 12
+    22: [line 772] RETURN 13 2
+    23: [line 773] RETURN 0 1
+  child 0:
+    proto eff params=0 vararg=False maxstack=15 linedefined=700-758
+    constants:
+      [0] 0
+      [1] nil
+      [2] ipairs
+      [3] dispose
+      [4] 1
+      [5] key
+      [6] createMemo
+    upvalues:
+      [0] each local=True index=5 byvalue=True
+      [1] rows local=True index=9 byvalue=False
+      [2] currentFallback local=True index=10 byvalue=False
+      [3] _ENV local=False index=3 byvalue=False
+      [4] disposeMount local=False index=4 byvalue=False
+      [5] fallback local=True index=6 byvalue=True
+      [6] mountValueInto local=False index=5 byvalue=False
+      [7] parent local=True index=2 byvalue=True
+      [8] toValueOrCall local=False index=6 byvalue=False
+      [9] anchor local=True index=8 byvalue=True
+      [10] rowKey local=False index=7 byvalue=False
+      [11] keyed local=True index=4 byvalue=True
+      [12] Sx local=False index=2 byvalue=False
+      [13] rowFn local=True index=7 byvalue=True
+      [14] children local=True index=1 byvalue=True
+    locals:
+      [0] list pc=5-123
+      [1] n pc=6-123
+      [2] (for generator) pc=18-23
+      [3] (for state) pc=18-23
+      [4] (for control) pc=18-23
+      [5] _ pc=19-21
+      [6] row pc=19-21
+      [7] same pc=47-66
+      [8] (for index) pc=50-63
+      [9] (for limit) pc=50-63
+      [10] (for step) pc=50-63
+      [11] i pc=51-62
+      [12] (for generator) pc=74-79
+      [13] (for state) pc=74-79
+      [14] (for control) pc=74-79
+      [15] _ pc=75-77
+      [16] row pc=75-77
+      [17] (for index) pc=84-122
+      [18] (for limit) pc=84-122
+      [19] (for step) pc=84-122
+      [20] i pc=85-121
+      [21] item pc=86-121
+      [22] itemAccessor pc=89-121
+      [23] descriptor pc=90-121
+      [24] m pc=105-121
+    code:
+      0: [line 701] GETUPVAL 0 0
+      1: [line 701] CALL 0 1 2
+      2: [line 701] TEST 0 1
+      3: [line 701] JMP 0 1
+      4: [line 701] NEWTABLE 0 0 0
+      5: [line 702] LEN 1 0
+      6: [line 704] JMPIFNEK 1 35
+      7: [line 704] EXTRAARG 0
+      8: [line 705] GETUPVAL 2 1
+      9: [line 705] LEN 2 2
+      10: [line 705] LT 1 -1 2
+      11: [line 705] JMP 0 3
+      12: [line 705] GETUPVAL 2 2
+      13: [line 705] JMPIFEQK 2 27
+      14: [line 705] EXTRAARG 1
+      15: [line 706] GETTABUP 2 3 -3
+      16: [line 706] GETUPVAL 3 1
+      17: [line 706] CALL 2 2 4
+      18: [line 706] JMP 0 2
+      19: [line 707] GETTABLE 7 6 -4
+      20: [line 707] CALL 7 1 1
+      21: [line 706] TFORCALL 2 2
+      22: [line 706] TFORLOOP 4 -4
+      23: [line 709] NEWTABLE 2 0 0
+      24: [line 709] SETUPVAL 2 1
+      25: [line 710] GETUPVAL 2 4
+      26: [line 710] GETUPVAL 3 2
+      27: [line 710] CALL 2 2 1
+      28: [line 711] LOADNIL 2 0
+      29: [line 711] SETUPVAL 2 2
+      30: [line 712] GETUPVAL 2 5
+      31: [line 712] JMPIFEQK 2 9
+      32: [line 712] EXTRAARG 1
+      33: [line 713] GETUPVAL 2 6
+      34: [line 713] GETUPVAL 3 7
+      35: [line 713] GETUPVAL 4 8
+      36: [line 713] GETUPVAL 5 5
+      37: [line 713] CALL 4 2 2
+      38: [line 713] GETUPVAL 5 9
+      39: [line 713] CALL 2 4 2
+      40: [line 713] SETUPVAL 2 2
+      41: [line 716] RETURN 0 1
+      42: [line 720] GETUPVAL 2 1
+      43: [line 720] LEN 2 2
+      44: [line 720] EQ 0 2 1
+      45: [line 720] JMP 0 20
+      46: [line 721] LOADBOOL 2 1 0
+      47: [line 722] LOADK 3 4
+      48: [line 722] MOVE 4 1
+      49: [line 722] LOADK 5 4
+      50: [line 722] FORPREP 3 11
+      51: [line 723] GETTABUP 7 1 6
+      52: [line 723] GETTABLE 7 7 -6
+      53: [line 723] GETUPVAL 8 10
+      54: [line 723] GETTABLE 9 0 6
+      55: [line 723] MOVE 10 6
+      56: [line 723] GETUPVAL 11 11
+      57: [line 723] CALL 8 4 2
+      58: [line 723] EQ 1 7 8
+      59: [line 723] JMP 0 2
+      60: [line 724] LOADBOOL 2 0 0
+      61: [line 725] JMP 0 1
+      62: [line 722] FORLOOP 3 -12
+      63: [line 728] TEST 2 0
+      64: [line 728] JMP 0 1
+      65: [line 729] RETURN 0 1
+      66: [line 734] GETUPVAL 2 4
+      67: [line 734] GETUPVAL 3 2
+      68: [line 734] CALL 2 2 1
+      69: [line 735] LOADNIL 2 0
+      70: [line 735] SETUPVAL 2 2
+      71: [line 736] GETTABUP 2 3 -3
+      72: [line 736] GETUPVAL 3 1
+      73: [line 736] CALL 2 2 4
+      74: [line 736] JMP 0 2
+      75: [line 737] GETTABLE 7 6 -4
+      76: [line 737] CALL 7 1 1
+      77: [line 736] TFORCALL 2 2
+      78: [line 736] TFORLOOP 4 -4
+      79: [line 739] NEWTABLE 2 0 0
+      80: [line 739] SETUPVAL 2 1
+      81: [line 741] LOADK 2 4
+      82: [line 741] MOVE 3 1
+      83: [line 741] LOADK 4 4
+      84: [line 741] FORPREP 2 36
+      85: [line 742] GETTABLE 6 0 5
+      86: [line 743] GETTABUP 7 12 -7
+      87: [line 745] CLOSURE 8 0
+      88: [line 743] CALL 7 2 2
+      89: [line 746] LOADNIL 8 0
+      90: [line 747] GETUPVAL 9 13
+      91: [line 747] JMPIFEQK 9 7
+      92: [line 747] EXTRAARG 1
+      93: [line 748] GETUPVAL 9 13
+      94: [line 748] MOVE 10 7
+      95: [line 748] SUB 11 5 -5
+      96: [line 748] CALL 9 3 2
+      97: [line 748] MOVE 8 9
+      98: [line 748] JMP 0 1
+      99: [line 750] GETTABUP 8 14 5
+      100: [line 752] GETUPVAL 9 6
+      101: [line 752] GETUPVAL 10 7
+      102: [line 752] MOVE 11 8
+      103: [line 752] GETUPVAL 12 9
+      104: [line 752] CALL 9 4 2
+      105: [line 753] NEWTABLE 10 0 2
+      106: [line 754] GETUPVAL 11 10
+      107: [line 754] MOVE 12 6
+      108: [line 754] MOVE 13 5
+      109: [line 754] GETUPVAL 14 11
+      110: [line 754] CALL 11 4 2
+      111: [line 754] SETTABLE 10 -6 11
+      112: [line 755] TEST 9 0
+      113: [line 755] JMP 0 3
+      114: [line 755] GETTABLE 11 9 -4
+      115: [line 755] TEST 11 1
+      116: [line 755] JMP 0 1
+      117: [line 755] CLOSURE 11 1
+      118: [line 755] SETTABLE 10 -4 11
+      119: [line 756] SETTABUP 1 5 10
+      120: [line 756] JMP 7 0
+      121: [line 741] FORLOOP 2 -37
+      122: [line 758] RETURN 0 1
+    child 0:
+      proto itemAccessor params=0 vararg=False maxstack=2 linedefined=743-745
+      constants:
+      upvalues:
+        [0] item local=True index=6 byvalue=True
+      locals:
+      code:
+        0: [line 744] GETUPVAL 0 0
+        1: [line 744] RETURN 0 2
+        2: [line 745] RETURN 0 1
+    child 1:
+      proto ? params=0 vararg=False maxstack=2 linedefined=755-755
+      constants:
+      upvalues:
+      locals:
+      code:
+        0: [line 755] RETURN 0 1
+  child 1:
+    proto dispose params=0 vararg=False maxstack=6 linedefined=760-770
+    constants:
+      [0] ipairs
+      [1] dispose
+      [2] nil
+    upvalues:
+      [0] eff local=True index=11 byvalue=True
+      [1] _ENV local=False index=3 byvalue=False
+      [2] rows local=True index=9 byvalue=False
+      [3] disposeMount local=False index=4 byvalue=False
+      [4] currentFallback local=True index=10 byvalue=False
+      [5] marker local=True index=3 byvalue=True
+      [6] removeNode local=False index=8 byvalue=False
+      [7] parent local=True index=2 byvalue=True
+      [8] anchor local=True index=8 byvalue=True
+    locals:
+      [0] (for generator) pc=5-10
+      [1] (for state) pc=5-10
+      [2] (for control) pc=5-10
+      [3] _ pc=6-8
+      [4] row pc=6-8
+    code:
+      0: [line 761] GETUPVAL 0 0
+      1: [line 761] CALL 0 1 1
+      2: [line 762] GETTABUP 0 1 -1
+      3: [line 762] GETUPVAL 1 2
+      4: [line 762] CALL 0 2 4
+      5: [line 762] JMP 0 2
+      6: [line 763] GETTABLE 5 4 -2
+      7: [line 763] CALL 5 1 1
+      8: [line 762] TFORCALL 0 2
+      9: [line 762] TFORLOOP 2 -4
+      10: [line 765] NEWTABLE 0 0 0
+      11: [line 765] SETUPVAL 0 2
+      12: [line 766] GETUPVAL 0 3
+      13: [line 766] GETUPVAL 1 4
+      14: [line 766] CALL 0 2 1
+      15: [line 767] GETUPVAL 0 5
+      16: [line 767] JMPIFNEK 0 5
+      17: [line 767] EXTRAARG 2
+      18: [line 768] GETUPVAL 0 6
+      19: [line 768] GETUPVAL 1 7
+      20: [line 768] GETUPVAL 2 8
+      21: [line 768] CALL 0 3 1
+      22: [line 770] RETURN 0 1
+child 27:
+  proto ? params=3 vararg=False maxstack=12 linedefined=775-798
+  constants:
+    [0] kind
+    [1] flow
+    [2] props
+    [3] children
+    [4] error
+    [5] Sx: unknown flow kind 
+    [6] tostring
+    [7] dispose
+  upvalues:
+    [0] devPush local=True index=18 byvalue=False
+    [1] FlowKind_Show local=True index=36 byvalue=True
+    [2] FlowKind_Match local=True index=38 byvalue=True
+    [3] mountShow local=True index=47 byvalue=False
+    [4] FlowKind_Switch local=True index=37 byvalue=True
+    [5] mountSwitch local=True index=48 byvalue=False
+    [6] FlowKind_For local=True index=39 byvalue=True
+    [7] mountList local=True index=50 byvalue=False
+    [8] FlowKind_Index local=True index=40 byvalue=True
+    [9] devPop local=True index=19 byvalue=False
+    [10] _ENV local=False index=0 byvalue=False
+    [11] devRemove local=True index=20 byvalue=False
+  locals:
+    [0] descriptor pc=0-73
+    [1] parent pc=0-73
+    [2] marker pc=0-73
+    [3] kind pc=1-73
+    [4] devNode pc=7-73
+    [5] result pc=8-73
+    [6] origDispose pc=69-73
+  code:
+    0: [line 776] GETTABLE 3 0 -1
+    1: [line 777] GETUPVAL 4 0
+    2: [line 777] LOADK 5 1
+    3: [line 777] TESTSET 6 3 1
+    4: [line 777] JMP 0 1
+    5: [line 777] LOADK 6 1
+    6: [line 777] CALL 4 3 2
+    7: [line 778] LOADNIL 5 0
+    8: [line 779] GETUPVAL 6 1
+    9: [line 779] EQ 1 3 6
+    10: [line 779] JMP 0 3
+    11: [line 779] GETUPVAL 6 2
+    12: [line 779] EQ 0 3 6
+    13: [line 779] JMP 0 8
+    14: [line 780] GETUPVAL 6 3
+    15: [line 780] GETTABLE 7 0 -3
+    16: [line 780] GETTABLE 8 0 -4
+    17: [line 780] MOVE 9 1
+    18: [line 780] MOVE 10 2
+    19: [line 780] CALL 6 5 2
+    20: [line 780] MOVE 5 6
+    21: [line 780] JMP 0 44
+    22: [line 781] GETUPVAL 6 4
+    23: [line 781] EQ 0 3 6
+    24: [line 781] JMP 0 8
+    25: [line 782] GETUPVAL 6 5
+    26: [line 782] GETTABLE 7 0 -3
+    27: [line 782] GETTABLE 8 0 -4
+    28: [line 782] MOVE 9 1
+    29: [line 782] MOVE 10 2
+    30: [line 782] CALL 6 5 2
+    31: [line 782] MOVE 5 6
+    32: [line 782] JMP 0 33
+    33: [line 783] GETUPVAL 6 6
+    34: [line 783] EQ 0 3 6
+    35: [line 783] JMP 0 9
+    36: [line 784] GETUPVAL 6 7
+    37: [line 784] GETTABLE 7 0 -3
+    38: [line 784] GETTABLE 8 0 -4
+    39: [line 784] MOVE 9 1
+    40: [line 784] MOVE 10 2
+    41: [line 784] LOADBOOL 11 1 0
+    42: [line 784] CALL 6 6 2
+    43: [line 784] MOVE 5 6
+    44: [line 784] JMP 0 21
+    45: [line 785] GETUPVAL 6 8
+    46: [line 785] EQ 0 3 6
+    47: [line 785] JMP 0 9
+    48: [line 786] GETUPVAL 6 7
+    49: [line 786] GETTABLE 7 0 -3
+    50: [line 786] GETTABLE 8 0 -4
+    51: [line 786] MOVE 9 1
+    52: [line 786] MOVE 10 2
+    53: [line 786] LOADBOOL 11 0 0
+    54: [line 786] CALL 6 6 2
+    55: [line 786] MOVE 5 6
+    56: [line 786] JMP 0 9
+    57: [line 788] GETUPVAL 6 9
+    58: [line 788] CALL 6 1 1
+    59: [line 789] GETTABUP 6 10 -5
+    60: [line 789] LOADK 7 5
+    61: [line 789] GETTABUP 8 10 -7
+    62: [line 789] MOVE 9 3
+    63: [line 789] CALL 8 2 2
+    64: [line 789] CONCAT 7 7 8
+    65: [line 789] CALL 6 2 1
+    66: [line 791] GETUPVAL 6 9
+    67: [line 791] CALL 6 1 1
+    68: [line 792] GETTABLE 6 5 -8
+    69: [line 796] CLOSURE 7 0
+    70: [line 796] SETTABLE 5 -8 7
+    71: [line 797] RETURN 5 2
+    72: [line 798] RETURN 0 1
+  child 0:
+    proto ? params=0 vararg=False maxstack=2 linedefined=793-796
+    constants:
+    upvalues:
+      [0] origDispose local=True index=6 byvalue=True
+      [1] devRemove local=False index=11 byvalue=False
+      [2] devNode local=True index=4 byvalue=True
+    locals:
+    code:
+      0: [line 794] GETUPVAL 0 0
+      1: [line 794] CALL 0 1 1
+      2: [line 795] GETUPVAL 0 1
+      3: [line 795] GETUPVAL 1 2
+      4: [line 795] CALL 0 2 1
+      5: [line 796] RETURN 0 1
+child 28:
+  proto render params=1 vararg=False maxstack=4 linedefined=803-811
+  constants:
+    [0] batch
+    [1] flushSync
+  upvalues:
+    [0] createRoot local=True index=3 byvalue=True
+    [1] Sx local=True index=0 byvalue=True
+    [2] mountNode local=True index=30 byvalue=False
+    [3] setActiveRoot local=True index=11 byvalue=True
+  locals:
+    [0] rootNode pc=0-12
+    [1] rootView pc=2-12
+  code:
+    0: [line 804] GETUPVAL 1 0
+    1: [line 804] CALL 1 1 2
+    2: [line 805] GETTABUP 2 1 -1
+    3: [line 807] CLOSURE 3 0
+    4: [line 805] CALL 2 2 1
+    5: [line 808] GETTABUP 2 1 -2
+    6: [line 808] CALL 2 1 1
+    7: [line 809] GETUPVAL 2 3
+    8: [line 809] MOVE 3 1
+    9: [line 809] CALL 2 2 1
+    10: [line 810] RETURN 1 2
+    11: [line 811] RETURN 0 1
+  child 0:
+    proto ? params=0 vararg=False maxstack=4 linedefined=805-807
+    constants:
+    upvalues:
+      [0] mountNode local=False index=2 byvalue=False
+      [1] rootNode local=True index=0 byvalue=True
+      [2] rootView local=True index=1 byvalue=True
+    locals:
+    code:
+      0: [line 806] GETUPVAL 0 0
+      1: [line 806] GETUPVAL 1 1
+      2: [line 806] GETUPVAL 2 2
+      3: [line 806] LOADNIL 3 0
+      4: [line 806] CALL 0 4 1
+      5: [line 807] RETURN 0 1
+child 29:
+  proto ? params=0 vararg=False maxstack=2 linedefined=829-832
+  constants:
+    [0] enabled
+    [1] true
+    [2] setCaptureCallSites
+  upvalues:
+    [0] DevTools local=True index=14 byvalue=True
+    [1] h local=True index=2 byvalue=True
+  locals:
+  code:
+    0: [line 830] SETTABUP 0 -1 -2
+    1: [line 831] GETTABUP 0 1 -3
+    2: [line 831] LOADBOOL 1 1 0
+    3: [line 831] CALL 0 2 1
+    4: [line 832] RETURN 0 1
+child 30:
+  proto ? params=0 vararg=False maxstack=2 linedefined=833-836
+  constants:
+    [0] enabled
+    [1] false
+    [2] setCaptureCallSites
+  upvalues:
+    [0] DevTools local=True index=14 byvalue=True
+    [1] h local=True index=2 byvalue=True
+  locals:
+  code:
+    0: [line 834] SETTABUP 0 -1 -2
+    1: [line 835] GETTABUP 0 1 -3
+    2: [line 835] LOADBOOL 1 0 0
+    3: [line 835] CALL 0 2 1
+    4: [line 836] RETURN 0 1
+child 31:
+  proto ? params=0 vararg=False maxstack=3 linedefined=837-856
+  constants:
+    [0] root
+    [1] nil
+  upvalues:
+    [0] DevTools local=True index=14 byvalue=True
+  locals:
+    [0] walk pc=6-11
+  code:
+    0: [line 838] GETTABUP 0 0 -1
+    1: [line 838] JMPIFNEK 0 3
+    2: [line 838] EXTRAARG 1
+    3: [line 839] LOADNIL 0 0
+    4: [line 839] RETURN 0 2
+    5: [line 854] CLOSURE 0 0
+    6: [line 855] MOVE 1 0
+    7: [line 855] GETTABUP 2 0 -1
+    8: [line 855] TAILCALL 1 2 0
+    9: [line 855] RETURN 1 0
+    10: [line 856] RETURN 0 1
+  child 0:
+    proto walk params=1 vararg=False maxstack=10 linedefined=841-854
+    constants:
+      [0] name
+      [1] kind
+      [2] children
+      [3] __host
+      [4] nil
+      [5] host
+      [6] props
+      [7] 1
+    upvalues:
+      [0] walk local=True index=0 byvalue=False
+    locals:
+      [0] node pc=0-30
+      [1] out pc=7-30
+      [2] kids pc=18-30
+      [3] (for index) pc=21-28
+      [4] (for limit) pc=21-28
+      [5] (for step) pc=21-28
+      [6] i pc=22-27
+    code:
+      0: [line 842] NEWTABLE 1 0 3
+      1: [line 842] GETTABLE 2 0 -1
+      2: [line 842] SETTABLE 1 -1 2
+      3: [line 842] GETTABLE 2 0 -2
+      4: [line 842] SETTABLE 1 -2 2
+      5: [line 842] NEWTABLE 2 0 0
+      6: [line 842] SETTABLE 1 -3 2
+      7: [line 843] GETTABLE 2 0 -4
+      8: [line 843] JMPIFEQK 2 3
+      9: [line 843] EXTRAARG 4
+      10: [line 844] GETTABLE 2 0 -4
+      11: [line 844] SETTABLE 1 -6 2
+      12: [line 846] GETTABLE 2 0 -7
+      13: [line 846] JMPIFEQK 2 3
+      14: [line 846] EXTRAARG 4
+      15: [line 847] GETTABLE 2 0 -7
+      16: [line 847] SETTABLE 1 -7 2
+      17: [line 849] GETTABLE 2 0 -3
+      18: [line 850] LOADK 3 7
+      19: [line 850] LEN 4 2
+      20: [line 850] LOADK 5 7
+      21: [line 850] FORPREP 3 5
+      22: [line 851] GETTABLE 7 1 -3
+      23: [line 851] GETUPVAL 8 0
+      24: [line 851] GETTABLE 9 2 6
+      25: [line 851] CALL 8 2 2
+      26: [line 851] SETTABLE 7 6 8
+      27: [line 850] FORLOOP 3 -6
+      28: [line 853] RETURN 1 2
+      29: [line 854] RETURN 0 1

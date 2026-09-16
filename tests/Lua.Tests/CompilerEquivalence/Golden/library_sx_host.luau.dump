@@ -1,0 +1,188 @@
+proto ? params=0 vararg=True maxstack=12 linedefined=0-0
+constants:
+  [0] UiLib
+  [1] defer
+  [2] createRoot
+  [3] createInstance
+  [4] createTextInstance
+  [5] appendChild
+  [6] insertBefore
+  [7] removeChild
+  [8] setProperty
+  [9] commitTextUpdate
+  [10] setActiveRoot
+upvalues:
+  [0] _ENV local=True index=0 byvalue=False
+locals:
+  [0] UiLib pc=1-33
+  [1] Host pc=2-33
+  [2] createRoot pc=5-33
+  [3] createInstance pc=6-33
+  [4] createTextInstance pc=7-33
+  [5] appendChild pc=8-33
+  [6] insertBefore pc=9-33
+  [7] removeChild pc=10-33
+  [8] setProperty pc=11-33
+  [9] commitTextUpdate pc=12-33
+  [10] setActiveRoot pc=13-33
+code:
+  0: [line 6] GETTABUP 0 0 -1
+  1: [line 8] NEWTABLE 1 0 0
+  2: [line 13] GETTABLE 2 0 -2
+  3: [line 13] SETTABLE 1 -2 2
+  4: [line 15] GETTABLE 2 0 -3
+  5: [line 16] GETTABLE 3 0 -4
+  6: [line 17] GETTABLE 4 0 -5
+  7: [line 18] GETTABLE 5 0 -6
+  8: [line 19] GETTABLE 6 0 -7
+  9: [line 20] GETTABLE 7 0 -8
+  10: [line 21] GETTABLE 8 0 -9
+  11: [line 22] GETTABLE 9 0 -10
+  12: [line 23] GETTABLE 10 0 -11
+  13: [line 27] CLOSURE 11 0
+  14: [line 25] SETTABLE 1 -3 11
+  15: [line 31] CLOSURE 11 1
+  16: [line 29] SETTABLE 1 -4 11
+  17: [line 35] CLOSURE 11 2
+  18: [line 33] SETTABLE 1 -5 11
+  19: [line 39] CLOSURE 11 3
+  20: [line 37] SETTABLE 1 -6 11
+  21: [line 43] CLOSURE 11 4
+  22: [line 41] SETTABLE 1 -7 11
+  23: [line 47] CLOSURE 11 5
+  24: [line 45] SETTABLE 1 -8 11
+  25: [line 51] CLOSURE 11 6
+  26: [line 49] SETTABLE 1 -9 11
+  27: [line 55] CLOSURE 11 7
+  28: [line 53] SETTABLE 1 -10 11
+  29: [line 59] CLOSURE 11 8
+  30: [line 57] SETTABLE 1 -11 11
+  31: [line 61] RETURN 1 2
+  32: [line 61] RETURN 0 1
+child 0:
+  proto createRoot params=0 vararg=False maxstack=2 linedefined=25-27
+  constants:
+  upvalues:
+    [0] createRoot local=True index=2 byvalue=True
+  locals:
+  code:
+    0: [line 26] GETUPVAL 0 0
+    1: [line 26] TAILCALL 0 1 0
+    2: [line 26] RETURN 0 0
+    3: [line 27] RETURN 0 1
+child 1:
+  proto createInstance params=2 vararg=False maxstack=5 linedefined=29-31
+  constants:
+  upvalues:
+    [0] createInstance local=True index=3 byvalue=True
+  locals:
+    [0] vtype pc=0-6
+    [1] props pc=0-6
+  code:
+    0: [line 30] GETUPVAL 2 0
+    1: [line 30] MOVE 3 0
+    2: [line 30] MOVE 4 1
+    3: [line 30] TAILCALL 2 3 0
+    4: [line 30] RETURN 2 0
+    5: [line 31] RETURN 0 1
+child 2:
+  proto createTextInstance params=1 vararg=False maxstack=3 linedefined=33-35
+  constants:
+  upvalues:
+    [0] createTextInstance local=True index=4 byvalue=True
+  locals:
+    [0] text pc=0-5
+  code:
+    0: [line 34] GETUPVAL 1 0
+    1: [line 34] MOVE 2 0
+    2: [line 34] TAILCALL 1 2 0
+    3: [line 34] RETURN 1 0
+    4: [line 35] RETURN 0 1
+child 3:
+  proto appendChild params=2 vararg=False maxstack=5 linedefined=37-39
+  constants:
+  upvalues:
+    [0] appendChild local=True index=5 byvalue=True
+  locals:
+    [0] parent pc=0-5
+    [1] child pc=0-5
+  code:
+    0: [line 38] GETUPVAL 2 0
+    1: [line 38] MOVE 3 0
+    2: [line 38] MOVE 4 1
+    3: [line 38] CALL 2 3 1
+    4: [line 39] RETURN 0 1
+child 4:
+  proto insertBefore params=3 vararg=False maxstack=7 linedefined=41-43
+  constants:
+  upvalues:
+    [0] insertBefore local=True index=6 byvalue=True
+  locals:
+    [0] parent pc=0-6
+    [1] child pc=0-6
+    [2] before pc=0-6
+  code:
+    0: [line 42] GETUPVAL 3 0
+    1: [line 42] MOVE 4 0
+    2: [line 42] MOVE 5 1
+    3: [line 42] MOVE 6 2
+    4: [line 42] CALL 3 4 1
+    5: [line 43] RETURN 0 1
+child 5:
+  proto removeChild params=2 vararg=False maxstack=5 linedefined=45-47
+  constants:
+  upvalues:
+    [0] removeChild local=True index=7 byvalue=True
+  locals:
+    [0] parent pc=0-5
+    [1] child pc=0-5
+  code:
+    0: [line 46] GETUPVAL 2 0
+    1: [line 46] MOVE 3 0
+    2: [line 46] MOVE 4 1
+    3: [line 46] CALL 2 3 1
+    4: [line 47] RETURN 0 1
+child 6:
+  proto setProperty params=3 vararg=False maxstack=7 linedefined=49-51
+  constants:
+  upvalues:
+    [0] setProperty local=True index=8 byvalue=True
+  locals:
+    [0] instance pc=0-6
+    [1] key pc=0-6
+    [2] value pc=0-6
+  code:
+    0: [line 50] GETUPVAL 3 0
+    1: [line 50] MOVE 4 0
+    2: [line 50] MOVE 5 1
+    3: [line 50] MOVE 6 2
+    4: [line 50] CALL 3 4 1
+    5: [line 51] RETURN 0 1
+child 7:
+  proto commitTextUpdate params=3 vararg=False maxstack=7 linedefined=53-55
+  constants:
+  upvalues:
+    [0] commitTextUpdate local=True index=9 byvalue=True
+  locals:
+    [0] textInstance pc=0-6
+    [1] oldText pc=0-6
+    [2] newText pc=0-6
+  code:
+    0: [line 54] GETUPVAL 3 0
+    1: [line 54] MOVE 4 0
+    2: [line 54] MOVE 5 1
+    3: [line 54] MOVE 6 2
+    4: [line 54] CALL 3 4 1
+    5: [line 55] RETURN 0 1
+child 8:
+  proto setActiveRoot params=1 vararg=False maxstack=3 linedefined=57-59
+  constants:
+  upvalues:
+    [0] setActiveRoot local=True index=10 byvalue=True
+  locals:
+    [0] root pc=0-4
+  code:
+    0: [line 58] GETUPVAL 1 0
+    1: [line 58] MOVE 2 0
+    2: [line 58] CALL 1 2 1
+    3: [line 59] RETURN 0 1

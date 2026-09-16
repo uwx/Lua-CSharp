@@ -17,7 +17,12 @@ public sealed class Prototype(
     Prototype[] childPrototypes,
     int[] lineInfo,
     LocalVariable[] localVariables,
-    UpValueDesc[] upValues
+    UpValueDesc[] upValues,
+    // Compiler-rewrite plan Milestone 4: the all-constant table templates that DupTable copies
+    // from, indexed by the instruction's trailing ExtraArg. Trailing and optional so the public
+    // constructor stays source-compatible; null (the pre-M4 dumps, and every prototype that has no
+    // fused literal) means "no templates". See OpCode.DupTable for why sharing an instance is safe.
+    LuaTable[]? templates = null
 )
 {
     public ReadOnlySpan<LuaValue> Constants => constants;
@@ -31,6 +36,8 @@ public sealed class Prototype(
     public ReadOnlySpan<LocalVariable> LocalVariables => localVariables;
 
     public ReadOnlySpan<UpValueDesc> UpValues => upValues;
+
+    public ReadOnlySpan<LuaTable> Templates => templates ?? Array.Empty<LuaTable>();
 
     // public LuaClosure Cache;
     public readonly string? Name = name;

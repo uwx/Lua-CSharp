@@ -1,0 +1,9 @@
+proto ? params=0 vararg=True maxstack=1 linedefined=0-0
+constants:
+upvalues:
+  [0] _ENV local=True index=0 byvalue=False
+locals:
+code:
+  0: [line 12] LOADNIL 0 0
+  1: [line 12] RETURN 0 2
+  2: [line 12] RETURN 0 1

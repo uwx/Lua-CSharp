@@ -1,0 +1,274 @@
+proto ? params=0 vararg=True maxstack=38 linedefined=0-0
+constants:
+  [0] require
+  [1] ./preact-luau/src/index
+  [2] ./preact-luau/hooks/src/index
+  [3] ./preact-luau/compat/src/index
+  [4] ./preact-luau/debug/src/index
+  [5] ./preact-luau/types/core.d
+  [6] ./preact-luau/types/hooks.d
+  [7] ./preact-luau/types/debug.d
+  [8] ./preact-luau/types/compat.d
+  [9] render
+  [10] createElement
+  [11] h
+  [12] Fragment
+  [13] createRef
+  [14] cloneElement
+  [15] isValidElement
+  [16] createContext
+  [17] createPortal
+  [18] toChildArray
+  [19] options
+  [20] useState
+  [21] useReducer
+  [22] useEffect
+  [23] useLayoutEffect
+  [24] useRef
+  [25] useImperativeHandle
+  [26] useMemo
+  [27] useCallback
+  [28] useContext
+  [29] useDebugValue
+  [30] useErrorBoundary
+  [31] useId
+  [32] memo
+  [33] x
+  [34] View
+  [35] Text
+  [36] Image
+  [37] TextInput
+upvalues:
+  [0] _ENV local=True index=0 byvalue=False
+locals:
+  [0] preact pc=3-85
+  [1] hooks pc=6-85
+  [2] compat pc=9-85
+  [3] debug pc=12-85
+  [4] coreTypes pc=15-85
+  [5] hooksTypes pc=18-85
+  [6] debugTypes pc=21-85
+  [7] compatTypes pc=24-85
+  [8] render pc=25-85
+  [9] createElement pc=26-85
+  [10] h pc=27-85
+  [11] Fragment pc=28-85
+  [12] createRef pc=29-85
+  [13] cloneElement pc=30-85
+  [14] isValidElement pc=31-85
+  [15] createContext pc=32-85
+  [16] createPortal pc=33-85
+  [17] toChildArray pc=34-85
+  [18] options pc=35-85
+  [19] useState pc=36-85
+  [20] useReducer pc=37-85
+  [21] useEffect pc=38-85
+  [22] useLayoutEffect pc=39-85
+  [23] useRef pc=40-85
+  [24] useImperativeHandle pc=41-85
+  [25] useMemo pc=42-85
+  [26] useCallback pc=43-85
+  [27] useContext pc=44-85
+  [28] useDebugValue pc=45-85
+  [29] useErrorBoundary pc=46-85
+  [30] useId pc=47-85
+  [31] memo pc=48-85
+  [32] View pc=49-85
+  [33] Text pc=50-85
+  [34] Image pc=51-85
+  [35] TextInput pc=52-85
+  [36] x pc=53-85
+code:
+  0: [line 14] GETTABUP 0 0 -1
+  1: [line 14] LOADK 1 1
+  2: [line 14] CALL 0 2 2
+  3: [line 15] GETTABUP 1 0 -1
+  4: [line 15] LOADK 2 2
+  5: [line 15] CALL 1 2 2
+  6: [line 16] GETTABUP 2 0 -1
+  7: [line 16] LOADK 3 3
+  8: [line 16] CALL 2 2 2
+  9: [line 17] GETTABUP 3 0 -1
+  10: [line 17] LOADK 4 4
+  11: [line 17] CALL 3 2 2
+  12: [line 18] GETTABUP 4 0 -1
+  13: [line 18] LOADK 5 5
+  14: [line 18] CALL 4 2 2
+  15: [line 19] GETTABUP 5 0 -1
+  16: [line 19] LOADK 6 6
+  17: [line 19] CALL 5 2 2
+  18: [line 20] GETTABUP 6 0 -1
+  19: [line 20] LOADK 7 7
+  20: [line 20] CALL 6 2 2
+  21: [line 21] GETTABUP 7 0 -1
+  22: [line 21] LOADK 8 8
+  23: [line 21] CALL 7 2 2
+  24: [line 32] GETTABLE 8 0 -10
+  25: [line 33] GETTABLE 9 0 -11
+  26: [line 34] GETTABLE 10 0 -12
+  27: [line 35] GETTABLE 11 0 -13
+  28: [line 36] GETTABLE 12 0 -14
+  29: [line 37] GETTABLE 13 0 -15
+  30: [line 38] GETTABLE 14 0 -16
+  31: [line 39] GETTABLE 15 0 -17
+  32: [line 40] GETTABLE 16 0 -18
+  33: [line 41] GETTABLE 17 0 -19
+  34: [line 42] GETTABLE 18 0 -20
+  35: [line 44] GETTABLE 19 1 -21
+  36: [line 45] GETTABLE 20 1 -22
+  37: [line 46] GETTABLE 21 1 -23
+  38: [line 47] GETTABLE 22 1 -24
+  39: [line 48] GETTABLE 23 1 -25
+  40: [line 49] GETTABLE 24 1 -26
+  41: [line 50] GETTABLE 25 1 -27
+  42: [line 51] GETTABLE 26 1 -28
+  43: [line 52] GETTABLE 27 1 -29
+  44: [line 53] GETTABLE 28 1 -30
+  45: [line 54] GETTABLE 29 1 -31
+  46: [line 55] GETTABLE 30 1 -32
+  47: [line 57] GETTABLE 31 2 -33
+  48: [line 221] CLOSURE 32 0
+  49: [line 224] CLOSURE 33 1
+  50: [line 227] CLOSURE 34 2
+  51: [line 230] CLOSURE 35 3
+  52: [line 292] CLOSURE 36 4
+  53: [line 294] NEWTABLE 37 0 29
+  54: [line 295] SETTABLE 37 -10 8
+  55: [line 296] SETTABLE 37 -11 9
+  56: [line 297] SETTABLE 37 -12 10
+  57: [line 298] SETTABLE 37 -13 11
+  58: [line 299] SETTABLE 37 -14 12
+  59: [line 300] SETTABLE 37 -15 13
+  60: [line 301] SETTABLE 37 -16 14
+  61: [line 302] SETTABLE 37 -17 15
+  62: [line 303] SETTABLE 37 -18 16
+  63: [line 304] SETTABLE 37 -19 17
+  64: [line 305] SETTABLE 37 -20 18
+  65: [line 306] SETTABLE 37 -33 31
+  66: [line 307] SETTABLE 37 -21 19
+  67: [line 308] SETTABLE 37 -22 20
+  68: [line 309] SETTABLE 37 -23 21
+  69: [line 310] SETTABLE 37 -24 22
+  70: [line 311] SETTABLE 37 -25 23
+  71: [line 312] SETTABLE 37 -26 24
+  72: [line 313] SETTABLE 37 -27 25
+  73: [line 314] SETTABLE 37 -28 26
+  74: [line 315] SETTABLE 37 -29 27
+  75: [line 316] SETTABLE 37 -30 28
+  76: [line 317] SETTABLE 37 -31 29
+  77: [line 318] SETTABLE 37 -32 30
+  78: [line 319] SETTABLE 37 -34 36
+  79: [line 320] SETTABLE 37 -35 32
+  80: [line 321] SETTABLE 37 -36 33
+  81: [line 322] SETTABLE 37 -37 34
+  82: [line 323] SETTABLE 37 -38 35
+  83: [line 324] RETURN 37 2
+  84: [line 324] RETURN 0 1
+child 0:
+  proto View params=1 vararg=False maxstack=4 linedefined=215-221
+  constants:
+    [0] view
+  upvalues:
+    [0] createElement local=True index=9 byvalue=True
+  locals:
+    [0] props pc=0-6
+  code:
+    0: [line 220] GETUPVAL 1 0
+    1: [line 220] LOADK 2 0
+    2: [line 220] MOVE 3 0
+    3: [line 220] TAILCALL 1 3 0
+    4: [line 220] RETURN 1 0
+    5: [line 221] RETURN 0 1
+child 1:
+  proto Text params=1 vararg=False maxstack=4 linedefined=222-224
+  constants:
+    [0] text
+  upvalues:
+    [0] createElement local=True index=9 byvalue=True
+  locals:
+    [0] props pc=0-6
+  code:
+    0: [line 223] GETUPVAL 1 0
+    1: [line 223] LOADK 2 0
+    2: [line 223] MOVE 3 0
+    3: [line 223] TAILCALL 1 3 0
+    4: [line 223] RETURN 1 0
+    5: [line 224] RETURN 0 1
+child 2:
+  proto Image params=1 vararg=False maxstack=4 linedefined=225-227
+  constants:
+    [0] image
+  upvalues:
+    [0] createElement local=True index=9 byvalue=True
+  locals:
+    [0] props pc=0-6
+  code:
+    0: [line 226] GETUPVAL 1 0
+    1: [line 226] LOADK 2 0
+    2: [line 226] MOVE 3 0
+    3: [line 226] TAILCALL 1 3 0
+    4: [line 226] RETURN 1 0
+    5: [line 227] RETURN 0 1
+child 3:
+  proto TextInput params=1 vararg=False maxstack=4 linedefined=228-230
+  constants:
+    [0] textinput
+  upvalues:
+    [0] createElement local=True index=9 byvalue=True
+  locals:
+    [0] props pc=0-6
+  code:
+    0: [line 229] GETUPVAL 1 0
+    1: [line 229] LOADK 2 0
+    2: [line 229] MOVE 3 0
+    3: [line 229] TAILCALL 1 3 0
+    4: [line 229] RETURN 1 0
+    5: [line 230] RETURN 0 1
+child 4:
+  proto x params=1 vararg=False maxstack=2 linedefined=279-292
+  constants:
+  upvalues:
+    [0] createElement local=True index=9 byvalue=True
+  locals:
+    [0] vtype pc=0-3
+  code:
+    0: [line 291] CLOSURE 1 0
+    1: [line 291] RETURN 1 2
+    2: [line 292] RETURN 0 1
+  child 0:
+    proto ? params=1 vararg=False maxstack=9 linedefined=280-291
+    constants:
+      [0] 1
+      [1] nil
+      [2] children
+    upvalues:
+      [0] createElement local=False index=0 byvalue=False
+      [1] vtype local=True index=0 byvalue=True
+    locals:
+      [0] props pc=0-19
+      [1] children pc=1-19
+      [2] props1 pc=2-19
+      [3] (for index) pc=5-12
+      [4] (for limit) pc=5-12
+      [5] (for step) pc=5-12
+      [6] i pc=6-11
+    code:
+      0: [line 281] NEWTABLE 1 0 0
+      1: [line 282] MOVE 2 0
+      2: [line 283] LOADK 3 0
+      3: [line 283] LEN 4 2
+      4: [line 283] LOADK 5 0
+      5: [line 283] FORPREP 3 5
+      6: [line 284] LEN 7 1
+      7: [line 284] ADD 7 7 -1
+      8: [line 284] GETTABLE 8 2 6
+      9: [line 284] SETTABLE 1 7 8
+      10: [line 285] SETTABLE 2 6 -2
+      11: [line 283] FORLOOP 3 -6
+      12: [line 288] SETTABLE 2 -3 1
+      13: [line 290] GETUPVAL 3 0
+      14: [line 290] GETUPVAL 4 1
+      15: [line 290] MOVE 5 0
+      16: [line 290] TAILCALL 3 3 0
+      17: [line 290] RETURN 3 0
+      18: [line 291] RETURN 0 1

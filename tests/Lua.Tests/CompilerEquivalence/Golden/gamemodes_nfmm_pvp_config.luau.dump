@@ -1,0 +1,46 @@
+proto ? params=0 vararg=True maxstack=8 linedefined=0-0
+constants:
+  [0] DefineGamemodeConfig
+  [1] name
+  [2] PvP
+  [3] description
+  [4] A standard PvP free-for-all gamemode.
+  [5] properties
+  [6] constraint
+  [7] type
+  [8] string
+  [9] label
+  [10] Race constraint
+  [11] The type of race to play.
+  [12] options
+templates:
+  [0] array=[] hash={label=Racing, value=racing}
+  [1] array=[] hash={label=Wasting, value=wasting}
+  [2] array=[] hash={label=Both, value=both}
+upvalues:
+  [0] _ENV local=True index=0 byvalue=False
+locals:
+code:
+  0: [line 1] GETTABUP 0 0 -1
+  1: [line 1] NEWTABLE 1 0 3
+  2: [line 2] SETTABLE 1 -2 -3
+  3: [line 3] SETTABLE 1 -4 -5
+  4: [line 4] NEWTABLE 2 1 0
+  5: [line 5] NEWTABLE 3 0 5
+  6: [line 6] SETTABLE 3 -2 -7
+  7: [line 7] SETTABLE 3 -8 -9
+  8: [line 8] SETTABLE 3 -10 -11
+  9: [line 9] SETTABLE 3 -4 -12
+  10: [line 10] NEWTABLE 4 3 0
+  11: [line 11] DUPTABLE 5 0 0
+  12: [line 11] EXTRAARG 0
+  13: [line 12] DUPTABLE 6 0 0
+  14: [line 12] EXTRAARG 1
+  15: [line 13] DUPTABLE 7 0 0
+  16: [line 13] EXTRAARG 2
+  17: [line 14] SETLIST 4 3 1
+  18: [line 14] SETTABLE 3 -13 4
+  19: [line 16] SETLIST 2 1 1
+  20: [line 16] SETTABLE 1 -6 2
+  21: [line 1] CALL 0 2 1
+  22: [line 17] RETURN 0 1

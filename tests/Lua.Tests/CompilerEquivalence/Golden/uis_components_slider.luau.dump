@@ -1,0 +1,472 @@
+proto ? params=0 vararg=True maxstack=5 linedefined=0-0
+constants:
+  [0] require
+  [1] ../../library/sx/index
+  [2] x
+  [3] ../../library/ui/theme
+upvalues:
+  [0] _ENV local=True index=0 byvalue=False
+locals:
+  [0] Sx pc=3-11
+  [1] x pc=4-11
+  [2] theme pc=7-11
+  [3] clamp01 pc=8-11
+  [4] Slider pc=9-11
+code:
+  0: [line 8] GETTABUP 0 0 -1
+  1: [line 8] LOADK 1 1
+  2: [line 8] CALL 0 2 2
+  3: [line 9] GETTABLE 1 0 -3
+  4: [line 10] GETTABUP 2 0 -1
+  5: [line 10] LOADK 3 3
+  6: [line 10] CALL 2 2 2
+  7: [line 26] CLOSURE 3 0
+  8: [line 116] CLOSURE 4 1
+  9: [line 118] RETURN 4 2
+  10: [line 118] RETURN 0 1
+child 0:
+  proto clamp01 params=1 vararg=False maxstack=2 linedefined=22-26
+  constants:
+    [0] 0
+    [1] 1
+  upvalues:
+  locals:
+    [0] v pc=0-10
+  code:
+    0: [line 23] LT 0 0 -1
+    1: [line 23] JMP 0 2
+    2: [line 23] LOADK 1 0
+    3: [line 23] RETURN 1 2
+    4: [line 24] LT 0 -2 0
+    5: [line 24] JMP 0 2
+    6: [line 24] LOADK 1 1
+    7: [line 24] RETURN 1 2
+    8: [line 25] RETURN 0 2
+    9: [line 26] RETURN 0 1
+child 1:
+  proto Slider params=1 vararg=False maxstack=22 linedefined=28-116
+  constants:
+    [0] min
+    [1] 0
+    [2] max
+    [3] 1
+    [4] step
+    [5] width
+    [6] 160
+    [7] disabled
+    [8] true
+    [9] createSignal
+    [10] 14
+    [11] 4
+    [12] 20
+    [13] 2
+    [14] View
+    [15] style
+    [16] height
+    [17] position
+    [18] relative
+    [19] onmousedown
+    [20] onmousedrag
+    [21] onmouseenter
+    [22] onmouseleave
+    [23] absolute
+    [24] left
+    [25] right
+    [26] top
+    [27] backgroundColor
+    [28] rgba(255,255,255,0.15)
+    [29] borderRadius
+    [30] overflow
+    [31] hidden
+    [32] createMemo
+  upvalues:
+    [0] Sx local=True index=0 byvalue=True
+    [1] clamp01 local=True index=3 byvalue=False
+    [2] _ENV local=False index=0 byvalue=False
+    [3] x local=True index=1 byvalue=True
+    [4] theme local=True index=2 byvalue=True
+  locals:
+    [0] props pc=0-88
+    [1] min pc=4-88
+    [2] max pc=8-88
+    [3] step pc=12-88
+    [4] trackW pc=16-88
+    [5] disabled pc=21-88
+    [6] hovered pc=24-88
+    [7] setHovered pc=24-88
+    [8] KNOB pc=25-88
+    [9] TRACK_H pc=26-88
+    [10] OUTER_H pc=27-88
+    [11] TRACK_TOP pc=29-88
+    [12] KNOB_TOP pc=31-88
+    [13] setFromX pc=32-88
+  code:
+    0: [line 29] GETTABLE 1 0 -1
+    1: [line 29] TEST 1 1
+    2: [line 29] JMP 0 1
+    3: [line 29] LOADK 1 1
+    4: [line 30] GETTABLE 2 0 -3
+    5: [line 30] TEST 2 1
+    6: [line 30] JMP 0 1
+    7: [line 30] LOADK 2 3
+    8: [line 31] GETTABLE 3 0 -5
+    9: [line 31] TEST 3 1
+    10: [line 31] JMP 0 1
+    11: [line 31] LOADK 3 3
+    12: [line 32] GETTABLE 4 0 -6
+    13: [line 32] TEST 4 1
+    14: [line 32] JMP 0 1
+    15: [line 32] LOADK 4 6
+    16: [line 33] GETTABLE 5 0 -8
+    17: [line 33] JMPIFEQK 5 2
+    18: [line 33] EXTRAARG 8
+    19: [line 33] LOADBOOL 5 0 1
+    20: [line 33] LOADBOOL 5 1 0
+    21: [line 34] GETTABUP 6 0 -10
+    22: [line 34] LOADBOOL 7 0 0
+    23: [line 34] CALL 6 2 3
+    24: [line 36] LOADK 8 10
+    25: [line 37] LOADK 9 11
+    26: [line 38] LOADK 10 12
+    27: [line 39] SUB 11 10 9
+    28: [line 39] DIV 11 11 -14
+    29: [line 40] SUB 12 10 8
+    30: [line 40] DIV 12 12 -14
+    31: [line 52] CLOSURE 13 0
+    32: [line 54] GETUPVAL 14 3
+    33: [line 54] GETTABUP 15 0 -15
+    34: [line 54] CALL 14 2 2
+    35: [line 54] NEWTABLE 15 1 5
+    36: [line 55] NEWTABLE 16 0 3
+    37: [line 56] SETTABLE 16 -6 4
+    38: [line 57] SETTABLE 16 -17 10
+    39: [line 58] SETTABLE 16 -18 -19
+    40: [line 59] SETTABLE 15 -16 16
+    41: [line 63] CLOSURE 16 1
+    42: [line 63] SETTABLE 15 -20 16
+    43: [line 67] CLOSURE 16 2
+    44: [line 67] SETTABLE 15 -21 16
+    45: [line 70] CLOSURE 16 3
+    46: [line 70] SETTABLE 15 -22 16
+    47: [line 73] CLOSURE 16 4
+    48: [line 73] SETTABLE 15 -23 16
+    49: [line 74] GETUPVAL 16 3
+    50: [line 74] GETTABUP 17 0 -15
+    51: [line 74] CALL 16 2 2
+    52: [line 74] NEWTABLE 17 0 1
+    53: [line 75] NEWTABLE 18 0 8
+    54: [line 76] SETTABLE 18 -18 -24
+    55: [line 77] SETTABLE 18 -25 -2
+    56: [line 78] SETTABLE 18 -26 -2
+    57: [line 79] SETTABLE 18 -27 11
+    58: [line 80] SETTABLE 18 -17 9
+    59: [line 81] SETTABLE 18 -28 -29
+    60: [line 82] DIV 19 9 -14
+    61: [line 82] SETTABLE 18 -30 19
+    62: [line 83] SETTABLE 18 -31 -32
+    63: [line 84] SETTABLE 17 -16 18
+    64: [line 85] GETUPVAL 18 3
+    65: [line 85] GETTABUP 19 0 -15
+    66: [line 85] CALL 18 2 2
+    67: [line 85] NEWTABLE 19 0 1
+    68: [line 86] GETTABUP 20 0 -33
+    69: [line 94] CLOSURE 21 5
+    70: [line 86] CALL 20 2 2
+    71: [line 94] SETTABLE 19 -16 20
+    72: [line 85] CALL 18 2 0
+    73: [line 96] SETLIST 17 0 1
+    74: [line 74] CALL 16 2 2
+    75: [line 97] GETUPVAL 17 3
+    76: [line 97] GETTABUP 18 0 -15
+    77: [line 97] CALL 17 2 2
+    78: [line 97] NEWTABLE 18 0 1
+    79: [line 98] GETTABUP 19 0 -33
+    80: [line 113] CLOSURE 20 6
+    81: [line 98] CALL 19 2 2
+    82: [line 113] SETTABLE 18 -16 19
+    83: [line 97] CALL 17 2 0
+    84: [line 115] SETLIST 15 0 1
+    85: [line 54] TAILCALL 14 2 0
+    86: [line 115] RETURN 14 0
+    87: [line 116] RETURN 0 1
+  child 0:
+    proto setFromX params=1 vararg=False maxstack=7 linedefined=42-52
+    constants:
+      [0] 0
+      [1] math
+      [2] floor
+      [3] 0.5
+      [4] onValue
+    upvalues:
+      [0] clamp01 local=False index=1 byvalue=False
+      [1] trackW local=True index=4 byvalue=True
+      [2] min local=True index=1 byvalue=True
+      [3] max local=True index=2 byvalue=True
+      [4] step local=True index=3 byvalue=True
+      [5] _ENV local=False index=2 byvalue=False
+      [6] props local=True index=0 byvalue=True
+    locals:
+      [0] px pc=0-38
+      [1] frac pc=4-38
+      [2] raw pc=10-38
+      [3] stepped pc=11-38
+    code:
+      0: [line 43] GETUPVAL 1 0
+      1: [line 43] GETUPVAL 2 1
+      2: [line 43] DIV 2 0 2
+      3: [line 43] CALL 1 2 2
+      4: [line 44] GETUPVAL 2 2
+      5: [line 44] GETUPVAL 3 3
+      6: [line 44] GETUPVAL 4 2
+      7: [line 44] SUB 3 3 4
+      8: [line 44] MUL 3 1 3
+      9: [line 44] ADD 2 2 3
+      10: [line 45] MOVE 3 2
+      11: [line 46] GETUPVAL 4 4
+      12: [line 46] LT 0 -1 4
+      13: [line 46] JMP 0 12
+      14: [line 47] GETIMPORT 4 5 -2
+      15: [line 47] EXTRAARG 2
+      16: [line 47] GETUPVAL 5 2
+      17: [line 47] SUB 5 2 5
+      18: [line 47] GETUPVAL 6 4
+      19: [line 47] DIV 5 5 6
+      20: [line 47] ADD 5 5 -4
+      21: [line 47] CALL 4 2 2
+      22: [line 47] GETUPVAL 5 4
+      23: [line 47] MUL 4 4 5
+      24: [line 47] GETUPVAL 5 2
+      25: [line 47] ADD 3 4 5
+      26: [line 49] GETUPVAL 4 2
+      27: [line 49] LT 0 3 4
+      28: [line 49] JMP 0 1
+      29: [line 49] GETUPVAL 3 2
+      30: [line 50] GETUPVAL 4 3
+      31: [line 50] LT 0 4 3
+      32: [line 50] JMP 0 1
+      33: [line 50] GETUPVAL 3 3
+      34: [line 51] GETTABUP 4 6 -5
+      35: [line 51] MOVE 5 3
+      36: [line 51] CALL 4 2 1
+      37: [line 52] RETURN 0 1
+  child 1:
+    proto ? params=1 vararg=False maxstack=3 linedefined=60-63
+    constants:
+      [0] relativePosition
+      [1] x
+    upvalues:
+      [0] disabled local=True index=5 byvalue=True
+      [1] setFromX local=True index=13 byvalue=False
+    locals:
+      [0] event pc=0-9
+    code:
+      0: [line 61] GETUPVAL 1 0
+      1: [line 61] TEST 1 0
+      2: [line 61] JMP 0 1
+      3: [line 61] RETURN 0 1
+      4: [line 62] GETUPVAL 1 1
+      5: [line 62] GETTABLE 2 0 -1
+      6: [line 62] GETTABLE 2 2 -2
+      7: [line 62] CALL 1 2 1
+      8: [line 63] RETURN 0 1
+  child 2:
+    proto ? params=1 vararg=False maxstack=3 linedefined=64-67
+    constants:
+      [0] relativePosition
+      [1] x
+    upvalues:
+      [0] disabled local=True index=5 byvalue=True
+      [1] setFromX local=True index=13 byvalue=False
+    locals:
+      [0] event pc=0-9
+    code:
+      0: [line 65] GETUPVAL 1 0
+      1: [line 65] TEST 1 0
+      2: [line 65] JMP 0 1
+      3: [line 65] RETURN 0 1
+      4: [line 66] GETUPVAL 1 1
+      5: [line 66] GETTABLE 2 0 -1
+      6: [line 66] GETTABLE 2 2 -2
+      7: [line 66] CALL 1 2 1
+      8: [line 67] RETURN 0 1
+  child 3:
+    proto ? params=0 vararg=False maxstack=2 linedefined=68-70
+    constants:
+    upvalues:
+      [0] setHovered local=True index=7 byvalue=True
+    locals:
+    code:
+      0: [line 69] GETUPVAL 0 0
+      1: [line 69] LOADBOOL 1 1 0
+      2: [line 69] CALL 0 2 1
+      3: [line 70] RETURN 0 1
+  child 4:
+    proto ? params=0 vararg=False maxstack=2 linedefined=71-73
+    constants:
+    upvalues:
+      [0] setHovered local=True index=7 byvalue=True
+    locals:
+    code:
+      0: [line 72] GETUPVAL 0 0
+      1: [line 72] LOADBOOL 1 0 0
+      2: [line 72] CALL 0 2 1
+      3: [line 73] RETURN 0 1
+  child 5:
+    proto ? params=0 vararg=False maxstack=7 linedefined=86-94
+    constants:
+      [0] read
+      [1] value
+      [2] 0
+      [3] width
+      [4] %d%%
+      [5] format
+      [6] math
+      [7] floor
+      [8] 100
+      [9] 0.5
+      [10] height
+      [11] 100%
+      [12] backgroundColor
+      [13] rgba(79,195,247,0.4)
+      [14] accentHover
+      [15] accent
+    upvalues:
+      [0] Sx local=False index=0 byvalue=False
+      [1] props local=True index=0 byvalue=True
+      [2] clamp01 local=False index=1 byvalue=False
+      [3] min local=True index=1 byvalue=True
+      [4] max local=True index=2 byvalue=True
+      [5] _ENV local=False index=2 byvalue=False
+      [6] disabled local=True index=5 byvalue=True
+      [7] hovered local=True index=6 byvalue=True
+      [8] theme local=False index=4 byvalue=False
+    locals:
+      [0] value pc=6-42
+      [1] frac pc=14-42
+    code:
+      0: [line 87] GETTABUP 0 0 -1
+      1: [line 87] GETTABUP 1 1 -2
+      2: [line 87] CALL 0 2 2
+      3: [line 87] TEST 0 1
+      4: [line 87] JMP 0 1
+      5: [line 87] LOADK 0 2
+      6: [line 88] GETUPVAL 1 2
+      7: [line 88] GETUPVAL 2 3
+      8: [line 88] SUB 2 0 2
+      9: [line 88] GETUPVAL 3 4
+      10: [line 88] GETUPVAL 4 3
+      11: [line 88] SUB 3 3 4
+      12: [line 88] DIV 2 2 3
+      13: [line 88] CALL 1 2 2
+      14: [line 89] NEWTABLE 2 0 3
+      15: [line 90] LOADK 3 4
+      16: [line 90] SELF 3 3 -6
+      17: [line 90] GETIMPORT 5 5 -7
+      18: [line 90] EXTRAARG 7
+      19: [line 90] MUL 6 1 -9
+      20: [line 90] ADD 6 6 -10
+      21: [line 90] CALL 5 2 0
+      22: [line 90] CALL 3 0 2
+      23: [line 90] SETTABLE 2 -4 3
+      24: [line 91] SETTABLE 2 -11 -12
+      25: [line 92] GETUPVAL 3 6
+      26: [line 92] TEST 3 0
+      27: [line 92] JMP 0 3
+      28: [line 92] LOADK 3 13
+      29: [line 92] TEST 3 1
+      30: [line 92] JMP 0 8
+      31: [line 92] GETUPVAL 3 7
+      32: [line 92] CALL 3 1 2
+      33: [line 92] TEST 3 0
+      34: [line 92] JMP 0 3
+      35: [line 92] GETTABUP 3 8 -15
+      36: [line 92] TEST 3 1
+      37: [line 92] JMP 0 1
+      38: [line 92] GETTABUP 3 8 -16
+      39: [line 92] SETTABLE 2 -13 3
+      40: [line 93] RETURN 2 2
+      41: [line 94] RETURN 0 1
+  child 6:
+    proto ? params=0 vararg=False maxstack=6 linedefined=98-113
+    constants:
+      [0] read
+      [1] value
+      [2] 0
+      [3] position
+      [4] absolute
+      [5] top
+      [6] left
+      [7] 2
+      [8] width
+      [9] height
+      [10] backgroundColor
+      [11] #ffffff
+      [12] borderWidth
+      [13] borderColor
+      [14] #4fc3f7
+      [15] rgba(79,195,247,0.7)
+      [16] borderRadius
+    upvalues:
+      [0] Sx local=False index=0 byvalue=False
+      [1] props local=True index=0 byvalue=True
+      [2] clamp01 local=False index=1 byvalue=False
+      [3] min local=True index=1 byvalue=True
+      [4] max local=True index=2 byvalue=True
+      [5] hovered local=True index=6 byvalue=True
+      [6] disabled local=True index=5 byvalue=True
+      [7] KNOB_TOP local=True index=12 byvalue=True
+      [8] trackW local=True index=4 byvalue=True
+      [9] KNOB local=True index=8 byvalue=True
+    locals:
+      [0] value pc=6-48
+      [1] frac pc=14-48
+      [2] hov pc=20-48
+    code:
+      0: [line 99] GETTABUP 0 0 -1
+      1: [line 99] GETTABUP 1 1 -2
+      2: [line 99] CALL 0 2 2
+      3: [line 99] TEST 0 1
+      4: [line 99] JMP 0 1
+      5: [line 99] LOADK 0 2
+      6: [line 100] GETUPVAL 1 2
+      7: [line 100] GETUPVAL 2 3
+      8: [line 100] SUB 2 0 2
+      9: [line 100] GETUPVAL 3 4
+      10: [line 100] GETUPVAL 4 3
+      11: [line 100] SUB 3 3 4
+      12: [line 100] DIV 2 2 3
+      13: [line 100] CALL 1 2 2
+      14: [line 101] GETUPVAL 2 5
+      15: [line 101] CALL 2 1 2
+      16: [line 101] TEST 2 0
+      17: [line 101] JMP 0 2
+      18: [line 101] GETUPVAL 2 6
+      19: [line 101] NOT 2 2
+      20: [line 102] NEWTABLE 3 0 9
+      21: [line 103] SETTABLE 3 -4 -5
+      22: [line 104] GETUPVAL 4 7
+      23: [line 104] SETTABLE 3 -6 4
+      24: [line 105] GETUPVAL 4 8
+      25: [line 105] MUL 4 1 4
+      26: [line 105] GETUPVAL 5 9
+      27: [line 105] DIV 5 5 -8
+      28: [line 105] SUB 4 4 5
+      29: [line 105] SETTABLE 3 -7 4
+      30: [line 106] GETUPVAL 4 9
+      31: [line 106] SETTABLE 3 -9 4
+      32: [line 107] GETUPVAL 4 9
+      33: [line 107] SETTABLE 3 -10 4
+      34: [line 108] SETTABLE 3 -11 -12
+      35: [line 109] SETTABLE 3 -13 -8
+      36: [line 110] TEST 2 0
+      37: [line 110] JMP 0 3
+      38: [line 110] LOADK 4 14
+      39: [line 110] TEST 4 1
+      40: [line 110] JMP 0 1
+      41: [line 110] LOADK 4 15
+      42: [line 110] SETTABLE 3 -14 4
+      43: [line 111] GETUPVAL 4 9
+      44: [line 111] DIV 4 4 -8
+      45: [line 111] SETTABLE 3 -17 4
+      46: [line 112] RETURN 3 2
+      47: [line 113] RETURN 0 1

@@ -92,6 +92,50 @@ struct LuaStringDictionary
         }
     }
 
+    /// <summary>
+    /// Compiler-rewrite plan Milestone 4: an independent copy of an entry table, for
+    /// <see cref="LuaTable.CloneTemplate"/>. Both arrays are shallow-cloned -- an entry holds a
+    /// string reference and a value, neither of which the dictionary owns -- and every scalar and
+    /// cursor is carried over verbatim, so the copy is at the same length with the same buckets
+    /// pointing at the same slots. That is what makes a template copy indistinguishable from a
+    /// table the unfused compilation would have built.
+    /// </summary>
+    /// <summary>
+    /// Copies every entry in insertion order, <em>including</em> nil-valued ("dead") ones -- the
+    /// walk <see cref="MoveNext"/> deliberately does not do, because that one implements what
+    /// iteration is supposed to expose. This is for callers that need the dictionary's exact
+    /// contents instead: Milestone 4's template serialization, where a value assigned nil is a real
+    /// entry (it keeps <c>next</c> able to find the key) and dropping it would make a round-tripped
+    /// template behave differently from the one the compiler built. <c>[0, _count)</c> is always
+    /// compact and holds no tombstones, so this is a straight span walk.
+    /// </summary>
+    internal readonly void CopyAllEntriesTo(List<KeyValuePair<LuaValue, LuaValue>> destination)
+    {
+        if (_entries is null)
+        {
+            return;
+        }
+
+        foreach (ref var entry in _entries.AsSpan(0, _count))
+        {
+            destination.Add(new(entry.key, entry.value));
+        }
+    }
+
+    public readonly LuaStringDictionary Clone()
+    {
+        return new()
+        {
+            _buckets = _buckets == null ? null : (ulong[])_buckets.Clone(),
+            _entries = _entries == null ? null : (Entry[])_entries.Clone(),
+            _count = _count,
+            _version = _version,
+            _length = _length,
+            _maxCount = _maxCount,
+            _last = _last,
+        };
+    }
+
     public readonly int Count => _count;
 
     public readonly int Version => _version;

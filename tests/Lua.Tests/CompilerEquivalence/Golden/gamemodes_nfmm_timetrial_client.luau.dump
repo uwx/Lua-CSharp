@@ -1,0 +1,956 @@
+proto ? params=0 vararg=True maxstack=25 linedefined=0-0
+constants:
+  [0] GM
+  [1] config
+  [2] nil
+  [3] simulation
+  [4] notStarted
+  [5] 3
+  [6] countdownInterval
+  [7] 0
+  [8] Stopwatch
+  [9] new
+  [10] TimeTrial
+  [11] stage
+  [12] OnBegin
+  [13] OnReset
+  [14] OnGameTick
+  [15] OnKeyPressed
+upvalues:
+  [0] _ENV local=True index=0 byvalue=False
+locals:
+  [0] config pc=2-48
+  [1] simulation pc=8-48
+  [2] state pc=9-48
+  [3] countdown pc=10-48
+  [4] inner pc=12-48
+  [5] tick pc=13-48
+  [6] written pc=14-48
+  [7] timer pc=17-48
+  [8] timeTrial pc=18-48
+  [9] lastCheckpoint pc=27-48
+  [10] lastLap pc=28-48
+  [11] recordedSplitCount pc=29-48
+  [12] lastCheckpointSplitDiff pc=30-48
+  [13] lastLapSplitDiff pc=31-48
+  [14] setupPlayer pc=32-48
+  [15] renderInfo pc=33-48
+  [16] timeParts pc=34-48
+  [17] formatElapsed pc=35-48
+  [18] formatBest pc=36-48
+  [19] renderFinishedText pc=37-48
+  [20] OnBegin pc=38-48
+  [21] OnReset pc=39-48
+  [22] OnGameTick pc=40-48
+  [23] OnKeyPressed pc=41-48
+code:
+  0: [line 4] GETIMPORT 0 0 -1
+  1: [line 4] EXTRAARG 1
+  2: [line 8] JMPIFEQK 0 3
+  3: [line 8] EXTRAARG 2
+  4: [line 8] GETTABLE 1 0 -4
+  5: [line 8] JMP 0 2
+  6: [line 8] LOADBOOL 1 0 1
+  7: [line 8] LOADBOOL 1 1 0
+  8: [line 10] LOADK 2 4
+  9: [line 11] LOADK 3 5
+  10: [line 12] GETIMPORT 4 0 -1
+  11: [line 12] EXTRAARG 6
+  12: [line 13] LOADK 5 7
+  13: [line 14] LOADBOOL 6 0 0
+  14: [line 15] GETIMPORT 7 0 -9
+  15: [line 15] EXTRAARG 9
+  16: [line 15] CALL 7 1 2
+  17: [line 17] LOADNIL 8 0
+  18: [line 18] TEST 1 1
+  19: [line 18] JMP 0 6
+  20: [line 19] GETIMPORT 9 0 -11
+  21: [line 19] EXTRAARG 9
+  22: [line 19] GETIMPORT 10 0 -1
+  23: [line 19] EXTRAARG 11
+  24: [line 19] CALL 9 2 2
+  25: [line 19] MOVE 8 9
+  26: [line 25] LOADK 9 7
+  27: [line 26] LOADK 10 7
+  28: [line 27] LOADK 11 7
+  29: [line 28] LOADK 12 7
+  30: [line 29] LOADK 13 7
+  31: [line 41] CLOSURE 14 0
+  32: [line 72] CLOSURE 15 1
+  33: [line 80] CLOSURE 16 2
+  34: [line 85] CLOSURE 17 3
+  35: [line 90] CLOSURE 18 4
+  36: [line 127] CLOSURE 19 5
+  37: [line 136] CLOSURE 20 6
+  38: [line 166] CLOSURE 21 7
+  39: [line 270] CLOSURE 22 8
+  40: [line 276] CLOSURE 23 9
+  41: [line 278] NEWTABLE 24 0 4
+  42: [line 279] SETTABLE 24 -13 20
+  43: [line 280] SETTABLE 24 -14 21
+  44: [line 281] SETTABLE 24 -15 22
+  45: [line 282] SETTABLE 24 -16 23
+  46: [line 283] RETURN 24 2
+  47: [line 283] RETURN 0 1
+child 0:
+  proto setupPlayer params=0 vararg=False maxstack=6 linedefined=31-41
+  constants:
+    [0] GM
+    [1] createCar
+    [2] 1
+    [3] fixed64
+    [4] 0
+    [5] currentCheckpoint
+    [6] currentLap
+    [7] hudState
+    [8] lap
+    [9] totalLaps
+    [10] stage
+    [11] nlaps
+    [12] client
+    [13] resetCheckpointGlow
+    [14] nil
+    [15] begin
+  upvalues:
+    [0] _ENV local=False index=0 byvalue=False
+    [1] timeTrial local=True index=8 byvalue=False
+  locals:
+    [0] car pc=10-33
+  code:
+    0: [line 32] GETTABUP 0 0 -1
+    1: [line 32] SELF 0 0 -2
+    2: [line 32] LOADK 2 2
+    3: [line 32] GETTABUP 3 0 -4
+    4: [line 32] LOADK 4 4
+    5: [line 32] CALL 3 2 2
+    6: [line 32] GETTABUP 4 0 -4
+    7: [line 32] LOADK 5 4
+    8: [line 32] CALL 4 2 0
+    9: [line 32] CALL 0 0 2
+    10: [line 33] SETTABLE 0 -6 -5
+    11: [line 34] SETTABLE 0 -7 -5
+    12: [line 35] GETIMPORT 1 0 -1
+    13: [line 35] EXTRAARG 7
+    14: [line 35] SETTABLE 1 -9 -3
+    15: [line 36] GETIMPORT 1 0 -1
+    16: [line 36] EXTRAARG 7
+    17: [line 36] GETIMPORT 2 0 -1
+    18: [line 36] EXTRAARG 10
+    19: [line 36] GETTABLE 2 2 -12
+    20: [line 36] SETTABLE 1 -10 2
+    21: [line 37] GETIMPORT 1 0 -1
+    22: [line 37] EXTRAARG 12
+    23: [line 37] SELF 1 1 -14
+    24: [line 37] CALL 1 2 1
+    25: [line 38] GETUPVAL 1 1
+    26: [line 38] JMPIFEQK 1 5
+    27: [line 38] EXTRAARG 14
+    28: [line 39] GETUPVAL 1 1
+    29: [line 39] SELF 1 1 -16
+    30: [line 39] MOVE 3 0
+    31: [line 39] CALL 1 3 1
+    32: [line 41] RETURN 0 1
+child 1:
+  proto renderInfo params=0 vararg=False maxstack=5 linedefined=45-72
+  constants:
+    [0] GM
+    [1] players
+    [2] 1
+    [3] car
+    [4] nil
+    [5] currentCheckpoint
+    [6] 0
+    [7] currentLap
+    [8] hasGhost
+    [9] getLastSplitDiff
+    [10] hudState
+    [11] chkDiffMs
+    [12] math
+    [13] floor
+    [14] 1000
+    [15] lastChkDiffMs
+    [16] getLapDiff
+    [17] lapDiffMs
+    [18] lastLapDiffMs
+  upvalues:
+    [0] _ENV local=False index=0 byvalue=False
+    [1] timeTrial local=True index=8 byvalue=False
+    [2] recordedSplitCount local=True index=11 byvalue=False
+    [3] lastCheckpointSplitDiff local=True index=12 byvalue=False
+    [4] lastLapSplitDiff local=True index=13 byvalue=False
+  locals:
+    [0] car pc=4-86
+    [1] diff pc=24-42
+    [2] lapDiff pc=64-73
+  code:
+    0: [line 46] GETIMPORT 0 0 -1
+    1: [line 46] EXTRAARG 1
+    2: [line 46] GETTABLE 0 0 -3
+    3: [line 46] GETTABLE 0 0 -4
+    4: [line 49] JMPIFEQK 0 38
+    5: [line 49] EXTRAARG 4
+    6: [line 49] GETTABLE 1 0 -6
+    7: [line 49] JMPIFNEK 1 4
+    8: [line 49] EXTRAARG 6
+    9: [line 49] GETTABLE 1 0 -8
+    10: [line 49] JMPIFEQK 1 32
+    11: [line 49] EXTRAARG 6
+    12: [line 50] GETUPVAL 1 1
+    13: [line 50] JMPIFEQK 1 29
+    14: [line 50] EXTRAARG 4
+    15: [line 50] GETTABUP 1 1 -9
+    16: [line 50] TEST 1 0
+    17: [line 50] JMP 0 25
+    18: [line 50] GETUPVAL 1 2
+    19: [line 50] LT 0 -7 1
+    20: [line 50] JMP 0 22
+    21: [line 51] GETUPVAL 1 1
+    22: [line 51] SELF 1 1 -10
+    23: [line 51] CALL 1 2 2
+    24: [line 52] JMPIFEQK 1 24
+    25: [line 52] EXTRAARG 4
+    26: [line 54] GETIMPORT 2 0 -1
+    27: [line 54] EXTRAARG 10
+    28: [line 54] GETIMPORT 3 0 -13
+    29: [line 54] EXTRAARG 13
+    30: [line 54] MUL 4 1 -15
+    31: [line 54] CALL 3 2 2
+    32: [line 54] SETTABLE 2 -12 3
+    33: [line 55] GETIMPORT 2 0 -1
+    34: [line 55] EXTRAARG 10
+    35: [line 55] GETIMPORT 3 0 -13
+    36: [line 55] EXTRAARG 13
+    37: [line 55] GETUPVAL 4 3
+    38: [line 55] SUB 4 1 4
+    39: [line 55] MUL 4 4 -15
+    40: [line 55] CALL 3 2 2
+    41: [line 55] SETTABLE 2 -16 3
+    42: [line 55] JMP 0 6
+    43: [line 58] GETIMPORT 1 0 -1
+    44: [line 58] EXTRAARG 10
+    45: [line 58] SETTABLE 1 -12 -7
+    46: [line 59] GETIMPORT 1 0 -1
+    47: [line 59] EXTRAARG 10
+    48: [line 59] SETTABLE 1 -16 -7
+    49: [line 63] GETUPVAL 1 1
+    50: [line 63] JMPIFEQK 1 23
+    51: [line 63] EXTRAARG 4
+    52: [line 63] GETTABUP 1 1 -9
+    53: [line 63] TEST 1 0
+    54: [line 63] JMP 0 19
+    55: [line 63] JMPIFEQK 0 18
+    56: [line 63] EXTRAARG 4
+    57: [line 63] GETTABLE 1 0 -8
+    58: [line 63] LT 0 -7 1
+    59: [line 63] JMP 0 14
+    60: [line 64] GETUPVAL 1 1
+    61: [line 64] SELF 1 1 -17
+    62: [line 64] GETTABLE 3 0 -8
+    63: [line 64] CALL 1 3 2
+    64: [line 65] JMPIFEQK 1 12
+    65: [line 65] EXTRAARG 4
+    66: [line 66] GETIMPORT 2 0 -1
+    67: [line 66] EXTRAARG 10
+    68: [line 66] GETIMPORT 3 0 -13
+    69: [line 66] EXTRAARG 13
+    70: [line 66] MUL 4 1 -15
+    71: [line 66] CALL 3 2 2
+    72: [line 66] SETTABLE 2 -18 3
+    73: [line 66] JMP 0 3
+    74: [line 69] GETIMPORT 1 0 -1
+    75: [line 69] EXTRAARG 10
+    76: [line 69] SETTABLE 1 -18 -7
+    77: [line 71] GETIMPORT 1 0 -1
+    78: [line 71] EXTRAARG 10
+    79: [line 71] GETIMPORT 2 0 -13
+    80: [line 71] EXTRAARG 13
+    81: [line 71] GETUPVAL 3 4
+    82: [line 71] MUL 3 3 -15
+    83: [line 71] CALL 2 2 2
+    84: [line 71] SETTABLE 1 -19 2
+    85: [line 72] RETURN 0 1
+child 2:
+  proto timeParts params=1 vararg=False maxstack=7 linedefined=75-80
+  constants:
+    [0] math
+    [1] floor
+    [2] 60000
+    [3] 1000
+  upvalues:
+    [0] _ENV local=False index=0 byvalue=False
+  locals:
+    [0] totalMs pc=0-18
+    [1] minutes pc=4-18
+    [2] seconds pc=9-18
+    [3] millis pc=13-18
+  code:
+    0: [line 76] GETIMPORT 1 0 -1
+    1: [line 76] EXTRAARG 1
+    2: [line 76] DIV 2 0 -3
+    3: [line 76] CALL 1 2 2
+    4: [line 77] GETIMPORT 2 0 -1
+    5: [line 77] EXTRAARG 1
+    6: [line 77] MOD 3 0 -3
+    7: [line 77] DIV 3 3 -4
+    8: [line 77] CALL 2 2 2
+    9: [line 78] GETIMPORT 3 0 -1
+    10: [line 78] EXTRAARG 1
+    11: [line 78] MOD 4 0 -4
+    12: [line 78] CALL 3 2 2
+    13: [line 79] MOVE 4 1
+    14: [line 79] MOVE 5 2
+    15: [line 79] MOVE 6 3
+    16: [line 79] RETURN 4 4
+    17: [line 80] RETURN 0 1
+child 3:
+  proto formatElapsed params=1 vararg=False maxstack=9 linedefined=82-85
+  constants:
+    [0] string
+    [1] format
+    [2] %02d:%02d.%03d
+  upvalues:
+    [0] timeParts local=True index=16 byvalue=False
+    [1] _ENV local=False index=0 byvalue=False
+  locals:
+    [0] totalMs pc=0-12
+    [1] minutes pc=3-12
+    [2] seconds pc=3-12
+    [3] millis pc=3-12
+  code:
+    0: [line 83] GETUPVAL 1 0
+    1: [line 83] MOVE 2 0
+    2: [line 83] CALL 1 2 4
+    3: [line 84] GETIMPORT 4 1 -1
+    4: [line 84] EXTRAARG 1
+    5: [line 84] LOADK 5 2
+    6: [line 84] MOVE 6 1
+    7: [line 84] MOVE 7 2
+    8: [line 84] MOVE 8 3
+    9: [line 84] TAILCALL 4 5 0
+    10: [line 84] RETURN 4 0
+    11: [line 85] RETURN 0 1
+child 4:
+  proto formatBest params=1 vararg=False maxstack=9 linedefined=87-90
+  constants:
+    [0] string
+    [1] format
+    [2] %02d:%02d:%02d
+  upvalues:
+    [0] timeParts local=True index=16 byvalue=False
+    [1] _ENV local=False index=0 byvalue=False
+  locals:
+    [0] totalMs pc=0-12
+    [1] minutes pc=3-12
+    [2] seconds pc=3-12
+    [3] millis pc=3-12
+  code:
+    0: [line 88] GETUPVAL 1 0
+    1: [line 88] MOVE 2 0
+    2: [line 88] CALL 1 2 4
+    3: [line 89] GETIMPORT 4 1 -1
+    4: [line 89] EXTRAARG 1
+    5: [line 89] LOADK 5 2
+    6: [line 89] MOVE 6 1
+    7: [line 89] MOVE 7 2
+    8: [line 89] MOVE 8 3
+    9: [line 89] TAILCALL 4 5 0
+    10: [line 89] RETURN 4 0
+    11: [line 90] RETURN 0 1
+child 5:
+  proto renderFinishedText params=0 vararg=False maxstack=9 linedefined=92-127
+  constants:
+    [0] Finished! Time: 
+    [1] math
+    [2] floor
+    [3] elapsed
+    [4] 1000
+    [5] nil
+    [6] hasGhost
+    [7] 0
+    [8] getLastSplitDiff
+    [9] 
+New best time!
+    [10] getLastSplitTime
+    [11] getBestLastSplitTime
+    [12] min
+    [13] 
+Best time: 
+    [14] 
+Press R to restart
+    [15] GM
+    [16] hudState
+    [17] stateText
+  upvalues:
+    [0] formatElapsed local=True index=17 byvalue=False
+    [1] _ENV local=False index=0 byvalue=False
+    [2] timer local=True index=7 byvalue=True
+    [3] timeTrial local=True index=8 byvalue=False
+    [4] recordedSplitCount local=True index=11 byvalue=False
+    [5] formatBest local=True index=18 byvalue=False
+  locals:
+    [0] text pc=9-95
+    [1] newBest pc=10-95
+    [2] diff pc=24-30
+    [3] currentLastSplit pc=52-88
+    [4] bestLastSplit pc=61-88
+    [5] bestTimeMs pc=62-88
+  code:
+    0: [line 93] LOADK 0 0
+    1: [line 93] GETUPVAL 1 0
+    2: [line 93] GETIMPORT 2 1 -2
+    3: [line 93] EXTRAARG 2
+    4: [line 93] GETTABUP 3 2 -4
+    5: [line 93] MUL 3 3 -5
+    6: [line 93] CALL 2 2 0
+    7: [line 93] CALL 1 0 2
+    8: [line 93] CONCAT 0 0 1
+    9: [line 95] LOADBOOL 1 0 0
+    10: [line 96] GETUPVAL 2 3
+    11: [line 96] JMPIFEQK 2 4
+    12: [line 96] EXTRAARG 5
+    13: [line 96] GETTABUP 2 3 -7
+    14: [line 96] TEST 2 1
+    15: [line 96] JMP 0 2
+    16: [line 97] LOADBOOL 1 1 0
+    17: [line 97] JMP 0 12
+    18: [line 98] GETUPVAL 2 4
+    19: [line 98] LT 0 -8 2
+    20: [line 98] JMP 0 9
+    21: [line 99] GETUPVAL 2 3
+    22: [line 99] SELF 2 2 -9
+    23: [line 99] CALL 2 2 2
+    24: [line 100] JMPIFEQK 2 3
+    25: [line 100] EXTRAARG 5
+    26: [line 100] LT 1 2 -8
+    27: [line 100] JMP 0 1
+    28: [line 100] LOADBOOL 1 0 1
+    29: [line 100] LOADBOOL 1 1 0
+    30: [line 103] TEST 1 0
+    31: [line 103] JMP 0 3
+    32: [line 104] MOVE 2 0
+    33: [line 104] LOADK 3 9
+    34: [line 104] CONCAT 0 2 3
+    35: [line 107] GETUPVAL 2 3
+    36: [line 107] JMPIFEQK 2 4
+    37: [line 107] EXTRAARG 5
+    38: [line 107] GETTABUP 2 3 -7
+    39: [line 107] TEST 2 1
+    40: [line 107] JMP 0 2
+    41: [line 107] TEST 1 0
+    42: [line 107] JMP 0 45
+    43: [line 108] GETUPVAL 2 3
+    44: [line 108] JMPIFEQK 2 6
+    45: [line 108] EXTRAARG 5
+    46: [line 108] GETUPVAL 2 3
+    47: [line 108] SELF 2 2 -11
+    48: [line 108] CALL 2 2 2
+    49: [line 108] TEST 2 1
+    50: [line 108] JMP 0 1
+    51: [line 108] LOADNIL 2 0
+    52: [line 109] GETUPVAL 3 3
+    53: [line 109] JMPIFEQK 3 6
+    54: [line 109] EXTRAARG 5
+    55: [line 109] GETUPVAL 3 3
+    56: [line 109] SELF 3 3 -12
+    57: [line 109] CALL 3 2 2
+    58: [line 109] TEST 3 1
+    59: [line 109] JMP 0 1
+    60: [line 109] LOADNIL 3 0
+    61: [line 111] LOADNIL 4 0
+    62: [line 112] JMPIFEQK 2 10
+    63: [line 112] EXTRAARG 5
+    64: [line 112] JMPIFEQK 3 8
+    65: [line 112] EXTRAARG 5
+    66: [line 113] GETIMPORT 5 1 -2
+    67: [line 113] EXTRAARG 12
+    68: [line 113] MOVE 6 2
+    69: [line 113] MOVE 7 3
+    70: [line 113] CALL 5 3 2
+    71: [line 113] MUL 4 5 -5
+    72: [line 113] JMP 0 7
+    73: [line 114] JMPIFEQK 2 3
+    74: [line 114] EXTRAARG 5
+    75: [line 115] MUL 4 2 -5
+    76: [line 115] JMP 0 3
+    77: [line 116] JMPIFEQK 3 2
+    78: [line 116] EXTRAARG 5
+    79: [line 117] MUL 4 3 -5
+    80: [line 120] JMPIFEQK 4 7
+    81: [line 120] EXTRAARG 5
+    82: [line 121] MOVE 5 0
+    83: [line 121] LOADK 6 13
+    84: [line 121] GETUPVAL 7 5
+    85: [line 121] MOVE 8 4
+    86: [line 121] CALL 7 2 2
+    87: [line 121] CONCAT 0 5 7
+    88: [line 125] MOVE 2 0
+    89: [line 125] LOADK 3 14
+    90: [line 125] CONCAT 0 2 3
+    91: [line 126] GETIMPORT 2 1 -16
+    92: [line 126] EXTRAARG 16
+    93: [line 126] SETTABLE 2 -18 0
+    94: [line 127] RETURN 0 1
+child 6:
+  proto OnBegin params=0 vararg=False maxstack=2 linedefined=129-136
+  constants:
+    [0] notStarted
+    [1] GM
+    [2] hudState
+    [3] lap
+    [4] 1
+    [5] totalLaps
+    [6] stage
+    [7] nlaps
+    [8] position
+    [9] totalRacers
+    [10] stateText
+    [11] nil
+  upvalues:
+    [0] state local=True index=2 byvalue=False
+    [1] _ENV local=False index=0 byvalue=False
+  locals:
+  code:
+    0: [line 130] LOADK 0 0
+    1: [line 130] SETUPVAL 0 0
+    2: [line 131] GETIMPORT 0 1 -2
+    3: [line 131] EXTRAARG 2
+    4: [line 131] SETTABLE 0 -4 -5
+    5: [line 132] GETIMPORT 0 1 -2
+    6: [line 132] EXTRAARG 2
+    7: [line 132] GETIMPORT 1 1 -2
+    8: [line 132] EXTRAARG 6
+    9: [line 132] GETTABLE 1 1 -8
+    10: [line 132] SETTABLE 0 -6 1
+    11: [line 133] GETIMPORT 0 1 -2
+    12: [line 133] EXTRAARG 2
+    13: [line 133] SETTABLE 0 -9 -5
+    14: [line 134] GETIMPORT 0 1 -2
+    15: [line 134] EXTRAARG 2
+    16: [line 134] SETTABLE 0 -10 -5
+    17: [line 135] GETIMPORT 0 1 -2
+    18: [line 135] EXTRAARG 2
+    19: [line 135] SETTABLE 0 -11 -12
+    20: [line 136] RETURN 0 1
+child 7:
+  proto OnReset params=0 vararg=False maxstack=4 linedefined=138-166
+  constants:
+    [0] 0
+    [1] reset
+    [2] inProgress
+    [3] start
+    [4] countdown
+    [5] 3
+    [6] GM
+    [7] countdownInterval
+    [8] removeFakePlayers
+    [9] nil
+    [10] hasGhost
+    [11] clonePlayer
+    [12] players
+    [13] 1
+    [14] client
+    [15] getClientCarCallbacks
+    [16] car
+    [17] alphaOverride
+    [18] 0.5
+    [19] currentLap
+  upvalues:
+    [0] tick local=True index=5 byvalue=False
+    [1] written local=True index=6 byvalue=False
+    [2] timer local=True index=7 byvalue=True
+    [3] simulation local=True index=1 byvalue=True
+    [4] state local=True index=2 byvalue=False
+    [5] countdown local=True index=3 byvalue=False
+    [6] inner local=True index=4 byvalue=False
+    [7] _ENV local=False index=0 byvalue=False
+    [8] lastCheckpoint local=True index=9 byvalue=False
+    [9] lastLap local=True index=10 byvalue=False
+    [10] recordedSplitCount local=True index=11 byvalue=False
+    [11] lastCheckpointSplitDiff local=True index=12 byvalue=False
+    [12] lastLapSplitDiff local=True index=13 byvalue=False
+    [13] setupPlayer local=True index=14 byvalue=False
+    [14] timeTrial local=True index=8 byvalue=False
+  locals:
+    [0] ghost pc=50-58
+  code:
+    0: [line 139] LOADK 0 0
+    1: [line 139] SETUPVAL 0 0
+    2: [line 140] LOADBOOL 0 0 0
+    3: [line 140] SETUPVAL 0 1
+    4: [line 141] GETUPVAL 0 2
+    5: [line 141] SELF 0 0 -2
+    6: [line 141] CALL 0 2 1
+    7: [line 143] GETUPVAL 0 3
+    8: [line 143] TEST 0 0
+    9: [line 143] JMP 0 6
+    10: [line 144] LOADK 0 2
+    11: [line 144] SETUPVAL 0 4
+    12: [line 145] GETUPVAL 0 2
+    13: [line 145] SELF 0 0 -4
+    14: [line 145] CALL 0 2 1
+    15: [line 145] JMP 0 7
+    16: [line 147] LOADK 0 4
+    17: [line 147] SETUPVAL 0 4
+    18: [line 148] LOADK 0 5
+    19: [line 148] SETUPVAL 0 5
+    20: [line 149] GETIMPORT 0 7 -7
+    21: [line 149] EXTRAARG 7
+    22: [line 149] SETUPVAL 0 6
+    23: [line 152] LOADK 0 0
+    24: [line 152] SETUPVAL 0 8
+    25: [line 153] LOADK 0 0
+    26: [line 153] SETUPVAL 0 9
+    27: [line 154] LOADK 0 0
+    28: [line 154] SETUPVAL 0 10
+    29: [line 155] LOADK 0 0
+    30: [line 155] SETUPVAL 0 11
+    31: [line 156] LOADK 0 0
+    32: [line 156] SETUPVAL 0 12
+    33: [line 158] GETTABUP 0 7 -7
+    34: [line 158] SELF 0 0 -9
+    35: [line 158] CALL 0 2 1
+    36: [line 159] GETUPVAL 0 13
+    37: [line 159] CALL 0 1 1
+    38: [line 161] GETUPVAL 0 14
+    39: [line 161] JMPIFEQK 0 18
+    40: [line 161] EXTRAARG 9
+    41: [line 161] GETTABUP 0 14 -11
+    42: [line 161] TEST 0 0
+    43: [line 161] JMP 0 14
+    44: [line 162] GETTABUP 0 7 -7
+    45: [line 162] SELF 0 0 -12
+    46: [line 162] GETIMPORT 2 7 -7
+    47: [line 162] EXTRAARG 12
+    48: [line 162] GETTABLE 2 2 -14
+    49: [line 162] CALL 0 3 2
+    50: [line 163] GETIMPORT 1 7 -7
+    51: [line 163] EXTRAARG 14
+    52: [line 163] SELF 1 1 -16
+    53: [line 163] GETTABLE 3 0 -17
+    54: [line 163] CALL 1 3 2
+    55: [line 163] SETTABLE 1 -18 -19
+    56: [line 164] GETTABLE 1 0 -17
+    57: [line 164] SETTABLE 1 -20 -1
+    58: [line 166] RETURN 0 1
+child 8:
+  proto OnGameTick params=0 vararg=False maxstack=6 linedefined=168-270
+  constants:
+    [0] notStarted
+    [1] countdown
+    [2] 1
+    [3] GM
+    [4] hudState
+    [5] countdownTimer
+    [6] 0
+    [7] countdownInterval
+    [8] inProgress
+    [9] start
+    [10] players
+    [11] car
+    [12] nil
+    [13] currentCheckpoint
+    [14] currentLap
+    [15] handleFixHoops
+    [16] handleCheckPoint
+    [17] drive
+    [18] stage
+    [19] updateHudAndSounds
+    [20] lap
+    [21] lapTime
+    [22] math
+    [23] floor
+    [24] elapsed
+    [25] 1000
+    [26] client
+    [27] updateCheckpointGlow
+    [28] checkpoints
+    [29] nlaps
+    [30] record
+    [31] hasGhost
+    [32] getLastSplitDiff
+    [33] getLapDiff
+    [34] recordSplit
+    [35] 2
+    [36] applyGhost
+    [37] finished
+    [38] carPhysics
+    [39] halted
+    [40] true
+    [41] sendEvent
+    [42] stop
+    [43] save
+  upvalues:
+    [0] state local=True index=2 byvalue=False
+    [1] OnReset local=True index=21 byvalue=False
+    [2] inner local=True index=4 byvalue=False
+    [3] _ENV local=False index=0 byvalue=False
+    [4] countdown local=True index=3 byvalue=False
+    [5] timer local=True index=7 byvalue=True
+    [6] renderInfo local=True index=15 byvalue=False
+    [7] lastCheckpoint local=True index=9 byvalue=False
+    [8] lastLap local=True index=10 byvalue=False
+    [9] timeTrial local=True index=8 byvalue=False
+    [10] recordedSplitCount local=True index=11 byvalue=False
+    [11] lastCheckpointSplitDiff local=True index=12 byvalue=False
+    [12] lastLapSplitDiff local=True index=13 byvalue=False
+    [13] tick local=True index=5 byvalue=False
+    [14] written local=True index=6 byvalue=False
+    [15] renderFinishedText local=True index=19 byvalue=False
+  locals:
+    [0] car pc=43-206
+    [1] diff pc=123-126
+    [2] currentLapSplitDiff pc=127-158
+    [3] lapDiff pc=140-143
+    [4] ghost pc=167-182
+  code:
+    0: [line 169] GETUPVAL 0 0
+    1: [line 169] JMPIFNEK 0 4
+    2: [line 169] EXTRAARG 0
+    3: [line 170] GETUPVAL 0 1
+    4: [line 170] CALL 0 1 1
+    5: [line 171] RETURN 0 1
+    6: [line 174] GETUPVAL 0 0
+    7: [line 174] JMPIFNEK 0 28
+    8: [line 174] EXTRAARG 1
+    9: [line 175] GETUPVAL 0 2
+    10: [line 175] SUB 0 0 -3
+    11: [line 175] SETUPVAL 0 2
+    12: [line 176] GETIMPORT 0 3 -4
+    13: [line 176] EXTRAARG 4
+    14: [line 176] GETUPVAL 1 4
+    15: [line 176] SETTABLE 0 -6 1
+    16: [line 178] GETUPVAL 0 2
+    17: [line 178] LE 0 0 -7
+    18: [line 178] JMP 0 14
+    19: [line 179] GETIMPORT 0 3 -4
+    20: [line 179] EXTRAARG 7
+    21: [line 179] SETUPVAL 0 2
+    22: [line 180] GETUPVAL 0 4
+    23: [line 180] SUB 0 0 -3
+    24: [line 180] SETUPVAL 0 4
+    25: [line 181] GETUPVAL 0 4
+    26: [line 181] LE 0 0 -7
+    27: [line 181] JMP 0 5
+    28: [line 182] LOADK 0 8
+    29: [line 182] SETUPVAL 0 0
+    30: [line 183] GETUPVAL 0 5
+    31: [line 183] SELF 0 0 -10
+    32: [line 183] CALL 0 2 1
+    33: [line 186] GETUPVAL 0 6
+    34: [line 186] CALL 0 1 1
+    35: [line 187] RETURN 0 1
+    36: [line 190] GETUPVAL 0 0
+    37: [line 190] JMPIFNEK 0 168
+    38: [line 190] EXTRAARG 8
+    39: [line 191] GETIMPORT 0 3 -4
+    40: [line 191] EXTRAARG 10
+    41: [line 191] GETTABLE 0 0 -3
+    42: [line 191] GETTABLE 0 0 -12
+    43: [line 192] JMPIFEQK 0 156
+    44: [line 192] EXTRAARG 12
+    45: [line 194] GETTABLE 1 0 -14
+    46: [line 194] SETUPVAL 1 7
+    47: [line 195] GETTABLE 1 0 -15
+    48: [line 195] SETUPVAL 1 8
+    49: [line 197] GETTABUP 1 3 -4
+    50: [line 197] SELF 1 1 -16
+    51: [line 197] MOVE 3 0
+    52: [line 197] CALL 1 3 1
+    53: [line 198] GETTABUP 1 3 -4
+    54: [line 198] SELF 1 1 -17
+    55: [line 198] MOVE 3 0
+    56: [line 198] CALL 1 3 1
+    57: [line 199] SELF 1 0 -18
+    58: [line 199] GETIMPORT 3 3 -4
+    59: [line 199] EXTRAARG 18
+    60: [line 199] CALL 1 3 1
+    61: [line 201] GETTABUP 1 3 -4
+    62: [line 201] SELF 1 1 -20
+    63: [line 201] MOVE 3 0
+    64: [line 201] CALL 1 3 1
+    65: [line 202] GETIMPORT 1 3 -4
+    66: [line 202] EXTRAARG 4
+    67: [line 202] GETTABLE 2 0 -15
+    68: [line 202] ADD 2 2 -3
+    69: [line 202] SETTABLE 1 -21 2
+    70: [line 203] GETIMPORT 1 3 -4
+    71: [line 203] EXTRAARG 4
+    72: [line 203] GETIMPORT 2 3 -23
+    73: [line 203] EXTRAARG 23
+    74: [line 203] GETTABUP 3 5 -25
+    75: [line 203] MUL 3 3 -26
+    76: [line 203] CALL 2 2 2
+    77: [line 203] SETTABLE 1 -22 2
+    78: [line 204] GETIMPORT 1 3 -4
+    79: [line 204] EXTRAARG 26
+    80: [line 204] SELF 1 1 -28
+    81: [line 204] GETTABLE 3 0 -14
+    82: [line 204] GETTABLE 4 0 -14
+    83: [line 204] GETIMPORT 5 3 -4
+    84: [line 204] EXTRAARG 18
+    85: [line 204] GETTABLE 5 5 -29
+    86: [line 204] LEN 5 5
+    87: [line 204] SUB 5 5 -3
+    88: [line 204] EQ 0 4 5
+    89: [line 204] JMP 0 7
+    90: [line 204] GETTABLE 4 0 -15
+    91: [line 204] GETIMPORT 5 3 -4
+    92: [line 204] EXTRAARG 18
+    93: [line 204] GETTABLE 5 5 -30
+    94: [line 204] SUB 5 5 -3
+    95: [line 204] EQ 1 4 5
+    96: [line 204] JMP 0 1
+    97: [line 204] LOADBOOL 4 0 1
+    98: [line 204] LOADBOOL 4 1 0
+    99: [line 204] CALL 1 4 1
+    100: [line 206] GETUPVAL 1 9
+    101: [line 206] JMPIFEQK 1 5
+    102: [line 206] EXTRAARG 12
+    103: [line 207] GETUPVAL 1 9
+    104: [line 207] SELF 1 1 -31
+    105: [line 207] MOVE 3 0
+    106: [line 207] CALL 1 3 1
+    107: [line 212] GETTABLE 1 0 -14
+    108: [line 212] GETUPVAL 2 7
+    109: [line 212] EQ 1 1 2
+    110: [line 212] JMP 0 47
+    111: [line 213] GETUPVAL 1 9
+    112: [line 213] JMPIFEQK 1 13
+    113: [line 213] EXTRAARG 12
+    114: [line 213] GETTABUP 1 9 -32
+    115: [line 213] TEST 1 0
+    116: [line 213] JMP 0 9
+    117: [line 213] GETUPVAL 1 10
+    118: [line 213] LT 0 -7 1
+    119: [line 213] JMP 0 6
+    120: [line 214] GETUPVAL 1 9
+    121: [line 214] SELF 1 1 -33
+    122: [line 214] CALL 1 2 2
+    123: [line 215] JMPIFEQK 1 2
+    124: [line 215] EXTRAARG 12
+    125: [line 216] SETUPVAL 1 11
+    126: [line 220] LOADK 1 6
+    127: [line 221] GETUPVAL 2 9
+    128: [line 221] JMPIFEQK 2 14
+    129: [line 221] EXTRAARG 12
+    130: [line 221] GETTABUP 2 9 -32
+    131: [line 221] TEST 2 0
+    132: [line 221] JMP 0 10
+    133: [line 221] GETUPVAL 2 8
+    134: [line 221] LT 0 -7 2
+    135: [line 221] JMP 0 7
+    136: [line 222] GETUPVAL 2 9
+    137: [line 222] SELF 2 2 -34
+    138: [line 222] GETUPVAL 4 8
+    139: [line 222] CALL 2 3 2
+    140: [line 223] JMPIFEQK 2 2
+    141: [line 223] EXTRAARG 12
+    142: [line 224] MOVE 1 2
+    143: [line 228] GETUPVAL 2 9
+    144: [line 228] JMPIFEQK 2 5
+    145: [line 228] EXTRAARG 12
+    146: [line 229] GETUPVAL 2 9
+    147: [line 229] SELF 2 2 -35
+    148: [line 229] GETTABUP 4 5 -25
+    149: [line 229] CALL 2 3 1
+    150: [line 231] GETUPVAL 2 10
+    151: [line 231] ADD 2 2 -3
+    152: [line 231] SETUPVAL 2 10
+    153: [line 233] GETUPVAL 2 8
+    154: [line 233] GETTABLE 3 0 -15
+    155: [line 233] EQ 1 2 3
+    156: [line 233] JMP 0 1
+    157: [line 234] SETUPVAL 1 12
+    158: [line 238] GETUPVAL 1 9
+    159: [line 238] JMPIFEQK 1 22
+    160: [line 238] EXTRAARG 12
+    161: [line 238] GETTABUP 1 9 -32
+    162: [line 238] TEST 1 0
+    163: [line 238] JMP 0 18
+    164: [line 239] GETIMPORT 1 3 -4
+    165: [line 239] EXTRAARG 10
+    166: [line 239] GETTABLE 1 1 -36
+    167: [line 240] JMPIFEQK 1 14
+    168: [line 240] EXTRAARG 12
+    169: [line 240] GETTABLE 2 1 -12
+    170: [line 240] JMPIFEQK 2 11
+    171: [line 240] EXTRAARG 12
+    172: [line 241] GETUPVAL 2 9
+    173: [line 241] SELF 2 2 -37
+    174: [line 241] GETTABLE 4 1 -12
+    175: [line 241] GETUPVAL 5 13
+    176: [line 241] CALL 2 4 1
+    177: [line 242] GETTABLE 2 1 -12
+    178: [line 242] SELF 2 2 -18
+    179: [line 242] GETIMPORT 4 3 -4
+    180: [line 242] EXTRAARG 18
+    181: [line 242] CALL 2 3 1
+    182: [line 246] GETTABLE 1 0 -15
+    183: [line 246] GETIMPORT 2 3 -4
+    184: [line 246] EXTRAARG 18
+    185: [line 246] GETTABLE 2 2 -30
+    186: [line 246] LE 0 2 1
+    187: [line 246] JMP 0 12
+    188: [line 247] LOADK 1 37
+    189: [line 247] SETUPVAL 1 0
+    190: [line 248] GETTABLE 1 0 -39
+    191: [line 248] SETTABLE 1 -40 -41
+    192: [line 249] GETTABUP 1 3 -4
+    193: [line 249] SELF 1 1 -42
+    194: [line 249] LOADK 3 37
+    195: [line 249] NEWTABLE 4 0 0
+    196: [line 249] CALL 1 4 1
+    197: [line 250] GETUPVAL 1 5
+    198: [line 250] SELF 1 1 -43
+    199: [line 250] CALL 1 2 1
+    200: [line 254] GETUPVAL 1 13
+    201: [line 254] ADD 1 1 -3
+    202: [line 254] SETUPVAL 1 13
+    203: [line 255] GETUPVAL 1 6
+    204: [line 255] CALL 1 1 1
+    205: [line 256] RETURN 0 1
+    206: [line 259] GETUPVAL 0 0
+    207: [line 259] JMPIFNEK 0 24
+    208: [line 259] EXTRAARG 37
+    209: [line 260] GETIMPORT 0 3 -4
+    210: [line 260] EXTRAARG 10
+    211: [line 260] GETTABLE 0 0 -3
+    212: [line 260] GETTABLE 0 0 -12
+    213: [line 260] SELF 0 0 -18
+    214: [line 260] GETIMPORT 2 3 -4
+    215: [line 260] EXTRAARG 18
+    216: [line 260] CALL 0 3 1
+    217: [line 261] GETUPVAL 0 14
+    218: [line 261] TEST 0 1
+    219: [line 261] JMP 0 10
+    220: [line 262] LOADBOOL 0 1 0
+    221: [line 262] SETUPVAL 0 14
+    222: [line 263] GETUPVAL 0 9
+    223: [line 263] JMPIFEQK 0 4
+    224: [line 263] EXTRAARG 12
+    225: [line 264] GETUPVAL 0 9
+    226: [line 264] SELF 0 0 -44
+    227: [line 264] CALL 0 2 1
+    228: [line 266] GETUPVAL 0 15
+    229: [line 266] CALL 0 1 1
+    230: [line 268] GETUPVAL 0 6
+    231: [line 268] CALL 0 1 1
+    232: [line 270] RETURN 0 1
+child 9:
+  proto OnKeyPressed params=1 vararg=False maxstack=2 linedefined=272-276
+  constants:
+    [0] Key
+    [1] r
+  upvalues:
+    [0] _ENV local=False index=0 byvalue=False
+    [1] OnReset local=True index=21 byvalue=False
+  locals:
+    [0] key pc=0-7
+  code:
+    0: [line 273] GETIMPORT 1 0 -1
+    1: [line 273] EXTRAARG 1
+    2: [line 273] EQ 0 0 1
+    3: [line 273] JMP 0 2
+    4: [line 274] GETUPVAL 1 1
+    5: [line 274] CALL 1 1 1
+    6: [line 276] RETURN 0 1

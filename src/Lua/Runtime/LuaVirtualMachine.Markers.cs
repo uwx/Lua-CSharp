@@ -62,6 +62,8 @@ static partial class LuaVirtualMachine
             Closure();
             VarArg();
             ExtraArg();
+            GetImport();
+            DupTable();
             IDiv();
             LoadBuiltin();
         }
@@ -233,5 +235,13 @@ static partial class LuaVirtualMachine
         [MethodImpl(MethodImplOptions.NoInlining)]
         [Conditional("CASE_MARKER")]
         public static void ExtraArg() { }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        [Conditional("CASE_MARKER")]
+        public static void GetImport() { }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        [Conditional("CASE_MARKER")]
+        public static void DupTable() { }
     }
 }

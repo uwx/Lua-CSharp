@@ -1,0 +1,139 @@
+proto ? params=0 vararg=True maxstack=7 linedefined=0-0
+constants:
+  [0] require
+  [1] ./signals
+  [2] ./h
+  [3] ./dom
+  [4] ./styled
+  [5] ./types
+  [6] createSignal
+  [7] createMemo
+  [8] createEffect
+  [9] createRoot
+  [10] batch
+  [11] untrack
+  [12] onCleanup
+  [13] onMount
+  [14] getOwner
+  [15] runWithOwner
+  [16] setScheduler
+  [17] flushSync
+  [18] x
+  [19] View
+  [20] Text
+  [21] Image
+  [22] TextInput
+  [23] read
+  [24] render
+  [25] Fragment
+  [26] Show
+  [27] Switch
+  [28] Match
+  [29] For
+  [30] Index
+  [31] devtools
+  [32] debug
+  [33] styled
+upvalues:
+  [0] _ENV local=True index=0 byvalue=False
+locals:
+  [0] signals pc=3-73
+  [1] h pc=6-73
+  [2] dom pc=9-73
+  [3] styled pc=12-73
+  [4] t pc=15-73
+  [5] Sx pc=16-73
+code:
+  0: [line 7] GETTABUP 0 0 -1
+  1: [line 7] LOADK 1 1
+  2: [line 7] CALL 0 2 2
+  3: [line 8] GETTABUP 1 0 -1
+  4: [line 8] LOADK 2 2
+  5: [line 8] CALL 1 2 2
+  6: [line 9] GETTABUP 2 0 -1
+  7: [line 9] LOADK 3 3
+  8: [line 9] CALL 2 2 2
+  9: [line 10] GETTABUP 3 0 -1
+  10: [line 10] LOADK 4 4
+  11: [line 10] CALL 3 2 2
+  12: [line 11] GETTABUP 4 0 -1
+  13: [line 11] LOADK 5 5
+  14: [line 11] CALL 4 2 2
+  15: [line 19] NEWTABLE 5 0 0
+  16: [line 22] GETTABLE 6 0 -7
+  17: [line 22] SETTABLE 5 -7 6
+  18: [line 23] GETTABLE 6 0 -8
+  19: [line 23] SETTABLE 5 -8 6
+  20: [line 24] GETTABLE 6 0 -9
+  21: [line 24] SETTABLE 5 -9 6
+  22: [line 25] GETTABLE 6 0 -10
+  23: [line 25] SETTABLE 5 -10 6
+  24: [line 26] GETTABLE 6 0 -11
+  25: [line 26] SETTABLE 5 -11 6
+  26: [line 27] GETTABLE 6 0 -12
+  27: [line 27] SETTABLE 5 -12 6
+  28: [line 28] GETTABLE 6 0 -13
+  29: [line 28] SETTABLE 5 -13 6
+  30: [line 29] GETTABLE 6 0 -14
+  31: [line 29] SETTABLE 5 -14 6
+  32: [line 30] GETTABLE 6 0 -15
+  33: [line 30] SETTABLE 5 -15 6
+  34: [line 31] GETTABLE 6 0 -16
+  35: [line 31] SETTABLE 5 -16 6
+  36: [line 32] GETTABLE 6 0 -17
+  37: [line 32] SETTABLE 5 -17 6
+  38: [line 33] GETTABLE 6 0 -18
+  39: [line 33] SETTABLE 5 -18 6
+  40: [line 36] GETTABLE 6 1 -19
+  41: [line 36] SETTABLE 5 -19 6
+  42: [line 37] GETTABLE 6 1 -20
+  43: [line 37] SETTABLE 5 -20 6
+  44: [line 38] GETTABLE 6 1 -21
+  45: [line 38] SETTABLE 5 -21 6
+  46: [line 39] GETTABLE 6 1 -22
+  47: [line 39] SETTABLE 5 -22 6
+  48: [line 40] GETTABLE 6 1 -23
+  49: [line 40] SETTABLE 5 -23 6
+  50: [line 98] CLOSURE 6 0
+  51: [line 93] SETTABLE 5 -24 6
+  52: [line 101] GETTABLE 6 2 -25
+  53: [line 101] SETTABLE 5 -25 6
+  54: [line 102] GETTABLE 6 2 -26
+  55: [line 102] SETTABLE 5 -26 6
+  56: [line 103] GETTABLE 6 2 -27
+  57: [line 103] SETTABLE 5 -27 6
+  58: [line 104] GETTABLE 6 2 -28
+  59: [line 104] SETTABLE 5 -28 6
+  60: [line 105] GETTABLE 6 2 -29
+  61: [line 105] SETTABLE 5 -29 6
+  62: [line 106] GETTABLE 6 2 -30
+  63: [line 106] SETTABLE 5 -30 6
+  64: [line 107] GETTABLE 6 2 -31
+  65: [line 107] SETTABLE 5 -31 6
+  66: [line 110] GETTABLE 6 2 -32
+  67: [line 110] SETTABLE 5 -32 6
+  68: [line 111] GETTABLE 6 0 -33
+  69: [line 111] SETTABLE 5 -33 6
+  70: [line 114] SETTABLE 5 -34 3
+  71: [line 116] RETURN 5 2
+  72: [line 116] RETURN 0 1
+child 0:
+  proto read params=1 vararg=False maxstack=3 linedefined=93-98
+  constants:
+    [0] type
+    [1] function
+  upvalues:
+    [0] _ENV local=False index=0 byvalue=False
+  locals:
+    [0] v pc=0-10
+  code:
+    0: [line 94] GETTABUP 1 0 -1
+    1: [line 94] MOVE 2 0
+    2: [line 94] CALL 1 2 2
+    3: [line 94] JMPIFNEK 1 4
+    4: [line 94] EXTRAARG 1
+    5: [line 95] MOVE 1 0
+    6: [line 95] TAILCALL 1 1 0
+    7: [line 95] RETURN 1 0
+    8: [line 97] RETURN 0 2
+    9: [line 98] RETURN 0 1
