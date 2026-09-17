@@ -471,7 +471,7 @@ public sealed class DebugLibrary
         return new(0);
     }
 
-    [AsyncMethodBuilder(typeof(LightAsyncValueTaskMethodBuilder<>))]
+    //[AsyncMethodBuilder(typeof(LightAsyncValueTaskMethodBuilder<>))]
     public async ValueTask<int> SetHook(
         LuaFunctionExecutionContext context,
         CancellationToken cancellationToken

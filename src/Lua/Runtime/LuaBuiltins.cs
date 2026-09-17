@@ -39,7 +39,7 @@ static class LuaBuiltins
     /// A value with an `__iter` metamethod delegates to it; a table iterates with `next`;
     /// a function is its own iterator (classic `for x in f do` keeps working).
     /// </summary>
-    [AsyncMethodBuilder(typeof(LightAsyncValueTaskMethodBuilder<>))]
+    //[AsyncMethodBuilder(typeof(LightAsyncValueTaskMethodBuilder<>))]
     public static async ValueTask<int> IterResolver(
         LuaFunctionExecutionContext context,
         CancellationToken cancellationToken
@@ -85,7 +85,7 @@ static class LuaBuiltins
     /// literal parts and the evaluated expressions as arguments; each is converted with the
     /// same rules as `tostring` (so `__tostring` and number formatting match).
     /// </summary>
-    [AsyncMethodBuilder(typeof(LightAsyncValueTaskMethodBuilder<>))]
+    //[AsyncMethodBuilder(typeof(LightAsyncValueTaskMethodBuilder<>))]
     public static async ValueTask<int> InterpolationBuilder(
         LuaFunctionExecutionContext context,
         CancellationToken cancellationToken

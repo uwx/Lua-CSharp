@@ -86,7 +86,7 @@ public sealed class CoroutineLibrary
         return new(context.Return(new CSharpClosure("wrap", [state], WrapResume)));
     }
 
-    [AsyncMethodBuilder(typeof(LightAsyncValueTaskMethodBuilder<>))]
+    //[AsyncMethodBuilder(typeof(LightAsyncValueTaskMethodBuilder<>))]
     static async ValueTask<int> WrapResume(
         LuaFunctionExecutionContext context,
         CancellationToken cancellationToken

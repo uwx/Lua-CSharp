@@ -133,7 +133,7 @@ public sealed class BasicLibrary
         return new(context.Return());
     }
 
-    [AsyncMethodBuilder(typeof(LightAsyncValueTaskMethodBuilder<>))]
+    //[AsyncMethodBuilder(typeof(LightAsyncValueTaskMethodBuilder<>))]
     public async ValueTask<int> DoFile(
         LuaFunctionExecutionContext context,
         CancellationToken cancellationToken
@@ -182,7 +182,7 @@ public sealed class BasicLibrary
         return default;
     }
 
-    [AsyncMethodBuilder(typeof(LightAsyncValueTaskMethodBuilder<>))]
+    //[AsyncMethodBuilder(typeof(LightAsyncValueTaskMethodBuilder<>))]
     public async ValueTask<int> IPairs(
         LuaFunctionExecutionContext context,
         CancellationToken cancellationToken
@@ -327,7 +327,7 @@ public sealed class BasicLibrary
         }
     }
 
-    [AsyncMethodBuilder(typeof(LightAsyncValueTaskMethodBuilder<>))]
+    //[AsyncMethodBuilder(typeof(LightAsyncValueTaskMethodBuilder<>))]
     public async ValueTask<int> Pairs(
         LuaFunctionExecutionContext context,
         CancellationToken cancellationToken
@@ -364,7 +364,7 @@ public sealed class BasicLibrary
         return context.Return(PairsIterator, arg0, LuaValue.Nil);
     }
 
-    [AsyncMethodBuilder(typeof(LightAsyncValueTaskMethodBuilder<>))]
+    //[AsyncMethodBuilder(typeof(LightAsyncValueTaskMethodBuilder<>))]
     public async ValueTask<int> PCall(
         LuaFunctionExecutionContext context,
         CancellationToken cancellationToken
@@ -413,7 +413,7 @@ public sealed class BasicLibrary
         }
     }
 
-    [AsyncMethodBuilder(typeof(LightAsyncValueTaskMethodBuilder<>))]
+    //[AsyncMethodBuilder(typeof(LightAsyncValueTaskMethodBuilder<>))]
     public async ValueTask<int> Print(
         LuaFunctionExecutionContext context,
         CancellationToken cancellationToken
@@ -761,7 +761,7 @@ public sealed class BasicLibrary
         );
     }
 
-    [AsyncMethodBuilder(typeof(LightAsyncValueTaskMethodBuilder<>))]
+    //[AsyncMethodBuilder(typeof(LightAsyncValueTaskMethodBuilder<>))]
     public async ValueTask<int> XPCall(
         LuaFunctionExecutionContext context,
         CancellationToken cancellationToken

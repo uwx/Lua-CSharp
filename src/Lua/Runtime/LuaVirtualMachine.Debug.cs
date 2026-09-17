@@ -23,7 +23,7 @@ public static partial class LuaVirtualMachine
         context.Pc--;
         return true;
 
-        [AsyncMethodBuilder(typeof(LightAsyncValueTaskMethodBuilder<>))]
+        //[AsyncMethodBuilder(typeof(LightAsyncValueTaskMethodBuilder<>))]
         static async ValueTask<int> Impl(VirtualMachineExecutionContext context)
         {
             var countHookIsDone = false;
@@ -132,7 +132,7 @@ public static partial class LuaVirtualMachine
         );
     }
 
-    [AsyncMethodBuilder(typeof(LightAsyncValueTaskMethodBuilder<>))]
+    //[AsyncMethodBuilder(typeof(LightAsyncValueTaskMethodBuilder<>))]
     internal static async ValueTask<int> ExecuteCallHook(
         LuaFunctionExecutionContext context,
         CancellationToken cancellationToken,

@@ -96,7 +96,7 @@ public sealed class StringLibrary
         return FindAux(context, true);
     }
 
-    [AsyncMethodBuilder(typeof(LightAsyncValueTaskMethodBuilder<>))]
+    //[AsyncMethodBuilder(typeof(LightAsyncValueTaskMethodBuilder<>))]
     public async ValueTask<int> Format(
         LuaFunctionExecutionContext context,
         CancellationToken cancellationToken
@@ -573,7 +573,7 @@ public sealed class StringLibrary
         );
     }
 
-    [AsyncMethodBuilder(typeof(LightAsyncValueTaskMethodBuilder<>))]
+    //[AsyncMethodBuilder(typeof(LightAsyncValueTaskMethodBuilder<>))]
     public async ValueTask<int> GSub(
         LuaFunctionExecutionContext context,
         CancellationToken cancellationToken

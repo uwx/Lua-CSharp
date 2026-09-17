@@ -19,7 +19,7 @@ public sealed class ModuleLibrary
     public readonly LuaFunction RequireFunction;
     public readonly LuaFunction SearchPathFunction;
 
-    [AsyncMethodBuilder(typeof(LightAsyncValueTaskMethodBuilder<>))]
+    //[AsyncMethodBuilder(typeof(LightAsyncValueTaskMethodBuilder<>))]
     public async ValueTask<int> Require(
         LuaFunctionExecutionContext context,
         CancellationToken cancellationToken
@@ -235,7 +235,7 @@ public sealed class ModuleLibrary
     static readonly string[] Extensions = [".luau", ".lua"];
     static readonly string[] InitFiles = ["init.luau", "init.lua"];
 
-    [AsyncMethodBuilder(typeof(LightAsyncValueTaskMethodBuilder<>))]
+    //[AsyncMethodBuilder(typeof(LightAsyncValueTaskMethodBuilder<>))]
     internal static async ValueTask<string?> FindFile(
         LuaState state,
         string name,
@@ -312,7 +312,7 @@ public sealed class ModuleLibrary
         return null;
     }
 
-    [AsyncMethodBuilder(typeof(LightAsyncValueTaskMethodBuilder<>))]
+    //[AsyncMethodBuilder(typeof(LightAsyncValueTaskMethodBuilder<>))]
     internal static async ValueTask<LuaFunction> FindLoader(
         LuaState state,
         string name,

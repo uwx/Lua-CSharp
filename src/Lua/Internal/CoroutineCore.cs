@@ -76,7 +76,7 @@ class CoroutineCore(LuaState state, LuaFunction function, bool isProtectedMode)
         resume.OnCompleted(continuation, state, token, flags);
     }
 
-    [AsyncMethodBuilder(typeof(LightAsyncValueTaskMethodBuilder<>))]
+    //[AsyncMethodBuilder(typeof(LightAsyncValueTaskMethodBuilder<>))]
     internal async ValueTask<int> ResumeAsyncCore(
         LuaStack stack,
         int argCount,
@@ -225,7 +225,7 @@ class CoroutineCore(LuaState state, LuaFunction function, bool isProtectedMode)
         }
     }
 
-    [AsyncMethodBuilder(typeof(LightAsyncValueTaskMethodBuilder<>))]
+    //[AsyncMethodBuilder(typeof(LightAsyncValueTaskMethodBuilder<>))]
     internal async ValueTask<int> YieldAsyncCore(
         LuaStack stack,
         int argCount,

@@ -436,7 +436,7 @@ public class LuaState : IDisposable
         return RunAsync(function, argumentCount, Stack.Count - argumentCount, cancellationToken);
     }
 
-    [AsyncMethodBuilder(typeof(LightAsyncValueTaskMethodBuilder<>))]
+    //[AsyncMethodBuilder(typeof(LightAsyncValueTaskMethodBuilder<>))]
     public async ValueTask<int> RunAsync(
         LuaFunction function,
         int argumentCount,
