@@ -7,33 +7,66 @@ namespace Lua;
 public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
 {
     public LuaTable()
-        : this(8, 8) { }
+        : this(0, 0) { }
 
     public LuaTable(int arrayCapacity, int dictionaryCapacity)
     {
-        array = arrayCapacity > 1 ? new LuaValue[arrayCapacity] : [];
-        // The compiler's hash-size hint counts a literal's named fields, which are
-        // almost always strings, so it sizes the string part. The generic part is
-        // only created if a non-string, non-array key ever shows up.
-        stringDictionary = new(dictionaryCapacity);
+        storage = CreateInitialStorage(arrayCapacity, dictionaryCapacity);
         LuaTableDiagnostics.RecordTableCreated();
     }
 
-    LuaValue[] array;
+    /// <summary>
+    /// Used only by <see cref="CloneTemplate"/>: takes an already-built storage directly (a clone of
+    /// a template's storage) without going through the public constructor, so a clone does not
+    /// double-count against <see cref="LuaTableDiagnostics.RecordTableCreated"/> (the pre-split
+    /// version of this class went through the public constructor for clones too, which double-counted
+    /// them -- this fixes that as a side effect of the split).
+    /// </summary>
+    LuaTable(ILuaTableStorage storage)
+    {
+        this.storage = storage;
+    }
 
-    // Hash part is split by key kind. String keys (the overwhelmingly common,
-    // record-shaped case) live in an embedded struct whose entries hold a bare
-    // string reference instead of a full LuaValue -- 48 bytes/entry vs 80 -- and
-    // which costs no separate object per table. Everything else (booleans,
-    // non-array numbers, tables, functions, userdata as keys) goes to a lazily
-    // created generic dictionary that most tables never allocate.
-    // Both use a signature-bucket layout: see LuaStringDictionary for the invariants.
-    LuaStringDictionary stringDictionary;
-    LuaValueDictionary? dictionary;
+    ILuaTableStorage storage;
     LuaTable? metatable;
+
+    /// <summary>Test-only introspection hook for the storage-split promotion graph (see
+    /// <c>LuaTableStorageTests</c>). Never used by production code -- everything else dispatches
+    /// through <see cref="ILuaTableStorage"/> without inspecting <see cref="LuaTableStorageKind"/>
+    /// from the outside.</summary>
+    internal LuaTableStorageKind DebugStorageKind => storage.Kind;
 
     const int MaxArraySize = 1 << 24;
     const int MaxDistance = 1 << 12;
+
+    /// <summary>
+    /// Picks the narrowest concrete <see cref="ILuaTableStorage"/> a fresh table's constructor hints
+    /// imply. See the storage-split plan's "Table constructors already know their exact shape"
+    /// section: the compiler back-patches <c>NewTable</c>'s array/hash counts from a literal's exact
+    /// field counts, so routing directly by count here (no compiler changes) gets template literals
+    /// straight to their final shape with no promotion.
+    /// </summary>
+    static ILuaTableStorage CreateInitialStorage(int arrayCapacity, int dictionaryCapacity)
+    {
+        if (arrayCapacity <= 0 && dictionaryCapacity <= 0)
+        {
+            return LuaEmptyTableStorage.Instance;
+        }
+
+        if (dictionaryCapacity <= 0)
+        {
+            return arrayCapacity <= LuaSmallArrayTableStorage.Capacity
+                ? new LuaSmallArrayTableStorage(arrayCapacity)
+                : new LuaArrayTableStorage(arrayCapacity);
+        }
+
+        if (arrayCapacity <= 0)
+        {
+            return new LuaStringTableStorage(dictionaryCapacity);
+        }
+
+        return new LuaStringAndArrayTableStorage(arrayCapacity, dictionaryCapacity);
+    }
 
     public LuaValue this[in LuaValue key]
     {
@@ -42,7 +75,7 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
         {
             if (key.Type is LuaValueType.String)
             {
-                return stringDictionary.TryGetValue(key.ReadAsString(), out var sv) ? sv : LuaValue.Nil;
+                return storage.TryGetString(key.ReadAsString(), out var sv) ? sv : LuaValue.Nil;
             }
 
             if (key.Type is LuaValueType.Nil)
@@ -50,28 +83,32 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
                 ThrowIndexIsNil();
             }
 
-            if (TryGetInteger(key, out var index))
+            if (TryGetInteger(key, out var index) && storage.TryGetArray(index, out var av))
             {
-                if (index > 0 && index <= array.Length)
-                {
-                    // Arrays in Lua are 1-origin...
-                    return array[index - 1];
-                }
+                return av;
             }
 
-            if (dictionary is not null && dictionary.TryGetValue(key, out var value))
-            {
-                return value;
-            }
-
-            return LuaValue.Nil;
+            return storage.TryGetGeneric(key, out var value) ? value : LuaValue.Nil;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set
         {
             if (key.Type is LuaValueType.String)
             {
-                stringDictionary.Insert(key.ReadAsString(), value);
+                var skey = key.ReadAsString();
+                storage = PromoteForStringWrite(storage, skey);
+
+                if (storage.Kind == LuaTableStorageKind.Value)
+                {
+                    // Terminal kind: no dedicated fast string path (see the storage-split plan's
+                    // confirmed decisions), so string keys live in the generic dictionary too.
+                    storage.SetGeneric(key, value);
+                }
+                else
+                {
+                    storage.SetString(skey, value);
+                }
+
                 return;
             }
 
@@ -85,58 +122,96 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
                 if (MathEx.IsInteger(d))
                 {
                     var index = (int)d;
+                    var capacity = storage.RawArrayLength;
+                    var distance = index - capacity;
 
-                    var distance = index - array.Length;
-                    if (distance > MaxDistance)
+                    if (
+                        distance <= MaxDistance
+                        && 0 < index
+                        && index < MaxArraySize
+                        && index <= Math.Max(capacity * 2, 8)
+                    )
                     {
-                        GetOrCreateDictionary()[key] = value;
-                        return;
-                    }
-
-                    if (0 < index && index < MaxArraySize && index <= Math.Max(array.Length * 2, 8))
-                    {
-                        if (array.Length < index)
-                        {
-                            GrowArray(index);
-                        }
-
-                        array[index - 1] = value;
+                        storage = PromoteForArrayCapability(storage, index);
+                        storage.EnsureArrayCapacityInPlace(index);
+                        storage.SetArrayGrowing(index, value);
                         return;
                     }
                 }
             }
 
-            GetOrCreateDictionary()[key] = value;
+            storage = PromoteForGenericWrite(storage);
+            storage.SetGeneric(key, value);
         }
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    LuaValueDictionary GetOrCreateDictionary()
+    /// <summary>
+    /// Promotes <paramref name="storage"/> so it can accept a write of the string key
+    /// <paramref name="key"/>. Empty/SmallArray/Array all promote to a fast-string-part kind;
+    /// String/StringAndArray already have one; Value is left as-is (it is handled specially by the
+    /// caller, since it has no fast string part at all).
+    /// </summary>
+    static ILuaTableStorage PromoteForStringWrite(ILuaTableStorage storage, string key)
     {
-        return dictionary ??= new(0);
-    }
-
-    public int HashMapCount
-    {
-        get
+        return storage.Kind switch
         {
-            // Both dictionaries keep nil-valued entries (so `next` can still find a key
-            // that was just set to nil), so liveness has to be counted, not derived.
-            var count = stringDictionary.LiveCount;
-            if (dictionary is not null)
-            {
-                count += dictionary.LiveCount;
-            }
-
-            return count;
-        }
+            LuaTableStorageKind.Empty => new LuaStringTableStorage(0),
+            LuaTableStorageKind.SmallArray => LuaStringAndArrayTableStorage.FromSmallArray(
+                (LuaSmallArrayTableStorage)storage
+            ),
+            LuaTableStorageKind.Array => LuaStringAndArrayTableStorage.FromArray((LuaArrayTableStorage)storage),
+            _ => storage,
+        };
     }
+
+    /// <summary>
+    /// Promotes <paramref name="storage"/> so it has an array part able to reach
+    /// <paramref name="minCapacity"/> (the caller still calls <see cref="ILuaTableStorage.EnsureArrayCapacityInPlace"/>
+    /// afterward to actually grow it there). Used both by an array-range indexer write and by
+    /// <see cref="EnsureArrayCapacity"/>.
+    /// </summary>
+    static ILuaTableStorage PromoteForArrayCapability(ILuaTableStorage storage, int minCapacity)
+    {
+        return storage.Kind switch
+        {
+            LuaTableStorageKind.Empty => minCapacity <= LuaSmallArrayTableStorage.Capacity
+                ? new LuaSmallArrayTableStorage()
+                : LuaArrayTableStorage.FromEmpty(minCapacity),
+            LuaTableStorageKind.SmallArray => minCapacity > LuaSmallArrayTableStorage.Capacity
+                ? LuaArrayTableStorage.FromSmallArray((LuaSmallArrayTableStorage)storage, minCapacity)
+                : storage,
+            LuaTableStorageKind.String => LuaStringAndArrayTableStorage.FromString(
+                (LuaStringTableStorage)storage,
+                minCapacity
+            ),
+            _ => storage,
+        };
+    }
+
+    /// <summary>Promotes <paramref name="storage"/> to the terminal <see cref="LuaValueTableStorage"/>,
+    /// migrating whatever it already held. A no-op if it is already that kind.</summary>
+    static ILuaTableStorage PromoteForGenericWrite(ILuaTableStorage storage)
+    {
+        return storage.Kind switch
+        {
+            LuaTableStorageKind.Empty => new LuaValueTableStorage(0, 0),
+            LuaTableStorageKind.SmallArray => LuaValueTableStorage.FromSmallArray((LuaSmallArrayTableStorage)storage),
+            LuaTableStorageKind.Array => LuaValueTableStorage.FromArray((LuaArrayTableStorage)storage),
+            LuaTableStorageKind.String => LuaValueTableStorage.FromString((LuaStringTableStorage)storage),
+            LuaTableStorageKind.StringAndArray => LuaValueTableStorage.FromStringAndArray(
+                (LuaStringAndArrayTableStorage)storage
+            ),
+            _ => storage,
+        };
+    }
+
+    public int HashMapCount => storage.HashMapLiveCount;
 
     public int ArrayLength
     {
         get
         {
-            var a = array;
+            var a = storage.ArraySpan();
             var len = a.Length;
             if (len == 0)
             {
@@ -191,8 +266,7 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
     {
         if (key.Type is LuaValueType.String)
         {
-            return stringDictionary.TryGetValue(key.ReadAsString(), out value)
-                && value.Type is not LuaValueType.Nil;
+            return storage.TryGetString(key.ReadAsString(), out value) && value.Type is not LuaValueType.Nil;
         }
 
         if (key.Type is LuaValueType.Nil)
@@ -201,22 +275,12 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
             return false;
         }
 
-        if (TryGetInteger(key, out var index))
+        if (TryGetInteger(key, out var index) && storage.TryGetArray(index, out value))
         {
-            if (index > 0 && index <= array.Length)
-            {
-                value = array[index - 1];
-                return value.Type is not LuaValueType.Nil;
-            }
+            return value.Type is not LuaValueType.Nil;
         }
 
-        if (dictionary is null)
-        {
-            value = default;
-            return false;
-        }
-
-        return dictionary.TryGetValue(key, out value) && value.Type is not LuaValueType.Nil;
+        return storage.TryGetGeneric(key, out value) && value.Type is not LuaValueType.Nil;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -224,7 +288,11 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
     {
         if (key.Type is LuaValueType.String)
         {
-            return ref stringDictionary.FindValue(key.ReadAsString(), out _);
+            // LuaValueTableStorage has no fast string part -- its string keys live in the generic
+            // dictionary, wrapped as LuaValue -- so look them up with the original key directly
+            // rather than reconstructing a wrapper inside FindString (which would not be ref-safe to
+            // return from there).
+            return ref (storage.HasFastStringPart ? ref storage.FindString(key.ReadAsString()) : ref storage.FindGeneric(key));
         }
 
         if (key.Type is LuaValueType.Nil)
@@ -234,18 +302,14 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
 
         if (TryGetInteger(key, out var index))
         {
-            if (index > 0 && index <= array.Length)
+            ref var arrayValue = ref storage.FindArray(index);
+            if (!Unsafe.IsNullRef(ref arrayValue))
             {
-                return ref array[index - 1];
+                return ref arrayValue;
             }
         }
 
-        if (dictionary is null)
-        {
-            return ref Unsafe.NullRef<LuaValue>();
-        }
-
-        return ref dictionary.FindValue(key, out _);
+        return ref storage.FindGeneric(key);
     }
 
     public bool ContainsKey(in LuaValue key)
@@ -255,47 +319,40 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
 
     public LuaValue RemoveAt(int index)
     {
-        var arrayIndex = index - 1;
-        var value = array[arrayIndex];
-
-        if (arrayIndex < array.Length - 1)
-        {
-            array.AsSpan(arrayIndex + 1).CopyTo(array.AsSpan(arrayIndex));
-        }
-
-        array[^1] = default;
-
-        return value;
+        return storage.RemoveAtArray(index);
     }
 
     public void Insert(int index, in LuaValue value)
     {
-        if (index <= 0 || index > array.Length + 1)
+        var capacity = storage.RawArrayLength;
+        if (index <= 0 || index > capacity + 1)
         {
             throw new IndexOutOfRangeException();
         }
 
-        var arrayIndex = index - 1;
-        var distance = index - array.Length;
-        if (distance > MaxDistance)
+        storage = PromoteForArrayCapability(storage, index);
+
+        // LuaSmallArrayTableStorage never grows past its fixed 16 slots -- if this insert would need
+        // to grow it (either the position itself, or the shift an insert-in-the-middle causes, would
+        // spill past slot 16), spill it to a heap array first, mirroring the pre-split
+        // GrowArray(len+1) call that used to guard this same insert. This mirrors (without mutating)
+        // the same "does this need to grow" check LuaSmallArrayTableStorage.InsertArray itself makes.
+        if (storage is LuaSmallArrayTableStorage small)
         {
-            GetOrCreateDictionary()[index] = value;
-            return;
+            var cap = small.RawArrayLength;
+            var needsGrow = index > cap || (cap > 0 && small.ArraySpan()[^1].Type != LuaValueType.Nil);
+            if (needsGrow)
+            {
+                var target = cap + 1;
+                var newCapacity = target <= 8 ? 8 : MathEx.NextPowerOfTwo(target);
+                if (newCapacity > LuaSmallArrayTableStorage.Capacity)
+                {
+                    storage = LuaArrayTableStorage.FromSmallArray(small, newCapacity);
+                }
+            }
         }
 
-        if (index > array.Length || array[^1].Type != LuaValueType.Nil)
-        {
-            GrowArray(array.Length + 1);
-        }
-
-        if (arrayIndex != array.Length - 1)
-        {
-            array
-                .AsSpan(arrayIndex, array.Length - arrayIndex - 1)
-                .CopyTo(array.AsSpan(arrayIndex + 1));
-        }
-
-        array[arrayIndex] = value;
+        storage.InsertArray(index, value);
     }
 
     /// <summary>
@@ -306,13 +363,13 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
     {
         if (key.Type is LuaValueType.String)
         {
-            if (stringDictionary.TryGetNext(key.ReadAsString(), out pair, out var found))
+            if (storage.HasFastStringPart)
             {
-                return true;
+                return storage.TryGetNextFromStringSlot(key.ReadAsString(), out pair, out _);
             }
 
-            // Key was the last string entry: continue into the generic part.
-            return found && TryGetFirstGeneric(out pair);
+            // LuaValueTableStorage: string keys live in the generic dictionary, wrapped as LuaValue.
+            return storage.TryGetNextGeneric(key, out pair);
         }
 
         var index = -1;
@@ -320,14 +377,14 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
         {
             index = 0;
         }
-        else if (TryGetInteger(key, out var integer) && integer > 0 && integer <= array.Length)
+        else if (TryGetInteger(key, out var integer) && integer > 0 && integer <= storage.RawArrayLength)
         {
             index = integer;
         }
 
         if (index != -1)
         {
-            var span = array.AsSpan(index);
+            var span = storage.ArraySpan()[index..];
             for (var i = 0; i < span.Length; i++)
             {
                 if (span[i].Type is not LuaValueType.Nil)
@@ -337,15 +394,15 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
                 }
             }
 
-            if (stringDictionary.TryGetFirstFrom(0, out pair))
+            if (storage.HasFastStringPart && storage.TryGetFirstFromStringSlot(0, out pair, out _))
             {
                 return true;
             }
 
-            return TryGetFirstGeneric(out pair);
+            return storage.TryGetFirstGeneric(out pair);
         }
 
-        if (dictionary is not null && dictionary.TryGetNext(key, out pair))
+        if (storage.TryGetNextGeneric(key, out pair))
         {
             return true;
         }
@@ -366,23 +423,16 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
         out int slot
     )
     {
-        slot = -1;
-
-        // A null ref means the key itself is not in the string part -- the same condition
-        // TryGetNext reports through `found == false`.
-        ref var valueRef = ref stringDictionary.FindValue(key, out var keySlot);
-        if (Unsafe.IsNullRef(ref valueRef))
+        if (!storage.HasFastStringPart)
         {
-            pair = default;
-            return false;
+            // Either this is a LuaValueTableStorage (string keys live in the generic dictionary), or
+            // the key never existed in this table's string part to begin with -- either way, there is
+            // no slot to report.
+            slot = -1;
+            return storage.TryGetNextGeneric(new LuaValue(key), out pair);
         }
 
-        if (stringDictionary.TryGetFirstFrom(keySlot + 1, out pair, out slot))
-        {
-            return true;
-        }
-
-        return TryGetFirstGeneric(out pair);
+        return storage.TryGetNextFromStringSlot(key, out pair, out slot);
     }
 
     /// <summary>
@@ -397,12 +447,13 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
         out int nextSlot
     )
     {
-        if (stringDictionary.TryGetFirstFrom(slot + 1, out pair, out nextSlot))
+        if (storage.HasFastStringPart && storage.TryGetFirstFromStringSlot(slot + 1, out pair, out nextSlot))
         {
             return true;
         }
 
-        return TryGetFirstGeneric(out pair);
+        nextSlot = -1;
+        return storage.TryGetFirstGeneric(out pair);
     }
 
     /// <summary>
@@ -411,49 +462,50 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal bool SlotStillHolds(int slot, string key)
     {
-        return stringDictionary.SlotHasKey(slot, key);
-    }
-
-    bool TryGetFirstGeneric(out KeyValuePair<LuaValue, LuaValue> pair)
-    {
-        var dict = dictionary;
-        if (dict is not null)
-        {
-            // MoveNext already skips nil-valued entries.
-            var i = 0;
-            return LuaValueDictionary.MoveNext(dict, dict.Version, ref i, out pair);
-        }
-
-        pair = default;
-        return false;
+        // False on a kind with no fast string part -- including a LuaValueTableStorage that just
+        // promoted away from one, which is exactly what forces the VM's TForCallNext down its
+        // existing re-hash fallback path (TryGetNextFromString) instead of trusting a stale cursor.
+        return storage.HasFastStringPart && storage.SlotHasKey(slot, key);
     }
 
     public void Clear()
     {
-        array.AsSpan().Clear();
-        stringDictionary.Clear();
-        dictionary?.Clear();
+        storage.Clear();
     }
 
     public Memory<LuaValue> GetArrayMemory()
     {
-        return array.AsMemory();
+        // A LuaSmallArrayTableStorage's inline buffer cannot back a real Memory<LuaValue> (nothing to
+        // pin it against across calls), so promote to a heap array first. GetArraySpan never needs
+        // this -- a Span<LuaValue> can point directly at the inline buffer for the call's duration.
+        if (storage is LuaSmallArrayTableStorage small)
+        {
+            storage = LuaArrayTableStorage.FromSmallArray(small, small.RawArrayLength);
+        }
+
+        return storage.ArrayMemory();
     }
 
     public Span<LuaValue> GetArraySpan()
     {
-        return array.AsSpan();
+        return storage.ArraySpan();
     }
 
     internal void EnsureArrayCapacity(int newCapacity)
     {
-        if (array.Length < newCapacity) GrowArray(newCapacity);
+        if (newCapacity <= storage.RawArrayLength)
+        {
+            return;
+        }
+
+        storage = PromoteForArrayCapability(storage, newCapacity);
+        storage.EnsureArrayCapacityInPlace(newCapacity);
     }
 
     /// <summary>
     /// Compiler-rewrite plan Milestone 4: the independent copy <see cref="Lua.Runtime.OpCode.DupTable"/> stores
     /// into its destination register, of the all-constant template that instruction names. One
-    /// <c>Clone()</c> per part -- the array and both hash structures -- so the copy is identical to
+    /// <c>Clone()</c> of the storage -- array and hash parts alike -- so the copy is identical to
     /// the template at its exact capacities, which is what makes a fused literal indistinguishable
     /// from the unfused NewTable + per-field writes that built the template.
     ///
@@ -464,11 +516,7 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
     /// </summary>
     internal LuaTable CloneTemplate()
     {
-        var clone = new LuaTable(0, 0);
-        clone.array = (LuaValue[])array.Clone();
-        clone.stringDictionary = stringDictionary.Clone();
-        clone.dictionary = dictionary?.Clone();
-        return clone;
+        return new LuaTable(storage.Clone());
     }
 
     /// <summary>
@@ -477,7 +525,7 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
     /// through <see cref="GetEnumerator"/> on purpose: that enumerator interleaves the array part,
     /// and deciding "is this key an array slot?" from outside would mean duplicating the indexer's
     /// key routing. Nothing here can be an array-range integer key -- writing one routes it to the
-    /// array, and <see cref="GrowArray"/> migrates any the array later grows over -- so a caller can
+    /// array, and growing the array migrates any the array later grows over -- so a caller can
     /// write this list alongside <see cref="GetArraySpan"/> without the two overlapping.
     /// <para>
     /// This is the <em>whole</em> hash part, dead (nil-valued) entries included, which is why it
@@ -490,45 +538,7 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
     /// </summary>
     internal void CopyHashEntriesTo(List<KeyValuePair<LuaValue, LuaValue>> destination)
     {
-        stringDictionary.CopyAllEntriesTo(destination);
-        dictionary?.CopyAllEntriesTo(destination);
-    }
-
-    private void GrowArray(int newCapacity)
-    {
-        var prevLength = array.Length;
-        var newLength = newCapacity <= 8 ? 8 : MathEx.NextPowerOfTwo(newCapacity);
-
-        Array.Resize(ref array, newLength);
-
-        // Only the generic part can hold integer keys, so string-only tables skip
-        // the migration scan entirely.
-        var dict = dictionary;
-        if (dict is null || dict.Count == 0)
-        {
-            return;
-        }
-
-        
-        using PooledList<(int, LuaValue)> indexList = new(dict.Count);
-
-        // Move some of the elements of the hash part to a newly allocated array
-        foreach (var kv in dict)
-        {
-            if (TryGetInteger(kv.Key, out var index))
-            {
-                if (index > prevLength && index <= newLength)
-                {
-                    indexList.Add((index, kv.Value));
-                }
-            }
-        }
-
-        foreach (var (index, value) in PooledList<(int, LuaValue)>.AsSpan(indexList))
-        {
-            dict.Remove(index);
-            array[index - 1] = value;
-        }
+        storage.CopyHashEntriesTo(destination);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -581,15 +591,17 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
         // phase 2: generic part (index = generic dictionary entry index)
         int phase = 0;
         int index = 0;
-        readonly int stringVersion = table.stringDictionary.Version;
-        readonly int genericVersion = table.dictionary?.Version ?? 0;
+        readonly int stringVersion = table.storage.StringVersion;
+        readonly int genericVersion = table.storage.GenericVersion;
         KeyValuePair<LuaValue, LuaValue> current = default;
 
         public bool MoveNext()
         {
+            var storage = table.storage;
+
             if (phase == 0)
             {
-                var span = table.array.AsSpan(index);
+                var span = storage.ArraySpan()[index..];
                 for (var i = 0; i < span.Length; i++)
                 {
                     if (span[i].Type is not LuaValueType.Nil)
@@ -606,7 +618,7 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
 
             if (phase == 1)
             {
-                if (LuaStringDictionary.MoveNext(ref table.stringDictionary, stringVersion, ref index, out current))
+                if (storage.MoveNextString(stringVersion, ref index, out current))
                 {
                     return true;
                 }
@@ -615,15 +627,8 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
                 index = 0;
             }
 
-            var dict = table.dictionary;
-            if (dict is null)
-            {
-                current = default;
-                return false;
-            }
-
             while (
-                LuaValueDictionary.MoveNext(dict, genericVersion, ref index, out current)
+                storage.MoveNextGeneric(genericVersion, ref index, out current)
                 && current.Value.Type is LuaValueType.Nil
             ) { }
 
