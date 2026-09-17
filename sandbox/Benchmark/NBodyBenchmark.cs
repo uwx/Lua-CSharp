@@ -62,4 +62,42 @@ public class NBodyBenchmark
         await core.LuaCSharpState.DoFileAsync(core.FilePath, buffer);
         return buffer[0];
     }
+
+    [Benchmark(Description = "MoonSharp (CallCompiledString)")]
+    public DynValue Benchmark_MoonSharp_CompiledString()
+    {
+        return core.MoonSharpCompiledString.Function.Call();
+    }
+
+    [Benchmark(Description = "MoonSharp (CallCompiledFile)")]
+    public DynValue Benchmark_MoonSharp_CompiledFile()
+    {
+        return core.MoonSharpCompiledFile.Function.Call();
+    }
+
+    [Benchmark(Description = "NLua (CallCompiledString)")]
+    public object[] Benchmark_NLua_CompiledString()
+    {
+        return core.NLuaCompiledString.Call();
+    }
+
+    [Benchmark(Description = "NLua (CallCompiledFile)")]
+    public object[] Benchmark_NLua_CompiledFile()
+    {
+        return core.NLuaCompiledFile.Call();
+    }
+
+    [Benchmark(Description = "Lua-CSharp (ExecuteCompiledString)")]
+    public async Task<LuaValue> Benchmark_LuaCSharp_CompiledString()
+    {
+        await core.LuaCSharpState.ExecuteAsync(core.LuaCSharpCompiledString, buffer);
+        return buffer[0];
+    }
+
+    [Benchmark(Description = "Lua-CSharp (ExecuteCompiledFile)")]
+    public async Task<LuaValue> Benchmark_LuaCSharp_CompiledFile()
+    {
+        await core.LuaCSharpState.ExecuteAsync(core.LuaCSharpCompiledFile, buffer);
+        return buffer[0];
+    }
 }

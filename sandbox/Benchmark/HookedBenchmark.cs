@@ -36,4 +36,17 @@ public class HookedBenchmark
         await core.LuaCSharpState.DoStringAsync(core.SourceText, buffer);
         return buffer[0];
     }
+
+    [Benchmark(Description = "NLua (CallCompiledString)")]
+    public object[] Benchmark_NLua_CompiledString()
+    {
+        return core.NLuaCompiledString.Call();
+    }
+
+    [Benchmark(Description = "Lua-CSharp (ExecuteCompiledString)")]
+    public async Task<LuaValue> Benchmark_LuaCSharp_CompiledString()
+    {
+        await core.LuaCSharpState.ExecuteAsync(core.LuaCSharpCompiledString, buffer);
+        return buffer[0];
+    }
 }
