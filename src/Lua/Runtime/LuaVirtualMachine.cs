@@ -590,13 +590,79 @@ public static partial class LuaVirtualMachine
 
                         return true;
                     case OpCode.Add:
+                        if (OpBinaryArith<BinaryArithAdd>(context, stack, frameBase, ref constHead, instruction, iA, opCode, out doRestart))
+                        {
+                            if (doRestart)
+                            {
+                                goto Restart;
+                            }
+
+                            continue;
+                        }
+
+                        return true;
                     case OpCode.Sub:
+                        if (OpBinaryArith<BinaryArithSub>(context, stack, frameBase, ref constHead, instruction, iA, opCode, out doRestart))
+                        {
+                            if (doRestart)
+                            {
+                                goto Restart;
+                            }
+
+                            continue;
+                        }
+
+                        return true;
                     case OpCode.Mul:
+                        if (OpBinaryArith<BinaryArithMul>(context, stack, frameBase, ref constHead, instruction, iA, opCode, out doRestart))
+                        {
+                            if (doRestart)
+                            {
+                                goto Restart;
+                            }
+
+                            continue;
+                        }
+
+                        return true;
                     case OpCode.Div:
+                        if (OpBinaryArith<BinaryArithDiv>(context, stack, frameBase, ref constHead, instruction, iA, opCode, out doRestart))
+                        {
+                            if (doRestart)
+                            {
+                                goto Restart;
+                            }
+
+                            continue;
+                        }
+
+                        return true;
                     case OpCode.Mod:
+                        if (OpBinaryArith<BinaryArithMod>(context, stack, frameBase, ref constHead, instruction, iA, opCode, out doRestart))
+                        {
+                            if (doRestart)
+                            {
+                                goto Restart;
+                            }
+
+                            continue;
+                        }
+
+                        return true;
                     case OpCode.Pow:
+                        if (OpBinaryArith<BinaryArithPow>(context, stack, frameBase, ref constHead, instruction, iA, opCode, out doRestart))
+                        {
+                            if (doRestart)
+                            {
+                                goto Restart;
+                            }
+
+                            continue;
+                        }
+
+                        return true;
                     case OpCode.IDiv:
-                        if (OpBinaryArith(context, stack, frameBase, ref constHead, instruction, iA, opCode, out doRestart))
+                        if (OpBinaryArith<BinaryArithIDiv>(context, stack, frameBase, ref constHead, instruction, iA, opCode, out doRestart))
                         {
                             if (doRestart)
                             {
@@ -659,8 +725,19 @@ public static partial class LuaVirtualMachine
 
                         return true;
                     case OpCode.Lt:
+                        if (OpBinaryCmp<BinaryCmpLt>(context, stack, frameBase, ref constHead, instruction, opCode, iA, out doRestart))
+                        {
+                            if (doRestart)
+                            {
+                                goto Restart;
+                            }
+
+                            continue;
+                        }
+
+                        return true;
                     case OpCode.Le:
-                        if (OpBinaryCmp(context, stack, frameBase, ref constHead, instruction, opCode, iA, out doRestart))
+                        if (OpBinaryCmp<BinaryCmpLe>(context, stack, frameBase, ref constHead, instruction, opCode, iA, out doRestart))
                         {
                             if (doRestart)
                             {
@@ -1008,8 +1085,36 @@ public static partial class LuaVirtualMachine
         }
     }
 
-    private static bool OpBinaryCmp(VirtualMachineExecutionContext context, LuaStack stack, int frameBase,
+    interface IBinaryCmp
+    {
+        static abstract bool BOpI(long left, long right);
+        static abstract bool BOpN(double left, double right);
+        static abstract bool BOpF64(Fixed64 left, Fixed64 right);
+        static abstract bool BOpF64Angle(f64AngleSingle left, f64AngleSingle right);
+        static abstract bool BOpS(string left, string right);
+    }
+
+    class BinaryCmpLt : IBinaryCmp
+    {
+        public static bool BOpI(long left, long right) => left < right;
+        public static bool BOpN(double left, double right) => left < right;
+        public static bool BOpF64(Fixed64 left, Fixed64 right) => left < right;
+        public static bool BOpF64Angle(f64AngleSingle left, f64AngleSingle right) => left < right;
+        public static bool BOpS(string left, string right) => StringComparer.Ordinal.Compare(left, right) < 0;
+    }
+
+    class BinaryCmpLe : IBinaryCmp
+    {
+        public static bool BOpI(long left, long right) => left <= right;
+        public static bool BOpN(double left, double right) => left <= right;
+        public static bool BOpF64(Fixed64 left, Fixed64 right) => left <= right;
+        public static bool BOpF64Angle(f64AngleSingle left, f64AngleSingle right) => left <= right;
+        public static bool BOpS(string left, string right) => StringComparer.Ordinal.Compare(left, right) <= 0;
+    }
+
+    private static bool OpBinaryCmp<TCmp>(VirtualMachineExecutionContext context, LuaStack stack, int frameBase,
         ref LuaValue constHead, Instruction instruction, OpCode opCode, int iA, out bool doRestart)
+        where TCmp : IBinaryCmp
     {
         Markers.Lt();
         Markers.Le();
@@ -1022,9 +1127,7 @@ public static partial class LuaVirtualMachine
         // Integer comparison fast path (no double round-trip).
         if (vb.Type == LuaValueType.Integer && vc.Type == LuaValueType.Integer)
         {
-            var compareResult = opCode == OpCode.Lt
-                ? vb.ReadAsInt64() < vc.ReadAsInt64()
-                : vb.ReadAsInt64() <= vc.ReadAsInt64();
+            var compareResult = TCmp.BOpI(vb.ReadAsInt64(), vc.ReadAsInt64());
             if (compareResult != (iA == 1))
             {
                 context.Pc++;
@@ -1035,7 +1138,7 @@ public static partial class LuaVirtualMachine
 
         if (vb.TryReadNumber(out var numB) && vc.TryReadNumber(out var numC))
         {
-            var compareResult = opCode == OpCode.Lt ? numB < numC : numB <= numC;
+            var compareResult = TCmp.BOpN(numB, numC);
             if (compareResult != (iA == 1))
             {
                 context.Pc++;
@@ -1047,7 +1150,7 @@ public static partial class LuaVirtualMachine
         // Fixed64 comparison (TryReadFixed64 converts Number → Fixed64)
         if (vb.TryReadFixed64(out var f64B) && vc.TryReadFixed64(out var f64C))
         {
-            var compareResult = opCode == OpCode.Lt ? f64B < f64C : f64B <= f64C;
+            var compareResult = TCmp.BOpF64(f64B, f64C);
             if (compareResult != (iA == 1))
             {
                 context.Pc++;
@@ -1059,7 +1162,7 @@ public static partial class LuaVirtualMachine
         // f64AngleSingle comparison
         if (vb.TryReadFixed64Angle(out var angB) && vc.TryReadFixed64Angle(out var angC))
         {
-            var compareResult = opCode == OpCode.Lt ? angB < angC : angB <= angC;
+            var compareResult = TCmp.BOpF64Angle(angB, angC);
             if (compareResult != (iA == 1))
             {
                 context.Pc++;
@@ -1070,8 +1173,7 @@ public static partial class LuaVirtualMachine
 
         if (vb.TryReadString(out var strB) && vc.TryReadString(out var strC))
         {
-            var c = StringComparer.Ordinal.Compare(strB, strC);
-            var compareResult = opCode == OpCode.Lt ? c < 0 : c <= 0;
+            var compareResult = TCmp.BOpS(strB, strC);
             if (compareResult != (iA == 1))
             {
                 context.Pc++;
@@ -1612,7 +1714,132 @@ public static partial class LuaVirtualMachine
         return ExecuteUnaryOperationMetaMethod(vb, context, OpCode.Unm, out doRestart);
     }
 
-    private static bool OpBinaryArith(
+    interface IBinaryArith
+    {
+        static abstract long BArith(long left, long right);
+        static abstract double BArith(double left, double right);
+        static abstract double BArith(long left, double right);
+        static abstract double BArith(double left, long right);
+        static abstract Fixed64 BArith(Fixed64 left, Fixed64 right);
+        static abstract f64AngleSingle BArith(f64AngleSingle left, f64AngleSingle right);
+        static abstract Vector3d BArith(Vector3d left, Vector3d right);
+        static abstract f64Euler BArith(f64Euler left, f64Euler right);
+    }
+
+    class BinaryArithAdd : IBinaryArith
+    {
+        public static long BArith(long left, long right) => left + right;
+        public static double BArith(double left, double right) => left + right;
+        public static double BArith(long left, double right) => left + right;
+        public static double BArith(double left, long right) => left + right;
+        public static Fixed64 BArith(Fixed64 left, Fixed64 right) => left + right;
+        public static f64AngleSingle BArith(f64AngleSingle left, f64AngleSingle right) => left + right;
+        public static Vector3d BArith(Vector3d left, Vector3d right) => left + right;
+        public static f64Euler BArith(f64Euler left, f64Euler right) => left + right;
+    }
+
+    class BinaryArithSub : IBinaryArith
+    {
+        public static long BArith(long left, long right) => left - right;
+        public static double BArith(double left, double right) => left - right;
+        public static double BArith(long left, double right) => left - right;
+        public static double BArith(double left, long right) => left - right;
+        public static Fixed64 BArith(Fixed64 left, Fixed64 right) => left - right;
+        public static f64AngleSingle BArith(f64AngleSingle left, f64AngleSingle right) => left - right;
+        public static Vector3d BArith(Vector3d left, Vector3d right) => left - right;
+        public static f64Euler BArith(f64Euler left, f64Euler right) => left - right;
+    }
+
+    class BinaryArithMul : IBinaryArith
+    {
+        public static long BArith(long left, long right) => left * right;
+        public static double BArith(double left, double right) => left * right;
+        public static double BArith(long left, double right) => left * right;
+        public static double BArith(double left, long right) => left * right;
+        public static Fixed64 BArith(Fixed64 left, Fixed64 right) => left * right;
+        public static f64AngleSingle BArith(f64AngleSingle left, f64AngleSingle right) => left * right;
+        public static Vector3d BArith(Vector3d left, Vector3d right) => left * right;
+        public static f64Euler BArith(f64Euler left, f64Euler right) => throw new InvalidOperationException("f64Euler multiplication is not defined");
+    }
+
+    class BinaryArithDiv : IBinaryArith
+    {
+        public static long BArith(long left, long right) => left / right;
+        public static double BArith(double left, double right) => left / right;
+        public static double BArith(long left, double right) => left / right;
+        public static double BArith(double left, long right) => left / right;
+        public static Fixed64 BArith(Fixed64 left, Fixed64 right) => left / right;
+        public static f64AngleSingle BArith(f64AngleSingle left, f64AngleSingle right) => left / right;
+        public static Vector3d BArith(Vector3d left, Vector3d right) => left / right;
+        public static f64Euler BArith(f64Euler left, f64Euler right) => throw new InvalidOperationException("f64Euler division is not defined");
+    }
+
+    class BinaryArithMod : IBinaryArith
+    {
+        public static long BArith(long left, long right)
+        {
+            var mod = left % right;
+            if ((right > 0 && mod < 0) || (right < 0 && mod > 0))
+            {
+                mod += right;
+            }
+
+            return mod;
+        }
+
+        public static double BArith(double left, double right)
+        {
+            var mod = left % right;
+            if ((right > 0 && mod < 0) || (right < 0 && mod > 0))
+            {
+                mod += right;
+            }
+
+            return mod;
+        }
+        public static double BArith(long left, double right) => BArith((double)left, (double)right);
+        public static double BArith(double left, long right) => BArith((double)left, (double)right);
+        public static Fixed64 BArith(Fixed64 left, Fixed64 right) => left % right;
+        public static f64AngleSingle BArith(f64AngleSingle left, f64AngleSingle right) => throw new InvalidOperationException("Modulus operation is not defined for f64AngleSingle.");
+        public static Vector3d BArith(Vector3d left, Vector3d right) => throw new InvalidOperationException("Modulus operation is not defined for Vector3d.");
+        public static f64Euler BArith(f64Euler left, f64Euler right) => throw new InvalidOperationException("Modulus operation is not defined for f64Euler.");
+    }
+
+    class BinaryArithPow : IBinaryArith
+    {
+        public static long BArith(long left, long right) => throw new InvalidOperationException("Power operation is not defined for Int64.");
+        public static double BArith(double left, double right) => Math.Pow(left, right);
+        public static double BArith(long left, double right) => Math.Pow(left, right);
+        public static double BArith(double left, long right) => Math.Pow(left, right);
+        public static Fixed64 BArith(Fixed64 left, Fixed64 right) => FixedMath.Pow(left, right);
+        public static f64AngleSingle BArith(f64AngleSingle left, f64AngleSingle right) => throw new InvalidOperationException("Power operation is not defined for f64AngleSingle.");
+        public static Vector3d BArith(Vector3d left, Vector3d right) => throw new InvalidOperationException("Power operation is not defined for Vector3d.");
+        public static f64Euler BArith(f64Euler left, f64Euler right) => throw new InvalidOperationException("Power operation is not defined for f64Euler.");
+    }
+
+    class BinaryArithIDiv : IBinaryArith
+    {
+        public static long BArith(long left, long right)
+        {
+            var quotient = left / right;
+            if ((left % right != 0) && ((left < 0) != (right < 0)))
+            {
+                quotient--;
+            }
+
+            return quotient;
+        }
+        
+        public static double BArith(double left, double right) => Math.Floor(left / right);
+        public static double BArith(long left, double right) => Math.Floor(left / right);
+        public static double BArith(double left, long right) => Math.Floor(left / right);
+        public static Fixed64 BArith(Fixed64 left, Fixed64 right) => FixedMath.Floor(left / right);
+        public static f64AngleSingle BArith(f64AngleSingle left, f64AngleSingle right) => throw new InvalidOperationException("Integer division is not defined for f64AngleSingle.");
+        public static Vector3d BArith(Vector3d left, Vector3d right) => throw new InvalidOperationException("Integer division is not defined for Vector3d.");
+        public static f64Euler BArith(f64Euler left, f64Euler right) => throw new InvalidOperationException("Integer division is not defined for f64Euler.");
+    }
+
+    private static bool OpBinaryArith<TArith>(
         VirtualMachineExecutionContext context,
         LuaStack stack,
         int frameBase,
@@ -1621,6 +1848,7 @@ public static partial class LuaVirtualMachine
         int iA,
         OpCode opCode,
         out bool doRestart)
+        where TArith : IBinaryArith
     {
         doRestart = false;
         
@@ -1636,82 +1864,11 @@ public static partial class LuaVirtualMachine
         ref readonly LuaValue vb = ref RKB(ref stackHead, ref constHead, instruction);
         ref readonly LuaValue vc = ref RKC(ref stackHead, ref constHead, instruction);
 
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        static double Mod(double a, double b)
-        {
-            var mod = a % b;
-            if ((b > 0 && mod < 0) || (b < 0 && mod > 0))
-            {
-                mod += b;
-            }
-
-            return mod;
-        }
-
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        static long IntegerMod(long a, long b)
-        {
-            var mod = a % b;
-            if ((b > 0 && mod < 0) || (b < 0 && mod > 0))
-            {
-                mod += b;
-            }
-
-            return mod;
-        }
-
-        // Floor division for integers (rounds toward -inf, unlike '/').
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        static long IntegerFloorDiv(long a, long b)
-        {
-            var quotient = a / b;
-            if ((a % b != 0) && ((a < 0) != (b < 0)))
-            {
-                quotient--;
-            }
-
-            return quotient;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        static double ArithmeticOperation(OpCode code, double a, double b)
-        {
-            return code switch
-            {
-                OpCode.Add => a + b,
-                OpCode.Sub => a - b,
-                OpCode.Mul => a * b,
-                OpCode.Div => a / b,
-                OpCode.Mod => Mod(a, b),
-                OpCode.Pow => Math.Pow(a, b),
-                OpCode.IDiv => Math.Floor(a / b),
-                _ => 0,
-            };
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        static Fixed64 Fixed64ArithmeticOperation(OpCode code, Fixed64 a, Fixed64 b)
-        {
-            return code switch
-            {
-                OpCode.Add => a + b,
-                OpCode.Sub => a - b,
-                OpCode.Mul => a * b,
-                OpCode.Div => a / b,
-                OpCode.Mod => a % b,
-                // Fixed64.Pow not supported — falls through to metamethod/error
-                _ => Fixed64.Zero,
-            };
-        }
-
         // Number + Number fast path
         if (vb.Type == LuaValueType.Number && vc.Type == LuaValueType.Number)
         {
-            Unsafe.Add(ref stackHead, iA) = ArithmeticOperation(
-                opCode,
-                vb.ReadAsDouble(),
-                vc.ReadAsDouble()
-            );
+            double b = vc.ReadAsDouble();
+            Unsafe.Add(ref stackHead, iA) = TArith.BArith(vb.ReadAsDouble(), b);
             stack.NotifyTop(iA + frameBase + 1);
             return true;
         }
@@ -1735,14 +1892,7 @@ public static partial class LuaVirtualMachine
 
             if (isIntegerPath)
             {
-                var result = opCode switch
-                {
-                    OpCode.Add => a + b,
-                    OpCode.Sub => a - b,
-                    OpCode.Mul => a * b,
-                    OpCode.IDiv => IntegerFloorDiv(a, b),
-                    _ => IntegerMod(a, b),
-                };
+                var result = TArith.BArith(a, b);
                 Unsafe.Add(ref stackHead, iA) = result;
                 stack.NotifyTop(iA + frameBase + 1);
                 return true;
@@ -1757,11 +1907,8 @@ public static partial class LuaVirtualMachine
             && vc.Type == LuaValueType.Fixed64
         )
         {
-            Unsafe.Add(ref stackHead, iA) = Fixed64ArithmeticOperation(
-                opCode,
-                vb.ReadAsFixed64(),
-                vc.ReadAsFixed64()
-            );
+            Fixed64 b = vc.ReadAsFixed64();
+            Unsafe.Add(ref stackHead, iA) = TArith.BArith(vb.ReadAsFixed64(), b);
             stack.NotifyTop(iA + frameBase + 1);
             return true;
         }
@@ -1859,14 +2006,7 @@ public static partial class LuaVirtualMachine
         {
             var a = vb.ReadAsF64Angle();
             var b = vc.ReadAsF64Angle();
-            Unsafe.Add(ref stackHead, iA) = opCode switch
-            {
-                OpCode.Add => (LuaValue)(a + b),
-                OpCode.Sub => (LuaValue)(a - b),
-                OpCode.Mul => (LuaValue)(a * b),
-                OpCode.Div => (LuaValue)(a / b),
-                _ => LuaValue.Nil,
-            };
+            Unsafe.Add(ref stackHead, iA) = TArith.BArith(a, b);
             stack.NotifyTop(iA + frameBase + 1);
             return true;
         }
@@ -1881,7 +2021,7 @@ public static partial class LuaVirtualMachine
 
         if (!skipCoercion && vb.TryReadDouble(out var numB) && vc.TryReadDouble(out var numC))
         {
-            Unsafe.Add(ref stackHead, iA) = ArithmeticOperation(opCode, numB, numC);
+            Unsafe.Add(ref stackHead, iA) = TArith.BArith(numB, numC);
             stack.NotifyTop(iA + frameBase + 1);
             return true;
         }
