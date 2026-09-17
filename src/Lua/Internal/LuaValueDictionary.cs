@@ -519,34 +519,67 @@ sealed class LuaValueDictionary
         return false;
     }
 
+    /// <summary>
+    /// First non-nil entry after <paramref name="key"/>, also reporting the slot it lives in so a caller
+    /// (Lua <c>next</c>) can resume from it later without re-hashing <paramref name="key"/>.
+    /// <paramref name="slot"/> is -1 when there is no such entry.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryGetNext(in LuaValue key, out KeyValuePair<LuaValue, LuaValue> pair)
+    public bool TryGetNext(in LuaValue key, out KeyValuePair<LuaValue, LuaValue> pair, out int slot)
     {
         ref var valRef = ref FindValue(key, out var index);
         if (Unsafe.IsNullRef(ref valRef))
         {
             pair = default;
+            slot = -1;
             return false;
         }
 
-        return TryGetFirstFrom(index + 1, out pair);
+        return TryGetFirstFrom(index + 1, out pair, out slot);
     }
 
-    /// <summary>First non-nil entry at or after <paramref name="index"/>.</summary>
-    bool TryGetFirstFrom(int index, out KeyValuePair<LuaValue, LuaValue> pair)
+    /// <summary>
+    /// First non-nil entry at or after <paramref name="index"/>, also reporting the slot it lives in so
+    /// a caller can resume iteration from it later without re-hashing the key. Mirrors
+    /// <see cref="LuaStringDictionary.TryGetFirstFrom(int, out KeyValuePair{LuaValue, LuaValue}, out int)"/>.
+    /// </summary>
+    internal bool TryGetFirstFrom(int index, out KeyValuePair<LuaValue, LuaValue> pair, out int slot)
     {
         var entries = _entries.AsSpan(index, _count - index);
-        foreach (ref var entry in entries)
+        for (var i = 0; i < entries.Length; i++)
         {
+            ref var entry = ref entries[i];
             if (entry.value.Type is not LuaValueType.Nil)
             {
                 pair = new(entry.key, entry.value);
+                slot = index + i;
                 return true;
             }
         }
 
         pair = default;
+        slot = -1;
         return false;
+    }
+
+    /// <summary>First non-nil entry at or after <paramref name="index"/>.</summary>
+    bool TryGetFirstFrom(int index, out KeyValuePair<LuaValue, LuaValue> pair) =>
+        TryGetFirstFrom(index, out pair, out _);
+
+    /// <summary>
+    /// True while <paramref name="slot"/> still holds <paramref name="key"/>. Slots are stable under
+    /// insert/overwrite/resize -- only a swap-erase removal or a clear can move or drop one -- so this
+    /// lets a caller validate a cached cursor cheaply instead of re-hashing the key. Mirrors
+    /// <see cref="LuaStringDictionary.SlotHasKey(int, string)"/>, minus that one's reference-equality
+    /// shortcut (a <see cref="LuaValue"/> key is not an interned string).
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal bool SlotHasKey(int slot, in LuaValue key)
+    {
+        var entries = _entries;
+        return entries != null
+            && (uint) slot < (uint) _count
+            && KeyEquals(entries[slot].key, key);
     }
 
     /// <summary>

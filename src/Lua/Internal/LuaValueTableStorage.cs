@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace Lua.Internal;
@@ -29,58 +28,50 @@ sealed class LuaValueTableStorage : ILuaTableStorage
     }
 
     public LuaTableStorageKind Kind => LuaTableStorageKind.Value;
-    public bool HasFastStringPart => false;
     public int RawArrayLength => part.Length;
 
-    public bool TryGetString(string key, out LuaValue value) => dictionary.TryGetValue(new LuaValue(key), out value);
-
-    public bool TryGetArray(int index, out LuaValue value)
+    /// <summary>Array part first, then the dictionary. This is the only kind whose two parts can both
+    /// hold integer keys -- <see cref="EnsureArrayCapacityInPlace"/> moves one out of the dictionary and
+    /// into the array as the array grows over it -- so an integer key the array covers is no longer in
+    /// the dictionary, and a dictionary-only lookup would report it missing.</summary>
+    public bool TryGetValue(in LuaValue key, out LuaValue value)
     {
-        if (index > 0 && index <= part.Length)
+        if (LuaTableArrayPart.TryGetIndex(key, part.Length, out var index))
         {
-            value = part.AsSpan()[index - 1];
+            value = MemoryMarshalEx.UnsafeElementAt(part.array, index - 1);
             return true;
         }
 
-        value = default;
-        return false;
+        return dictionary.TryGetValue(key, out value);
     }
 
-    public bool TryGetGeneric(in LuaValue key, out LuaValue value) => dictionary.TryGetValue(key, out value);
-
-    /// <summary>
-    /// Never actually called: <see cref="LuaTable.FindValue"/> checks <see cref="HasFastStringPart"/>
-    /// first and calls <see cref="FindGeneric"/> directly with the original (already-wrapped)
-    /// <see cref="LuaValue"/> key instead, since constructing a fresh wrapper here just to hand it to
-    /// a ref-returning lookup would not be ref-safe to return from this method.
-    /// </summary>
-    public ref LuaValue FindString(string key) => throw new UnreachableException();
-
-    public ref LuaValue FindArray(int index)
+    /// <summary>Array part first, mirroring <see cref="TryGetValue"/>: a caller that got a dictionary ref
+    /// for a key the array part holds would write a second copy of it.</summary>
+    public ref LuaValue FindValue(in LuaValue key)
     {
-        if (index > 0 && index <= part.Length)
+        if (LuaTableArrayPart.TryGetIndex(key, part.Length, out var index))
         {
-            return ref part.AsSpan()[index - 1];
+            return ref MemoryMarshalEx.UnsafeElementAt(part.array, index - 1);
         }
 
-        return ref Unsafe.NullRef<LuaValue>();
+        return ref dictionary.FindValue(key, out _);
     }
 
-    public ref LuaValue FindGeneric(in LuaValue key) => ref dictionary.FindValue(key, out _);
+    public void SetValue(in LuaValue key, in LuaValue value) => dictionary[key] = value;
 
-    /// <summary>Never called by <see cref="LuaTable"/> -- this kind has no fast string part, so
-    /// string writes route through <see cref="SetGeneric"/> instead.</summary>
-    public void SetString(string key, in LuaValue value) => dictionary[new LuaValue(key)] = value;
-
-    public void SetArrayGrowing(int index, in LuaValue value)
+    /// <summary>Grows for the write itself, through <see cref="EnsureArrayCapacityInPlace"/> rather than
+    /// <c>part.EnsureCapacity</c>: growing here is also what migrates integer keys out of the dictionary
+    /// once the array reaches over them, and the write has to land on top of that migration (an
+    /// update of an existing key would otherwise be overwritten by the migrated old value).</summary>
+    public void SetArrayValue(int index, in LuaValue value)
     {
-        part.AsSpan()[index - 1] = value;
+        EnsureArrayCapacityInPlace(index);
+        part.Set(index, value);
     }
 
-    public void SetGeneric(in LuaValue key, in LuaValue value) => dictionary[key] = value;
+    public Span<LuaValue> ArraySpan => part.AsSpan();
 
-    public Span<LuaValue> ArraySpan() => part.AsSpan();
-    public Memory<LuaValue> ArrayMemory() => part.AsMemory();
+    public Memory<LuaValue> ArrayMemory => part.AsMemory();
 
     /// <summary>Grows the array part in place, then -- exactly like the pre-split <c>LuaTable.GrowArray</c>
     /// -- migrates any integer keys from the generic dictionary that now fall within the grown
@@ -97,32 +88,34 @@ sealed class LuaValueTableStorage : ILuaTableStorage
         part.EnsureCapacity(newCapacity);
         var newLength = part.Length;
 
-        if (dictionary.Count == 0)
+        var d = dictionary;
+        if (d.Count == 0)
         {
             return;
         }
 
-        using PooledList<(int, LuaValue)> indexList = new(dictionary.Count);
+        using PooledList<(int, LuaValue)> indexList = new(d.Count);
 
-        foreach (var kv in dictionary)
+        foreach (var (key, value) in d)
         {
-            if (TryGetInteger(kv.Key, out var index) && index > prevLength && index <= newLength)
+            if (TryGetInteger(key, out var index) && index > prevLength && index <= newLength)
             {
-                indexList.Add((index, kv.Value));
+                indexList.Add((index, value));
             }
         }
 
+        var span = part.AsSpan();
         foreach (var (index, value) in PooledList<(int, LuaValue)>.AsSpan(indexList))
         {
-            dictionary.Remove(index);
-            part.AsSpan()[index - 1] = value;
+            d.Remove(index);
+            span[index - 1] = value;
         }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static bool TryGetInteger(in LuaValue value, out int integer)
     {
-        if (value.TryReadNumber(out var num) && MathEx.IsInteger(num))
+        if (value.TryReadNumber(out var num) && MathEx.IsInteger(num) && num <= int.MaxValue)
         {
             integer = (int)num;
             return true;
@@ -138,29 +131,40 @@ sealed class LuaValueTableStorage : ILuaTableStorage
 
     public int HashMapLiveCount => dictionary.LiveCount;
 
-    public bool TryGetNextFromStringSlot(string key, out KeyValuePair<LuaValue, LuaValue> pair, out int slot)
+    /// <summary>A hash slot here is a slot in the generic dictionary, where this kind keeps every hash
+    /// key -- string keys included (see the class comment).</summary>
+    public bool SlotHasKey(int slot, LuaValue key) => dictionary.SlotHasKey(slot, key);
+
+    /// <summary>Array part first, then the dictionary. A string key only ever resumes within the
+    /// dictionary -- it cannot live in the array, so it has no position there to resume from. The slot
+    /// is -1 only for an entry taken from the array part: this kind is where a walk crossing from the
+    /// array part into the dictionary matters most, because the dictionary is the only part of it a
+    /// caller cannot cheaply resume in (an integer key out of array range hashes like any other).</summary>
+    public bool TryGetNext(in LuaValue key, out KeyValuePair<LuaValue, LuaValue> pair, out int slot)
     {
-        slot = -1;
-        return dictionary.TryGetNext(new LuaValue(key), out pair);
+        if (key.Type is LuaValueType.String)
+        {
+            return dictionary.TryGetNext(key, out pair, out slot);
+        }
+
+        if (!LuaTableArrayPart.TryGetNextStart(key, part.Length, out var start))
+        {
+            return dictionary.TryGetNext(key, out pair, out slot);
+        }
+
+        if (part.TryGetFirstFrom(start, out pair))
+        {
+            slot = -1;
+            return true;
+        }
+
+        return dictionary.TryGetFirstFrom(0, out pair, out slot);
     }
 
-    public bool TryGetFirstFromStringSlot(int index, out KeyValuePair<LuaValue, LuaValue> pair, out int slot)
-    {
-        slot = -1;
-        pair = default;
-        return false;
-    }
-
-    public bool SlotHasKey(int slot, string key) => false;
-
-    public bool TryGetNextGeneric(in LuaValue key, out KeyValuePair<LuaValue, LuaValue> pair) =>
-        dictionary.TryGetNext(key, out pair);
-
-    public bool TryGetFirstGeneric(out KeyValuePair<LuaValue, LuaValue> pair)
-    {
-        var i = 0;
-        return LuaValueDictionary.MoveNext(dictionary, dictionary.Version, ref i, out pair);
-    }
+    /// <summary><paramref name="slot"/> holds the control key itself (the caller validated it with
+    /// <see cref="SlotHasKey"/>), so the walk resumes at the entry after it.</summary>
+    public bool TryGetNextFromSlot(int slot, out KeyValuePair<LuaValue, LuaValue> pair, out int nextSlot) =>
+        dictionary.TryGetFirstFrom(slot + 1, out pair, out nextSlot);
 
     public void Clear()
     {
@@ -173,17 +177,39 @@ sealed class LuaValueTableStorage : ILuaTableStorage
     public void CopyHashEntriesTo(List<KeyValuePair<LuaValue, LuaValue>> destination) =>
         dictionary.CopyAllEntriesTo(destination);
 
-    public int StringVersion => 0;
-    public int GenericVersion => dictionary.Version;
+    public int Version => dictionary.Version;
 
-    public bool MoveNextString(int expectedVersion, ref int index, out KeyValuePair<LuaValue, LuaValue> current)
+    /// <summary>
+    /// Both phases under one cursor: array slots <c>[0, part.Length)</c>, then dictionary entries with
+    /// the array length added to their own cursor. Exhausting the array part leaves the cursor at
+    /// exactly <c>part.Length</c>, which is the dictionary's cursor 0.
+    /// </summary>
+    public bool MoveNext(int expectedVersion, ref int index, out KeyValuePair<LuaValue, LuaValue> current)
     {
-        current = default;
+        var length = part.Length;
+        if (index < length)
+        {
+            if (part.MoveNext(ref index, out current))
+            {
+                return true;
+            }
+
+            index = length;
+        }
+
+        // The dictionary's own MoveNext leaves `index` one past its last entry once it is done, which it
+        // would then index out of bounds on a second call -- clamp so a caller that asks again after a
+        // false keeps getting false.
+        var hashIndex = Math.Min(index - length, dictionary.Count);
+        if (LuaValueDictionary.MoveNext(dictionary, expectedVersion, ref hashIndex, out current))
+        {
+            index = hashIndex + length;
+            return true;
+        }
+
+        index = hashIndex + length;
         return false;
     }
-
-    public bool MoveNextGeneric(int expectedVersion, ref int index, out KeyValuePair<LuaValue, LuaValue> current) =>
-        LuaValueDictionary.MoveNext(dictionary, expectedVersion, ref index, out current);
 
     internal static LuaValueTableStorage FromArray(LuaArrayTableStorage source) =>
         new(source.TakePart(), new LuaValueDictionary(0));

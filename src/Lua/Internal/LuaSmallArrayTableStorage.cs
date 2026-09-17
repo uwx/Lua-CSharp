@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 namespace Lua.Internal;
@@ -46,20 +47,13 @@ sealed class LuaSmallArrayTableStorage : ILuaTableStorage
     }
 
     public LuaTableStorageKind Kind => LuaTableStorageKind.SmallArray;
-    public bool HasFastStringPart => false;
     public int RawArrayLength => usedCapacity;
 
-    public bool TryGetString(string key, out LuaValue value)
+    public bool TryGetValue(in LuaValue key, out LuaValue value)
     {
-        value = default;
-        return false;
-    }
-
-    public bool TryGetArray(int index, out LuaValue value)
-    {
-        if (index > 0 && index <= usedCapacity)
+        if (LuaTableArrayPart.TryGetIndex(key, usedCapacity, out var index))
         {
-            value = buffer[index - 1];
+            value = MemoryMarshalEx.UnsafeElementAt<LuaValue>(buffer, index - 1);
             return true;
         }
 
@@ -67,41 +61,43 @@ sealed class LuaSmallArrayTableStorage : ILuaTableStorage
         return false;
     }
 
-    public bool TryGetGeneric(in LuaValue key, out LuaValue value)
+    public ref LuaValue FindValue(in LuaValue key)
     {
-        value = default;
-        return false;
-    }
-
-    public ref LuaValue FindString(string key) => ref Unsafe.NullRef<LuaValue>();
-
-    public ref LuaValue FindArray(int index)
-    {
-        if (index > 0 && index <= usedCapacity)
+        if (LuaTableArrayPart.TryGetIndex(key, usedCapacity, out var index))
         {
-            return ref buffer[index - 1];
+            return ref MemoryMarshalEx.UnsafeElementAt<LuaValue>(buffer, index - 1);
         }
 
         return ref Unsafe.NullRef<LuaValue>();
     }
 
-    public ref LuaValue FindGeneric(in LuaValue key) => ref Unsafe.NullRef<LuaValue>();
-
-    public void SetString(string key, in LuaValue value) => throw new UnreachableException();
-
-    public void SetArrayGrowing(int index, in LuaValue value)
+    /// <summary>Only ever reached with a key the caller has already decided fits (the indexer routes
+    /// array-range keys to <see cref="SetArrayValue"/> and promotes everything else out of this kind), so
+    /// the physical 16-slot bound is the whole check.</summary>
+    public void SetValue(in LuaValue key, in LuaValue value)
     {
-        Debug.Assert(index > 0 && index <= usedCapacity);
-        buffer[index - 1] = value;
+        if (LuaTableArrayPart.TryGetIndex(key, Capacity, out var index))
+        {
+            MemoryMarshalEx.UnsafeElementAt<LuaValue>(buffer, index - 1) = value;
+        }
     }
 
-    public void SetGeneric(in LuaValue key, in LuaValue value) => throw new UnreachableException();
+    /// <summary>Grows for the write itself. There is no allocation to make -- the inline buffer already
+    /// has all 16 slots -- but <see cref="usedCapacity"/> has to advance along the same ladder
+    /// <see cref="EnsureArrayCapacityInPlace"/> uses, because it is what
+    /// <see cref="RawArrayLength"/> reports to the indexer's array/dictionary placement heuristic.</summary>
+    public void SetArrayValue(int index, in LuaValue value)
+    {
+        EnsureArrayCapacityInPlace(index);
+        MemoryMarshalEx.UnsafeElementAt<LuaValue>(buffer, index - 1) = value;
+    }
 
-    public Span<LuaValue> ArraySpan() => ((Span<LuaValue>)buffer)[..usedCapacity];
+    public Span<LuaValue> ArraySpan => ((Span<LuaValue>)buffer)[..usedCapacity];
 
-    public Memory<LuaValue> ArrayMemory() => throw new UnreachableException(
-        "LuaTable must promote a LuaSmallArrayTableStorage before requesting a Memory<LuaValue>."
-    );
+    public Memory<LuaValue> ArrayMemory =>
+        throw new UnreachableException(
+            "LuaTable must promote a LuaSmallArrayTableStorage before requesting a Memory<LuaValue>."
+        );
 
     /// <summary>Grows <see cref="usedCapacity"/> along the same "8, then next power of two" ladder
     /// <see cref="LuaTableArrayPart.EnsureCapacity"/> uses, without touching the (already fully
@@ -114,20 +110,29 @@ sealed class LuaSmallArrayTableStorage : ILuaTableStorage
             return;
         }
 
+#if DEBUG
         if (newCapacity > Capacity)
+        {
+            Unreachable();
+        }
+#endif
+
+        usedCapacity = newCapacity <= 8 ? 8 : MathEx.NextPowerOfTwo(newCapacity);
+        return;
+
+        [DoesNotReturn]
+        static void Unreachable()
         {
             throw new UnreachableException(
                 "LuaTable must promote a LuaSmallArrayTableStorage before growing past 16 slots."
             );
         }
-
-        usedCapacity = newCapacity <= 8 ? 8 : MathEx.NextPowerOfTwo(newCapacity);
     }
 
     public LuaValue RemoveAtArray(int index)
     {
         var arrayIndex = index - 1;
-        var span = ArraySpan();
+        var span = ArraySpan;
         var value = span[arrayIndex];
 
         if (arrayIndex < span.Length - 1)
@@ -151,7 +156,7 @@ sealed class LuaSmallArrayTableStorage : ILuaTableStorage
             EnsureArrayCapacityInPlace(usedCapacity + 1);
         }
 
-        var span = ArraySpan();
+        var span = ArraySpan;
         var arrayIndex = index - 1;
         if (arrayIndex != span.Length - 1)
         {
@@ -163,31 +168,39 @@ sealed class LuaSmallArrayTableStorage : ILuaTableStorage
 
     public int HashMapLiveCount => 0;
 
-    public bool TryGetNextFromStringSlot(string key, out KeyValuePair<LuaValue, LuaValue> pair, out int slot)
+    public bool SlotHasKey(int slot, LuaValue key) => false;
+
+    /// <summary>Array-only: nil resumes at the first slot, an array-range integer just past it. Nothing
+    /// else has a position in this kind, so nothing else has a successor either. The slot is always -1
+    /// -- there is no hash part to hold a cursor into, and an array entry needs none (its own integer
+    /// key is its position).</summary>
+    public bool TryGetNext(in LuaValue key, out KeyValuePair<LuaValue, LuaValue> pair, out int slot)
     {
-        pair = default;
         slot = -1;
+        if (!LuaTableArrayPart.TryGetNextStart(key, usedCapacity, out var start))
+        {
+            pair = default;
+            return false;
+        }
+
+        var span = ArraySpan;
+        for (var i = start; i < span.Length; i++)
+        {
+            if (span[i].Type is not LuaValueType.Nil)
+            {
+                pair = new(i + 1, span[i]);
+                return true;
+            }
+        }
+
+        pair = default;
         return false;
     }
 
-    public bool TryGetFirstFromStringSlot(int index, out KeyValuePair<LuaValue, LuaValue> pair, out int slot)
+    public bool TryGetNextFromSlot(int slot, out KeyValuePair<LuaValue, LuaValue> pair, out int nextSlot)
     {
         pair = default;
-        slot = -1;
-        return false;
-    }
-
-    public bool SlotHasKey(int slot, string key) => false;
-
-    public bool TryGetNextGeneric(in LuaValue key, out KeyValuePair<LuaValue, LuaValue> pair)
-    {
-        pair = default;
-        return false;
-    }
-
-    public bool TryGetFirstGeneric(out KeyValuePair<LuaValue, LuaValue> pair)
-    {
-        pair = default;
+        nextSlot = -1;
         return false;
     }
 
@@ -202,17 +215,24 @@ sealed class LuaSmallArrayTableStorage : ILuaTableStorage
 
     public void CopyHashEntriesTo(List<KeyValuePair<LuaValue, LuaValue>> destination) { }
 
-    public int StringVersion => 0;
-    public int GenericVersion => 0;
+    public int Version => 0;
 
-    public bool MoveNextString(int expectedVersion, ref int index, out KeyValuePair<LuaValue, LuaValue> current)
+    /// <summary>The whole array part, under the same 0-based-slot cursor
+    /// <see cref="LuaTableArrayPart.MoveNext"/> uses (there is no hash part after it to carry on into).</summary>
+    public bool MoveNext(int expectedVersion, ref int index, out KeyValuePair<LuaValue, LuaValue> current)
     {
-        current = default;
-        return false;
-    }
+        var span = ArraySpan;
+        for (var i = index; i < span.Length; i++)
+        {
+            if (span[i].Type is not LuaValueType.Nil)
+            {
+                index = i + 1;
+                current = new(i + 1, span[i]);
+                return true;
+            }
+        }
 
-    public bool MoveNextGeneric(int expectedVersion, ref int index, out KeyValuePair<LuaValue, LuaValue> current)
-    {
+        index = span.Length;
         current = default;
         return false;
     }

@@ -23,16 +23,18 @@ sealed class LuaStringAndArrayTableStorage : ILuaTableStorage
     }
 
     public LuaTableStorageKind Kind => LuaTableStorageKind.StringAndArray;
-    public bool HasFastStringPart => true;
     public int RawArrayLength => part.Length;
 
-    public bool TryGetString(string key, out LuaValue value) => strings.TryGetValue(key, out value);
-
-    public bool TryGetArray(int index, out LuaValue value)
+    public bool TryGetValue(in LuaValue key, out LuaValue value)
     {
-        if (index > 0 && index <= part.Length)
+        if (key.Type is LuaValueType.String)
         {
-            value = part.AsSpan()[index - 1];
+            return strings.TryGetValue(key.ReadAsString(), out value);
+        }
+
+        if (LuaTableArrayPart.TryGetIndex(key, part.Length, out var index))
+        {
+            value = MemoryMarshalEx.UnsafeElementAt(part.array, index - 1);
             return true;
         }
 
@@ -40,38 +42,45 @@ sealed class LuaStringAndArrayTableStorage : ILuaTableStorage
         return false;
     }
 
-    public bool TryGetGeneric(in LuaValue key, out LuaValue value)
+    public ref LuaValue FindValue(in LuaValue key)
     {
-        value = default;
-        return false;
-    }
-
-    public ref LuaValue FindString(string key) => ref strings.FindValue(key, out _);
-
-    public ref LuaValue FindArray(int index)
-    {
-        if (index > 0 && index <= part.Length)
+        if (key.Type is LuaValueType.String)
         {
-            return ref part.AsSpan()[index - 1];
+            return ref strings.FindValue(key.ReadAsString(), out _);
+        }
+
+        if (LuaTableArrayPart.TryGetIndex(key, part.Length, out var index))
+        {
+            return ref MemoryMarshalEx.UnsafeElementAt(part.array, index - 1);
         }
 
         return ref Unsafe.NullRef<LuaValue>();
     }
 
-    public ref LuaValue FindGeneric(in LuaValue key) => ref Unsafe.NullRef<LuaValue>();
-
-    public void SetString(string key, in LuaValue value) => strings.Insert(key, value);
-
-    public void SetArrayGrowing(int index, in LuaValue value)
+    public void SetValue(in LuaValue key, in LuaValue value)
     {
-        Debug.Assert(index > 0 && index <= part.Length);
-        part.AsSpan()[index - 1] = value;
+        if (key.Type is LuaValueType.String)
+        {
+            strings.Insert(key.ReadAsString(), value);
+            return;
+        }
+
+        if (LuaTableArrayPart.TryGetIndex(key, part.Length, out var index))
+        {
+            MemoryMarshalEx.UnsafeElementAt(part.array, index - 1) = value;
+        }
     }
 
-    public void SetGeneric(in LuaValue key, in LuaValue value) => throw new UnreachableException();
+    /// <summary>Grows for the write itself (<see cref="ILuaTableStorage.SetArrayValue"/>).</summary>
+    public void SetArrayValue(int index, in LuaValue value)
+    {
+        part.EnsureCapacity(index);
+        part.Set(index, value);
+    }
 
-    public Span<LuaValue> ArraySpan() => part.AsSpan();
-    public Memory<LuaValue> ArrayMemory() => part.AsMemory();
+    public Span<LuaValue> ArraySpan => part.AsSpan();
+
+    public Memory<LuaValue> ArrayMemory => part.AsMemory();
 
     public void EnsureArrayCapacityInPlace(int newCapacity) => part.EnsureCapacity(newCapacity);
 
@@ -81,35 +90,48 @@ sealed class LuaStringAndArrayTableStorage : ILuaTableStorage
 
     public int HashMapLiveCount => strings.LiveCount;
 
-    public bool TryGetNextFromStringSlot(string key, out KeyValuePair<LuaValue, LuaValue> pair, out int slot)
+    public bool SlotHasKey(int slot, LuaValue key) => key.Type == LuaValueType.String && strings.SlotHasKey(slot, key.ReadAsString());
+
+    /// <summary>Array part first, then the string part. A string key only ever resumes within the
+    /// string part -- it cannot live in the array, so it has no position there to resume from. The slot
+    /// is -1 only for an entry taken from the array part: the walk crossing from there into the string
+    /// part reports the string slot it landed in, which is what lets a caller resume in the hash part
+    /// without re-hashing the control key.</summary>
+    public bool TryGetNext(in LuaValue key, out KeyValuePair<LuaValue, LuaValue> pair, out int slot)
     {
-        slot = -1;
-        ref var valueRef = ref strings.FindValue(key, out var keySlot);
-        if (Unsafe.IsNullRef(ref valueRef))
+        if (key.Type is LuaValueType.String)
+        {
+            ref var valueRef = ref strings.FindValue(key.ReadAsString(), out var keySlot);
+            if (Unsafe.IsNullRef(ref valueRef))
+            {
+                pair = default;
+                slot = -1;
+                return false;
+            }
+
+            return strings.TryGetFirstFrom(keySlot + 1, out pair, out slot);
+        }
+
+        if (!LuaTableArrayPart.TryGetNextStart(key, part.Length, out var start))
         {
             pair = default;
+            slot = -1;
             return false;
         }
 
-        return strings.TryGetFirstFrom(keySlot + 1, out pair, out slot);
+        if (part.TryGetFirstFrom(start, out pair))
+        {
+            slot = -1;
+            return true;
+        }
+
+        return strings.TryGetFirstFrom(0, out pair, out slot);
     }
 
-    public bool TryGetFirstFromStringSlot(int index, out KeyValuePair<LuaValue, LuaValue> pair, out int slot) =>
-        strings.TryGetFirstFrom(index, out pair, out slot);
-
-    public bool SlotHasKey(int slot, string key) => strings.SlotHasKey(slot, key);
-
-    public bool TryGetNextGeneric(in LuaValue key, out KeyValuePair<LuaValue, LuaValue> pair)
-    {
-        pair = default;
-        return false;
-    }
-
-    public bool TryGetFirstGeneric(out KeyValuePair<LuaValue, LuaValue> pair)
-    {
-        pair = default;
-        return false;
-    }
+    /// <summary><paramref name="slot"/> holds the control key itself (the caller validated it with
+    /// <see cref="SlotHasKey"/>), so the walk resumes at the entry after it.</summary>
+    public bool TryGetNextFromSlot(int slot, out KeyValuePair<LuaValue, LuaValue> pair, out int nextSlot)
+        => strings.TryGetFirstFrom(slot + 1, out pair, out nextSlot);
 
     public void Clear()
     {
@@ -119,18 +141,40 @@ sealed class LuaStringAndArrayTableStorage : ILuaTableStorage
 
     public ILuaTableStorage Clone() => new LuaStringAndArrayTableStorage(part.Clone(), strings.Clone());
 
-    public void CopyHashEntriesTo(List<KeyValuePair<LuaValue, LuaValue>> destination) =>
-        strings.CopyAllEntriesTo(destination);
+    public void CopyHashEntriesTo(List<KeyValuePair<LuaValue, LuaValue>> destination)
+        => strings.CopyAllEntriesTo(destination);
 
-    public int StringVersion => strings.Version;
-    public int GenericVersion => 0;
+    public int Version => strings.Version;
 
-    public bool MoveNextString(int expectedVersion, ref int index, out KeyValuePair<LuaValue, LuaValue> current) =>
-        LuaStringDictionary.MoveNext(ref strings, expectedVersion, ref index, out current);
-
-    public bool MoveNextGeneric(int expectedVersion, ref int index, out KeyValuePair<LuaValue, LuaValue> current)
+    /// <summary>
+    /// Both phases under one cursor: array slots <c>[0, part.Length)</c>, then string entries with the
+    /// array length added to their own cursor. Exhausting the array part leaves the cursor at exactly
+    /// <c>part.Length</c>, which is the string part's cursor 0.
+    /// </summary>
+    public bool MoveNext(int expectedVersion, ref int index, out KeyValuePair<LuaValue, LuaValue> current)
     {
-        current = default;
+        var length = part.Length;
+        if (index < length)
+        {
+            if (part.MoveNext(ref index, out current))
+            {
+                return true;
+            }
+
+            index = length;
+        }
+
+        // The string dictionary's own MoveNext leaves `index` one past its last entry once it is done,
+        // which it would then index out of bounds on a second call -- clamp so a caller that asks again
+        // after a false keeps getting false.
+        var hashIndex = Math.Min(index - length, strings.Count);
+        if (LuaStringDictionary.MoveNext(ref strings, expectedVersion, ref hashIndex, out current))
+        {
+            index = hashIndex + length;
+            return true;
+        }
+
+        index = hashIndex + length;
         return false;
     }
 

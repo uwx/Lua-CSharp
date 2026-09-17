@@ -458,7 +458,9 @@ public static partial class LuaVirtualMachine
             var frameBase = context.FrameBase;
             var stack = context.Stack;
             stack.EnsureCapacity(frameBase + context.Prototype.MaxStackSize);
-            ref var constHead = ref MemoryMarshalEx.UnsafeElementAt(context.Prototype.Constants, 0);
+            // HeadRef, not element 0: a prototype with no constants has an empty constant span, and this
+            // is the base of an indexed walk, not an access (see MemoryMarshalEx.UnsafeHeadRef).
+            ref var constHead = ref MemoryMarshalEx.UnsafeHeadRef(context.Prototype.Constants);
             ref var lineHookFlag = ref context.State.IsInHook
                 ? ref DummyLineHookEnabled
                 : ref context.State.IsLineHookEnabled;
@@ -2721,21 +2723,19 @@ public static partial class LuaVirtualMachine
         // swap-erase removal (which string tables have no production caller for) and vanish
         // on clear, so a stale cursor reads as a miss and falls back to the hash path.
         if (
-            control.Type == LuaValueType.String
-            && ReferenceEquals(table, context.NextIteratorTable)
-            && table.SlotStillHolds(context.NextIteratorSlot, control.ReadAsString())
+            ReferenceEquals(table, context.NextIteratorTable)
+            && table.SlotStillHolds(context.NextIteratorSlot, control)
         )
         {
             hasPair = table.TryNextFromSlot(context.NextIteratorSlot, out pair, out slot);
         }
-        else if (control.Type == LuaValueType.String)
-        {
-            hasPair = table.TryGetNextFromString(control.ReadAsString(), out pair, out slot);
-        }
         else
         {
-            // Control is nil (first step) or a non-string key: no slot to hand back.
-            hasPair = table.TryGetNext(control, out pair);
+            // No cursor to resume from -- the first step (control is nil), or a key whose slot is
+            // not where the cursor says. Take the entry the ordinary way, but keep the slot it
+            // reports: that is what arms the cursor for the following steps, so the walk pays for
+            // re-hashing the control key once per table instead of once per step.
+            hasPair = table.TryGetNext(control, out pair, out slot);
         }
 
         // Same write sequence as `Return(result0, result1)` followed by

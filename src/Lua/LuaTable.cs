@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Lua.Internal;
 
@@ -73,42 +74,20 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
-            if (key.Type is LuaValueType.String)
-            {
-                return storage.TryGetString(key.ReadAsString(), out var sv) ? sv : LuaValue.Nil;
-            }
-
             if (key.Type is LuaValueType.Nil)
             {
                 ThrowIndexIsNil();
             }
 
-            if (TryGetInteger(key, out var index) && storage.TryGetArray(index, out var av))
-            {
-                return av;
-            }
-
-            return storage.TryGetGeneric(key, out var value) ? value : LuaValue.Nil;
+            return storage.TryGetValue(key, out var value) ? value : LuaValue.Nil;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set
         {
             if (key.Type is LuaValueType.String)
             {
-                var skey = key.ReadAsString();
-                storage = PromoteForStringWrite(storage, skey);
-
-                if (storage.Kind == LuaTableStorageKind.Value)
-                {
-                    // Terminal kind: no dedicated fast string path (see the storage-split plan's
-                    // confirmed decisions), so string keys live in the generic dictionary too.
-                    storage.SetGeneric(key, value);
-                }
-                else
-                {
-                    storage.SetString(skey, value);
-                }
-
+                storage = PromoteForStringWrite(storage);
+                storage.SetValue(key, value);
                 return;
             }
 
@@ -119,7 +98,7 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
                     ThrowIndexIsNaN();
                 }
 
-                if (MathEx.IsInteger(d))
+                if (MathEx.IsInteger(d) && d <= int.MaxValue)
                 {
                     var index = (int)d;
                     var capacity = storage.RawArrayLength;
@@ -133,25 +112,26 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
                     )
                     {
                         storage = PromoteForArrayCapability(storage, index);
-                        storage.EnsureArrayCapacityInPlace(index);
-                        storage.SetArrayGrowing(index, value);
+                        // The write grows the array part itself, so this stays one interface
+                        // dispatch rather than two.
+                        storage.SetArrayValue(index, value);
                         return;
                     }
                 }
             }
 
             storage = PromoteForGenericWrite(storage);
-            storage.SetGeneric(key, value);
+            storage.SetValue(key, value);
         }
     }
 
     /// <summary>
-    /// Promotes <paramref name="storage"/> so it can accept a write of the string key
-    /// <paramref name="key"/>. Empty/SmallArray/Array all promote to a fast-string-part kind;
+    /// Promotes <paramref name="storage"/> so it can accept a write of a string key.
+    /// Empty/SmallArray/Array all promote to a fast-string-part kind;
     /// String/StringAndArray already have one; Value is left as-is (it is handled specially by the
     /// caller, since it has no fast string part at all).
     /// </summary>
-    static ILuaTableStorage PromoteForStringWrite(ILuaTableStorage storage, string key)
+    static ILuaTableStorage PromoteForStringWrite(ILuaTableStorage storage)
     {
         return storage.Kind switch
         {
@@ -166,9 +146,10 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
 
     /// <summary>
     /// Promotes <paramref name="storage"/> so it has an array part able to reach
-    /// <paramref name="minCapacity"/> (the caller still calls <see cref="ILuaTableStorage.EnsureArrayCapacityInPlace"/>
-    /// afterward to actually grow it there). Used both by an array-range indexer write and by
-    /// <see cref="EnsureArrayCapacity"/>.
+    /// <paramref name="minCapacity"/>, without growing it there yet: the caller then grows it itself,
+    /// via <see cref="ILuaTableStorage.SetArrayValue"/> (the indexer's array branch) or
+    /// <see cref="ILuaTableStorage.EnsureArrayCapacityInPlace"/> (<see cref="EnsureArrayCapacity"/>).
+    /// Used by both.
     /// </summary>
     static ILuaTableStorage PromoteForArrayCapability(ILuaTableStorage storage, int minCapacity)
     {
@@ -211,7 +192,7 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
     {
         get
         {
-            var a = storage.ArraySpan();
+            var a = storage.ArraySpan;
             var len = a.Length;
             if (len == 0)
             {
@@ -264,52 +245,24 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryGetValue(in LuaValue key, out LuaValue value)
     {
-        if (key.Type is LuaValueType.String)
-        {
-            return storage.TryGetString(key.ReadAsString(), out value) && value.Type is not LuaValueType.Nil;
-        }
-
         if (key.Type is LuaValueType.Nil)
         {
             value = default;
             return false;
         }
 
-        if (TryGetInteger(key, out var index) && storage.TryGetArray(index, out value))
-        {
-            return value.Type is not LuaValueType.Nil;
-        }
-
-        return storage.TryGetGeneric(key, out value) && value.Type is not LuaValueType.Nil;
+        return storage.TryGetValue(key, out value) && value.Type is not LuaValueType.Nil;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal ref LuaValue FindValue(in LuaValue key)
     {
-        if (key.Type is LuaValueType.String)
-        {
-            // LuaValueTableStorage has no fast string part -- its string keys live in the generic
-            // dictionary, wrapped as LuaValue -- so look them up with the original key directly
-            // rather than reconstructing a wrapper inside FindString (which would not be ref-safe to
-            // return from there).
-            return ref (storage.HasFastStringPart ? ref storage.FindString(key.ReadAsString()) : ref storage.FindGeneric(key));
-        }
-
         if (key.Type is LuaValueType.Nil)
         {
             ThrowIndexIsNil();
         }
 
-        if (TryGetInteger(key, out var index))
-        {
-            ref var arrayValue = ref storage.FindArray(index);
-            if (!Unsafe.IsNullRef(ref arrayValue))
-            {
-                return ref arrayValue;
-            }
-        }
-
-        return ref storage.FindGeneric(key);
+        return ref storage.FindValue(key);
     }
 
     public bool ContainsKey(in LuaValue key)
@@ -340,7 +293,7 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
         if (storage is LuaSmallArrayTableStorage small)
         {
             var cap = small.RawArrayLength;
-            var needsGrow = index > cap || (cap > 0 && small.ArraySpan()[^1].Type != LuaValueType.Nil);
+            var needsGrow = index > cap || (cap > 0 && small.ArraySpan[^1].Type != LuaValueType.Nil);
             if (needsGrow)
             {
                 var target = cap + 1;
@@ -356,90 +309,34 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
     }
 
     /// <summary>
-    /// Lua `next` semantics. Iteration order is array part, then string keys, then
-    /// everything else.
+    /// Lua `next` semantics. Iteration order is the array part, then whatever hash part(s) the storage
+    /// has. The whole walk -- array scan, string part and generic part alike -- belongs to the storage
+    /// (see <see cref="ILuaTableStorage.TryGetNext"/>): it is the only thing that knows how its own
+    /// array is kept, and this is an interface dispatch either way.
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryGetNext(in LuaValue key, out KeyValuePair<LuaValue, LuaValue> pair)
     {
-        if (key.Type is LuaValueType.String)
-        {
-            if (storage.HasFastStringPart)
-            {
-                return storage.TryGetNextFromStringSlot(key.ReadAsString(), out pair, out _);
-            }
-
-            // LuaValueTableStorage: string keys live in the generic dictionary, wrapped as LuaValue.
-            return storage.TryGetNextGeneric(key, out pair);
-        }
-
-        var index = -1;
-        if (key.Type is LuaValueType.Nil)
-        {
-            index = 0;
-        }
-        else if (TryGetInteger(key, out var integer) && integer > 0 && integer <= storage.RawArrayLength)
-        {
-            index = integer;
-        }
-
-        if (index != -1)
-        {
-            var span = storage.ArraySpan()[index..];
-            for (var i = 0; i < span.Length; i++)
-            {
-                if (span[i].Type is not LuaValueType.Nil)
-                {
-                    pair = new(index + i + 1, span[i]);
-                    return true;
-                }
-            }
-
-            if (storage.HasFastStringPart && storage.TryGetFirstFromStringSlot(0, out pair, out _))
-            {
-                return true;
-            }
-
-            return storage.TryGetFirstGeneric(out pair);
-        }
-
-        if (storage.TryGetNextGeneric(key, out pair))
-        {
-            return true;
-        }
-
-        pair = default;
-        return false;
+        return storage.TryGetNext(key, out pair, out _);
     }
 
     /// <summary>
-    /// <c>next(t, k)</c> for a string control key, also reporting the slot the result lives
-    /// in (see <see cref="TryNextFromSlot"/>). Mirrors the string branch of
-    /// <see cref="TryGetNext"/> exactly, including falling through to the generic part once
-    /// the string part is exhausted.
+    /// <see cref="TryGetNext(in LuaValue, out KeyValuePair{LuaValue, LuaValue})"/> plus the cursor of
+    /// the entry it returned -- whatever <see cref="SlotStillHolds"/> and
+    /// <see cref="TryNextFromSlot"/> take, or -1 when the entry has none (an array-part entry, or a
+    /// kind with no hash part). This is what lets <c>next</c> resume without re-hashing the key it was
+    /// just handed: the VM hands that cursor back on the following step.
     /// </summary>
-    internal bool TryGetNextFromString(
-        string key,
-        out KeyValuePair<LuaValue, LuaValue> pair,
-        out int slot
-    )
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal bool TryGetNext(in LuaValue key, out KeyValuePair<LuaValue, LuaValue> pair, out int slot)
     {
-        if (!storage.HasFastStringPart)
-        {
-            // Either this is a LuaValueTableStorage (string keys live in the generic dictionary), or
-            // the key never existed in this table's string part to begin with -- either way, there is
-            // no slot to report.
-            slot = -1;
-            return storage.TryGetNextGeneric(new LuaValue(key), out pair);
-        }
-
-        return storage.TryGetNextFromStringSlot(key, out pair, out slot);
+        return storage.TryGetNext(key, out pair, out slot);
     }
 
     /// <summary>
-    /// Resumes a string-keyed traversal at <paramref name="slot"/>: the first non-nil entry
-    /// after it, then the generic part. Lets a caller that already knows which slot a key
-    /// occupies skip hashing it again. <paramref name="nextSlot"/> is -1 when the result
-    /// came from (or there is nothing left in) the generic part.
+    /// Resumes a traversal at <paramref name="slot"/>: the first non-nil entry after it.
+    /// Lets a caller that already knows which slot a key occupies skip hashing it again.
+    /// nextSlot is -1 when done.
     /// </summary>
     internal bool TryNextFromSlot(
         int slot,
@@ -447,25 +344,16 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
         out int nextSlot
     )
     {
-        if (storage.HasFastStringPart && storage.TryGetFirstFromStringSlot(slot + 1, out pair, out nextSlot))
-        {
-            return true;
-        }
-
-        nextSlot = -1;
-        return storage.TryGetFirstGeneric(out pair);
+        return storage.TryGetNextFromSlot(slot, out pair, out nextSlot);
     }
 
     /// <summary>
     /// True while <paramref name="slot"/> still holds exactly <paramref name="key"/>.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal bool SlotStillHolds(int slot, string key)
+    internal bool SlotStillHolds(int slot, LuaValue key)
     {
-        // False on a kind with no fast string part -- including a LuaValueTableStorage that just
-        // promoted away from one, which is exactly what forces the VM's TForCallNext down its
-        // existing re-hash fallback path (TryGetNextFromString) instead of trusting a stale cursor.
-        return storage.HasFastStringPart && storage.SlotHasKey(slot, key);
+        return storage.SlotHasKey(slot, key);
     }
 
     public void Clear()
@@ -483,12 +371,12 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
             storage = LuaArrayTableStorage.FromSmallArray(small, small.RawArrayLength);
         }
 
-        return storage.ArrayMemory();
+        return storage.ArrayMemory;
     }
 
     public Span<LuaValue> GetArraySpan()
     {
-        return storage.ArraySpan();
+        return storage.ArraySpan;
     }
 
     internal void EnsureArrayCapacity(int newCapacity)
@@ -541,25 +429,13 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
         storage.CopyHashEntriesTo(destination);
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    static bool TryGetInteger(in LuaValue value, out int integer)
-    {
-        if (value.TryReadNumber(out var num) && MathEx.IsInteger(num))
-        {
-            // TODO: saturate? or return long?
-            integer = (int)num;
-            return true;
-        }
-
-        integer = 0;
-        return false;
-    }
-
+    [DoesNotReturn]
     static void ThrowIndexIsNil()
     {
         throw new ArgumentException("the table index is nil");
     }
 
+    [DoesNotReturn]
     static void ThrowIndexIsNaN()
     {
         throw new ArgumentException("the table index is NaN");
@@ -586,56 +462,24 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
     {
         public KeyValuePair<LuaValue, LuaValue> Current => current;
 
-        // phase 0: array part (index = next array slot to inspect)
-        // phase 1: string part (index = string dictionary entry index)
-        // phase 2: generic part (index = generic dictionary entry index)
-        int phase = 0;
+        /// <summary>One cursor covering both phases, owned by the storage: 0-based array slots first
+        /// (so the key is <c>index + 1</c>), then hash entries, which the storage offsets past its array
+        /// length. See <see cref="ILuaTableStorage.MoveNext"/>.</summary>
         int index = 0;
-        readonly int stringVersion = table.storage.StringVersion;
-        readonly int genericVersion = table.storage.GenericVersion;
+        readonly int version = table.storage.Version;
         KeyValuePair<LuaValue, LuaValue> current = default;
 
         public bool MoveNext()
         {
-            var storage = table.storage;
-
-            if (phase == 0)
-            {
-                var span = storage.ArraySpan()[index..];
-                for (var i = 0; i < span.Length; i++)
-                {
-                    if (span[i].Type is not LuaValueType.Nil)
-                    {
-                        current = new(index + i + 1, span[i]);
-                        index += i + 1;
-                        return true;
-                    }
-                }
-
-                phase = 1;
-                index = 0;
-            }
-
-            if (phase == 1)
-            {
-                if (storage.MoveNextString(stringVersion, ref index, out current))
-                {
-                    return true;
-                }
-
-                phase = 2;
-                index = 0;
-            }
-
-            while (
-                storage.MoveNextGeneric(genericVersion, ref index, out current)
-                && current.Value.Type is LuaValueType.Nil
-            ) { }
-
-            return current.Value.Type is not LuaValueType.Nil;
+            // Table.storage is re-read every step (never cached): a write during iteration can promote
+            // it, and the cursor above keeps its meaning across the swap.
+            return table.storage.MoveNext(version, ref index, out current);
         }
 
-        public void Reset() { }
+        public void Reset()
+        {
+            index = 0;
+        }
 
         object IEnumerator.Current => Current;
 
