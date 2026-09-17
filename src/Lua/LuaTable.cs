@@ -57,7 +57,7 @@ public sealed class LuaTable : IEnumerable<KeyValuePair<LuaValue, LuaValue>>
         if (dictionaryCapacity <= 0)
         {
             return arrayCapacity <= LuaSmallArrayTableStorage.Capacity
-                ? new LuaSmallArrayTableStorage(arrayCapacity)
+                ? new LuaSmallArrayTableStorage()
                 : new LuaArrayTableStorage(arrayCapacity);
         }
 
