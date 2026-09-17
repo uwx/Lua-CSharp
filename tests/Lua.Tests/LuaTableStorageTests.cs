@@ -96,23 +96,23 @@ public class LuaTableStorageTests
     public void SmallArray_17thElement_SpillsToArray_PreservingExistingEntries()
     {
         var table = new LuaTable(0, 0);
-        for (var i = 1; i <= 16; i++)
+        for (var i = 1; i <= LuaSmallArrayTableStorage.Capacity; i++)
         {
             table[i] = i * 10;
         }
 
         Assert.That(KindOf(table), Is.EqualTo(LuaTableStorageKind.SmallArray));
 
-        table[17] = 170;
+        table[LuaSmallArrayTableStorage.Capacity + 1] = 170;
 
         Assert.That(KindOf(table), Is.EqualTo(LuaTableStorageKind.Array));
-        for (var i = 1; i <= 16; i++)
+        for (var i = 1; i <= LuaSmallArrayTableStorage.Capacity; i++)
         {
             Assert.That(table[i], Is.EqualTo(new LuaValue(i * 10)), $"key {i}");
         }
 
-        Assert.That(table[17], Is.EqualTo(new LuaValue(170)));
-        Assert.That(table.ArrayLength, Is.EqualTo(17));
+        Assert.That(table[LuaSmallArrayTableStorage.Capacity + 1], Is.EqualTo(new LuaValue(170)));
+        Assert.That(table.ArrayLength, Is.EqualTo(LuaSmallArrayTableStorage.Capacity + 1));
     }
 
     [Test]
