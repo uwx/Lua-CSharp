@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net11.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <Features>$(Features);runtime-async=on</Features>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\src\Lua\Lua.csproj" />
+    </ItemGroup>
+
+</Project>
