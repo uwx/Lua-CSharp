@@ -116,7 +116,15 @@ sealed class LuaSmallArrayTableStorage : ILuaTableStorage
 
     public void InsertArray(int index, in LuaValue value)
     {
-        EnsureArrayCapacityInPlace(index + 1);
+        // Room is needed for slot `index` and nothing more. The shift below moves
+        // span[arrayIndex..^1] right by one, so it only stays lossless while the last slot is nil -
+        // which is the caller's business, not this check's: LuaTable.Insert promotes when
+        // RawArrayLength's last slot is occupied (mirroring LuaTableArrayPart.Insert, which grows
+        // under exactly the condition "index past the array, or the array is full"). Demanding
+        // index + 1 here, the way the heap storages can afford to, would reject the perfectly legal
+        // insert into slot 8 of a table of length < 8 - which is what table.insert(t, 8, v) does to
+        // a length-7 table, and it threw an UnreachableException in-game for exactly that reason.
+        EnsureArrayCapacityInPlace(index);
 
         var span = ArraySpan;
         var arrayIndex = index - 1;

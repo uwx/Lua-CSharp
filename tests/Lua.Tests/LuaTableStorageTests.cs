@@ -1,4 +1,4 @@
-using Lua.Internal;
+﻿using Lua.Internal;
 using Lua.Standard;
 
 namespace Lua.Tests;
@@ -12,6 +12,97 @@ namespace Lua.Tests;
 public class LuaTableStorageTests
 {
     static LuaTableStorageKind KindOf(LuaTable table) => table.DebugStorageKind;
+
+    /// <summary>
+    /// The in-game crash reached the storage through <c>table.insert</c> from Luau/Sx, so pin the
+    /// same path end to end: TableLibrary.Insert's own bounds check (`pos &lt;= #t + 1`) admits
+    /// pos == 8 for a length-7 table, and the storage must then take it.
+    /// </summary>
+    [Test]
+    public async Task Lua_TableInsertIntoLastInlineSlot_DoesNotThrow()
+    {
+        var state = LuaState.Create();
+        state.OpenStandardLibraries();
+        var result = await state.DoStringAsync(
+            """
+            local t = { 1, 2, 3, 4, 5, 6, 7 }
+            table.insert(t, 8, 99)
+            return #t, t[8], t[1], t[7]
+            """
+        );
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result[0].TryRead<double>(out var length), Is.True);
+            Assert.That(length, Is.EqualTo(8.0));
+            Assert.That(result[1].TryRead<double>(out var inserted), Is.True);
+            Assert.That(inserted, Is.EqualTo(99.0));
+            Assert.That(result[2].TryRead<double>(out var first), Is.True);
+            Assert.That(first, Is.EqualTo(1.0));
+            Assert.That(result[3].TryRead<double>(out var last), Is.True);
+            Assert.That(last, Is.EqualTo(7.0));
+        });
+    }
+
+    // ------------------------------------------------------------------ insert at the inline boundary
+
+    /// <summary>
+    /// `table.insert(t, 8, v)` on a table of length 7 is legal Lua (TableLibrary.Insert allows
+    /// `pos == #t + 1`), and the result is a length-8 array - exactly the inline buffer's size. It
+    /// must fit without promoting, and must not trip the storage's "never grows past 8" assertion,
+    /// which is what happened in-game (an UnreachableException from
+    /// LuaSmallArrayTableStorage.EnsureArrayCapacityInPlace via table.insert in an Sx effect).
+    /// </summary>
+    [Test]
+    public void Insert_IntoLastInlineSlot_OfLengthSevenTable_FitsWithoutPromoting()
+    {
+        var table = new LuaTable(7, 0);
+        for (var i = 1; i <= 7; i++)
+        {
+            table[i] = i;
+        }
+
+        Assert.That(KindOf(table), Is.EqualTo(LuaTableStorageKind.SmallArray));
+
+        Assert.DoesNotThrow(() => table.Insert(8, 99));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(table.ArrayLength, Is.EqualTo(8));
+            Assert.That(table[8], Is.EqualTo(new LuaValue(99)));
+            // every earlier element survived the shift right
+            for (var i = 1; i <= 7; i++)
+            {
+                Assert.That(table[i], Is.EqualTo(new LuaValue(i)));
+            }
+        });
+    }
+
+    /// <summary>Inserting into a *full* inline array has to promote: the shift would push the element
+    /// in slot 8 out of the buffer, so it must move to a heap array rather than be dropped.</summary>
+    [Test]
+    public void Insert_IntoFullInlineArray_PromotesAndKeepsEveryElement()
+    {
+        var table = new LuaTable(8, 0);
+        for (var i = 1; i <= 8; i++)
+        {
+            table[i] = i;
+        }
+
+        Assert.That(KindOf(table), Is.EqualTo(LuaTableStorageKind.SmallArray));
+
+        table.Insert(3, 99);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(KindOf(table), Is.EqualTo(LuaTableStorageKind.Array));
+            Assert.That(table.ArrayLength, Is.EqualTo(9));
+            Assert.That(table[3], Is.EqualTo(new LuaValue(99)));
+            Assert.That(table[4], Is.EqualTo(new LuaValue(3)));
+            Assert.That(table[8], Is.EqualTo(new LuaValue(7)));
+            Assert.That(table[9], Is.EqualTo(new LuaValue(8)));
+        });
+    }
 
     // ------------------------------------------------------------------ capacity-hint routing
 
