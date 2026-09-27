@@ -1068,4 +1068,55 @@ public sealed class SxReactiveTests
         Assert.That(texts, Does.Contain("Settings"), "settings header renders");
         Assert.That(texts, Does.Contain("Loading settings..."), "loading state until config/options arrive");
     }
+
+    [Test]
+    public void Dropdown_Port_OpensAndListsOptions()
+    {
+        var main = PortUiLib + PortHelpers + """
+            local Sx = require('./library/sx/index')
+            local x = Sx.x
+            local Dropdown = require('./uis/components/dropdown')
+
+            local value, setValue = Sx.createSignal(nil)
+            local picked = {}
+            Sx.render(x(Dropdown) {
+              options = { 'Alpha', 'Beta', 'Gamma' },
+              value = value,
+              onSelect = function(v)
+                picked[#picked + 1] = v
+                setValue(v)
+              end,
+            })
+
+            local root = _G.UiLib.activeRoot
+            local function texts() return table.concat(collectTexts(root), ',') end
+
+            local closed = texts()
+            -- click the trigger to open the popup
+            local trigger = findButton(root, 'Select...')
+            trigger.props.onmousedown()
+            local opened = texts()
+            -- click the 'Beta' row (string options map to 0-based values)
+            local betaRow = findButton(root, 'Beta')
+            betaRow.props.onmousedown()
+            local afterSelect = texts()
+            return closed, opened, afterSelect, tostring(picked[1])
+            """;
+
+        var result = RunPort(main);
+        var closed = result[0].Read<string>();
+        var opened = result[1].Read<string>();
+        var afterSelect = result[2].Read<string>();
+        var picked = result[3].Read<string>();
+
+        TestContext.Progress.WriteLine($"closed={closed} opened={opened} afterSelect={afterSelect} picked={picked}");
+
+        Assert.That(closed, Does.Not.Contain("Alpha"), "popup starts closed");
+        Assert.That(opened, Does.Contain("Alpha"), "opening lists the first option");
+        Assert.That(opened, Does.Contain("Beta"), "opening lists the second option");
+        Assert.That(opened, Does.Contain("Gamma"), "opening lists the third option");
+        Assert.That(picked, Is.EqualTo("1"), "selecting 'Beta' reports its 0-based value");
+        Assert.That(afterSelect, Does.Contain("Beta"), "trigger shows the selected label");
+        Assert.That(afterSelect, Does.Not.Contain("Alpha"), "popup closes after selecting");
+    }
 }
