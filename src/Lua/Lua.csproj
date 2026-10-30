@@ -10,7 +10,11 @@
     <PackageId>LuaCSharp</PackageId>
     <PackageTags>lua;interpreter</PackageTags>
     <Description>High performance Lua interpreter implemented in C# for .NET and Unity</Description>
-    <Features>$(Features);runtime-async=on</Features>
+    <!-- Off for the browser head (see NFMWorld.Browser.csproj's _RequireBrowserMarker): Mono's
+         wasm runtime rejects runtime-async at the first await with a PlatformNotSupportedException,
+         and under AOT the async methods are not compiled at all, so the call lands on a null
+         function instead. -->
+    <Features Condition="'$(NfmwBrowser)' != 'true'">$(Features);runtime-async=on</Features>
   </PropertyGroup>
 
   <ItemGroup>
